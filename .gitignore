@@ -1,0 +1,17 @@
+build/
+*/build/
+cmake-build-*/
+.cache/
+compile_commands.json
+CMakeUserPresets.json
+vcpkg_installed/
+.idea/
+.vscode/
+*.user
+__pycache__/
+*.pyc
+desktop/third_party/*
+!desktop/third_party/*.tar.gz
+!desktop/third_party/README.md
+local.properties
+.gradle/

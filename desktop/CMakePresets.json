@@ -1,0 +1,102 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 28, "patch": 0 },
+
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/../build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ECLIPSE_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux · Debug",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "ECLIPSE_WERROR": "ON" }
+    },
+    {
+      "name": "linux-release",
+      "displayName": "Linux · Release",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
+    },
+    {
+      "name": "linux-asan",
+      "displayName": "Linux · ASan + UBSan (§23.5)",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ECLIPSE_WERROR": "ON",
+        "ECLIPSE_SANITIZE_ADDRESS": "ON"
+      }
+    },
+    {
+      "name": "linux-tsan",
+      "displayName": "Linux · ThreadSanitizer (REQ-AUD-018)",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ECLIPSE_WERROR": "ON",
+        "ECLIPSE_SANITIZE_THREAD": "ON"
+      }
+    },
+    {
+      "name": "windows-debug",
+      "displayName": "Windows · Debug",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "architecture": { "value": "x64", "strategy": "external" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "ECLIPSE_WERROR": "ON" }
+    },
+    {
+      "name": "windows-release",
+      "displayName": "Windows · Release",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "architecture": { "value": "x64", "strategy": "external" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
+    },
+    {
+      "name": "windows-arm64",
+      "displayName": "Windows · Release · arm64 (REQ-GEN-001)",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "architecture": { "value": "arm64", "strategy": "external" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
+    }
+  ],
+
+  "buildPresets": [
+    { "name": "linux-debug",     "configurePreset": "linux-debug" },
+    { "name": "linux-release",   "configurePreset": "linux-release" },
+    { "name": "linux-asan",      "configurePreset": "linux-asan" },
+    { "name": "linux-tsan",      "configurePreset": "linux-tsan" },
+    { "name": "windows-debug",   "configurePreset": "windows-debug" },
+    { "name": "windows-release", "configurePreset": "windows-release" },
+    { "name": "windows-arm64",   "configurePreset": "windows-arm64" }
+  ],
+
+  "testPresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "stopOnFailure": false }
+    },
+    { "name": "linux-debug",     "inherits": "base", "configurePreset": "linux-debug" },
+    { "name": "linux-release",   "inherits": "base", "configurePreset": "linux-release" },
+    { "name": "linux-asan",      "inherits": "base", "configurePreset": "linux-asan" },
+    { "name": "linux-tsan",      "inherits": "base", "configurePreset": "linux-tsan" },
+    { "name": "windows-debug",   "inherits": "base", "configurePreset": "windows-debug" },
+    { "name": "windows-release", "inherits": "base", "configurePreset": "windows-release" }
+  ]
+}

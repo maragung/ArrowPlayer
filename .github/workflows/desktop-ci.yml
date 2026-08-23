@@ -1,0 +1,164 @@
+name: desktop-ci
+
+# Spec §25.2 (REQ-BLD-021). Matrix per §3.1: Windows and both Ubuntu LTS targets.
+#
+# Note on dependencies: the build is designed so that every external library is
+# optional at configure time (see cmake/EclipseDependencies.cmake). The domain
+# layer — which is where the audio maths, parsers and validators live — compiles
+# and tests with nothing but a C++20 compiler. Adapters are built only where
+# their library is present. That keeps this workflow fast and keeps a missing
+# system package from turning into a red build for unrelated reasons.
+
+on:
+  push:
+    branches: [main]
+    paths: ['desktop/**', 'shared-spec/**', 'tools/**', '.github/workflows/desktop-ci.yml']
+  pull_request:
+    paths: ['desktop/**', 'shared-spec/**', 'tools/**', '.github/workflows/desktop-ci.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_VERSION_FILE: desktop/qt-version.txt
+
+jobs:
+  # -------------------------------------------------------------------------
+  #  Architecture gates — cheap, and they fail fast before any compilation.
+  # -------------------------------------------------------------------------
+  gates:
+    name: architecture gates
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Layer dependency rules (REQ-GEN-051)
+        run: python3 tools/check-layers.py
+
+      - name: SQL safety — no string-built queries (REQ-SEC-009)
+        run: python3 tools/check-sql-safety.py
+
+      - name: Real-time safety annotations (REQ-AUD-017)
+        run: python3 tools/check-rt-safety.py
+
+  # -------------------------------------------------------------------------
+  #  Build and test
+  # -------------------------------------------------------------------------
+  build:
+    name: ${{ matrix.name }}
+    needs: gates
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: 'ubuntu-22.04 · gcc-12',  os: ubuntu-22.04, preset: linux-release, cc: gcc-12,  cxx: g++-12 }
+          - { name: 'ubuntu-24.04 · gcc-13',  os: ubuntu-24.04, preset: linux-release, cc: gcc-13,  cxx: g++-13 }
+          - { name: 'ubuntu-24.04 · asan',    os: ubuntu-24.04, preset: linux-asan,    cc: gcc-13,  cxx: g++-13 }
+          - { name: 'ubuntu-24.04 · tsan',    os: ubuntu-24.04, preset: linux-tsan,    cc: gcc-13,  cxx: g++-13 }
+          - { name: 'ubuntu-24.04 · clang',   os: ubuntu-24.04, preset: linux-release, cc: clang-18, cxx: clang++-18 }
+          - { name: 'windows-2022 · msvc',    os: windows-2022, preset: windows-release }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # §3.2: Ubuntu 22.04 defaults to GCC 11, whose C++20 support is incomplete.
+      # The spec requires GCC 12+, so it must be installed and selected explicitly.
+      - name: Install toolchain (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ${{ matrix.cxx }} \
+            libsqlite3-dev zlib1g-dev pkg-config
+          # Optional adapter dependencies. Failure here must not fail the build:
+          # the adapters are dependency-gated by design.
+          sudo apt-get install -y \
+            libasound2-dev libpulse-dev libtag1-dev \
+            libavformat-dev libavcodec-dev libavutil-dev libswresample-dev \
+            libsamplerate0-dev || echo "some optional adapters unavailable"
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja --no-progress
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+
+      - name: Configure
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: cmake --preset ${{ matrix.preset }}
+        working-directory: desktop
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
+        working-directory: desktop
+
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }} --parallel 4
+        working-directory: desktop
+
+      # REQ-GEN-015: mechanically assert FFmpeg is not GPL/nonfree. This is a
+      # blocking licence gate, not a review item — see §4.4.
+      - name: FFmpeg licence assertion (REQ-GEN-015)
+        if: runner.os == 'Linux'
+        run: |
+          if [ -f build/${{ matrix.preset }}/tests/test_decode ]; then
+            ./build/${{ matrix.preset }}/tests/test_decode \
+              --gtest_filter='FfmpegLicense.*'
+          else
+            echo "FFmpeg adapter not built on this runner; gate not applicable."
+          fi
+        working-directory: desktop
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output-${{ matrix.name }}
+          path: desktop/build/${{ matrix.preset }}/Testing/
+          retention-days: 7
+
+  # -------------------------------------------------------------------------
+  #  Static analysis
+  # -------------------------------------------------------------------------
+  analyse:
+    name: static analysis
+    needs: gates
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang-tidy-18 clang-format-18 \
+            cppcheck libsqlite3-dev zlib1g-dev pkg-config
+
+      - name: clang-format (REQ-BLD-004)
+        run: |
+          find desktop/src desktop/tests desktop/include -type f \
+            \( -name '*.cpp' -o -name '*.hpp' \) -print0 \
+            | xargs -0 clang-format-18 --dry-run --Werror
+
+      - name: Configure for compile database
+        run: cmake --preset linux-debug
+        working-directory: desktop
+
+      - name: clang-tidy (REQ-SEC-015)
+        run: |
+          find src tests -name '*.cpp' -print0 \
+            | xargs -0 -P 4 -n 1 clang-tidy-18 \
+                -p "../build/linux-debug" --warnings-as-errors='*'
+        working-directory: desktop
+
+      - name: cppcheck
+        run: |
+          cppcheck --enable=warning,performance,portability \
+                   --inline-suppr --error-exitcode=1 --quiet \
+                   --std=c++20 --suppress=missingIncludeSystem \
+                   -I src -I include src/
+        working-directory: desktop
