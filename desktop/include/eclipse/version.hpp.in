@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: MPL-2.0
+// Generated from version.hpp.in by CMake — REQ-BLD-007. Do not edit.
+#pragma once
+#include <string_view>
+namespace eclipse::version {
+inline constexpr int         kMajor = @PROJECT_VERSION_MAJOR@;
+inline constexpr int         kMinor = @PROJECT_VERSION_MINOR@;
+inline constexpr int         kPatch = @PROJECT_VERSION_PATCH@;
+inline constexpr std::string_view kString = "@ECLIPSE_VERSION@";
+inline constexpr std::string_view kGitSha = "@ECLIPSE_GIT_SHA@";
+inline constexpr int         kGitDirty = @ECLIPSE_GIT_DIRTY@;
+inline constexpr std::string_view kName = "Eclipse Player";
+}  // namespace eclipse::version
