@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "just-teal",
+  "name": "Just Teal",
+  "version": "1.0.0",
+  "mode": "dark",
+  "extends": "dark",
+  "color": {
+    "accent": {
+      "base": "#14B8A6"
+    }
+  }
+}

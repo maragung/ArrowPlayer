@@ -1,0 +1,2381 @@
+{
+  "schemaVersion": 1,
+  "$comment": "Conformance fixtures for Eclipse Format Strings. Source: eclipse-player.md §10. REQ-EFS-012 requires at least 150 cases covering every function, absent-value propagation, nested optional blocks, quoting and escaping, Unicode including combining marks and RTL, numeric edge cases, the output cap, and malformed-input recovery, and states plainly that BOTH engines must pass every case identically: “this file is the definition of the language; the implementations follow it.” Taken at its word, this file therefore RESOLVES questions §10 leaves open — zero-based indices, grapheme-cluster lengths, absent-versus-literal recovery, rounding, the vacuous optional block — and each resolution carries a note saying which reading was chosen and why. Those notes are normative in the same sense the cases are. Deviations found later are fixed by changing this file deliberately, never by weakening a case.",
+  "evaluationDefaults": {
+    "locale": "en-US",
+    "now": "2026-08-24T12:00:00Z",
+    "outputCapChars": 4096,
+    "lengthUnit": "graphemeCluster",
+    "indexBase": 0
+  },
+  "tracks": {
+    "kid-a": {
+      "title": "Idioteque",
+      "artist": "Radiohead",
+      "albumartist": "Radiohead",
+      "album": "Kid A",
+      "genre": "Electronic",
+      "composer": "Radiohead",
+      "comment": "",
+      "grouping": "",
+      "year": 2000,
+      "date": "2000-10-02",
+      "tracknumber": 8,
+      "discnumber": 1,
+      "duration": 500,
+      "bitrate": 1002,
+      "samplerate": 44100,
+      "bitdepth": 16,
+      "channels": 2,
+      "codec": "flac",
+      "container": "flac",
+      "islossless": true,
+      "rating": 80,
+      "loved": true,
+      "playcount": 42,
+      "skipcount": 1,
+      "lastplayed": "2026-08-01T20:14:00Z",
+      "added": "2019-03-11T09:00:00Z",
+      "bpm": 138,
+      "key": "F#m",
+      "path": "/music/Radiohead/Kid A/08 Idioteque.flac",
+      "filename": "08 Idioteque.flac",
+      "filesize": 8800000,
+      "source": "/music",
+      "playlist": "Late night",
+      "missing": false,
+      "hasartwork": true,
+      "haslyrics": false,
+      "rgtrackgain": -7.2,
+      "playing_state": "playing",
+      "position": 137,
+      "queue_index": 3,
+      "queue_total": 12,
+      "list_index": 8,
+      "list_total": 10,
+      "replaygain_applied": -7.2,
+      "is_bitperfect": 0
+    },
+    "no-album": {
+      "title": "Idioteque",
+      "artist": "Radiohead",
+      "duration": 512,
+      "playing_state": "playing",
+      "position": 0,
+      "playcount": 3,
+      "rating": 0,
+      "loved": false,
+      "codec": "flac",
+      "islossless": true,
+      "path": "/music/bootlegs/idioteque-live.flac",
+      "filename": "idioteque-live.flac",
+      "filesize": 11500000
+    },
+    "untagged": {
+      "title": "",
+      "artist": "",
+      "album": "",
+      "duration": 63,
+      "playcount": 0,
+      "rating": 0,
+      "loved": false,
+      "codec": "mp3",
+      "islossless": false,
+      "bitrate": 128,
+      "samplerate": 44100,
+      "channels": 2,
+      "path": "/music/unsorted/track01.mp3",
+      "filename": "track01.mp3",
+      "filesize": 1010000,
+      "hasartwork": false,
+      "haslyrics": false,
+      "missing": false,
+      "playing_state": "stopped"
+    },
+    "collab": {
+      "title": "I've Seen It All",
+      "artist": [
+        "Björk",
+        "Thom Yorke"
+      ],
+      "albumartist": "Björk",
+      "album": "Selmasongs",
+      "year": 2000,
+      "tracknumber": 5,
+      "discnumber": 1,
+      "duration": 325,
+      "genre": "Art Pop",
+      "codec": "flac",
+      "islossless": true,
+      "rating": 100,
+      "loved": true,
+      "playcount": 7,
+      "playing_state": "paused",
+      "position": 60
+    },
+    "unicode": {
+      "title": "Café",
+      "artist": "مقام العجم",
+      "album": "👨‍👩‍👧‍👦 Family",
+      "genre": "J-Pop",
+      "duration": 200,
+      "year": 2021,
+      "tracknumber": 3,
+      "codec": "opus",
+      "islossless": false,
+      "rating": 60
+    },
+    "long-title": {
+      "title": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "artist": "X",
+      "duration": 100,
+      "tracknumber": 1
+    },
+    "stopped": {
+      "playing_state": "stopped"
+    }
+  },
+  "cases": [
+    {
+      "id": "field-title",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%title%",
+      "expect": "Idioteque"
+    },
+    {
+      "id": "field-literal-join",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%artist% - %title%",
+      "expect": "Radiohead - Idioteque"
+    },
+    {
+      "id": "field-numeric-renders-bare",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%tracknumber%",
+      "expect": "8"
+    },
+    {
+      "id": "field-boolean-true",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%islossless%",
+      "expect": "1",
+      "note": "Booleans render as `1` and `0`, not as `true`/`false`: they are compared with $ifequal and fed to $if, both of which are string tests, and `0` must be non-empty so $if sees it as true — hence the separate $ifequal for numeric comparison."
+    },
+    {
+      "id": "field-loved-true",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%loved%",
+      "expect": "1"
+    },
+    {
+      "id": "field-boolean-false",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%missing%",
+      "expect": "0"
+    },
+    {
+      "id": "field-length-mmss",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%length%",
+      "expect": "8:20"
+    },
+    {
+      "id": "field-length-hmmss",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "$time(3661)",
+      "expect": "1:01:01",
+      "note": "`%length%` switches to h:mm:ss at one hour; $time is the same formatter, so one rule covers both."
+    },
+    {
+      "id": "field-length-seconds",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%length_seconds%",
+      "expect": "500"
+    },
+    {
+      "id": "field-position",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%position%",
+      "expect": "2:17"
+    },
+    {
+      "id": "field-remaining",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%remaining%",
+      "expect": "6:03"
+    },
+    {
+      "id": "field-playing-state",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%playing_state%",
+      "expect": "playing"
+    },
+    {
+      "id": "field-playing-state-stopped",
+      "group": "fields",
+      "track": "stopped",
+      "pattern": "%playing_state%",
+      "expect": "stopped"
+    },
+    {
+      "id": "field-queue",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%queue_index% of %queue_total%",
+      "expect": "3 of 12"
+    },
+    {
+      "id": "field-list",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%list_index%/%list_total%",
+      "expect": "8/10"
+    },
+    {
+      "id": "field-technical",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%codec% %samplerate% %bitdepth% %channels%",
+      "expect": "flac 44100 16 2"
+    },
+    {
+      "id": "field-bitrate",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%bitrate%",
+      "expect": "1002"
+    },
+    {
+      "id": "field-filesize-natural",
+      "group": "fields",
+      "track": "kid-a",
+      "locale": "en-US",
+      "pattern": "%filesize_natural%",
+      "expect": "8.8 MB",
+      "note": "Decimal MB (10^6), localised. The locale governs the decimal separator, so a de-DE run of this case expects `8,8 MB` — which is why every case pins a locale."
+    },
+    {
+      "id": "field-rating-stars",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%rating_stars%",
+      "expect": "★★★★☆",
+      "note": "Rating is stored 0-100; five glyphs at 20 points each."
+    },
+    {
+      "id": "field-replaygain-applied",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%replaygain_applied%",
+      "expect": "-7.2"
+    },
+    {
+      "id": "field-is-bitperfect",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%is_bitperfect%",
+      "expect": "0"
+    },
+    {
+      "id": "field-path",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%path%",
+      "expect": "/music/Radiohead/Kid A/08 Idioteque.flac"
+    },
+    {
+      "id": "field-filename",
+      "group": "fields",
+      "track": "kid-a",
+      "pattern": "%filename%",
+      "expect": "08 Idioteque.flac"
+    },
+    {
+      "id": "field-unknown-is-absent",
+      "group": "fields",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "%nosuchfield%",
+      "expect": "",
+      "note": "An unknown field is ABSENT, not a literal and not an error. That is what lets a pattern written for a later version degrade gracefully on an older build instead of printing `%mood%` at the user."
+    },
+    {
+      "id": "field-unknown-in-block-collapses",
+      "group": "fields",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "[%nosuchfield%]",
+      "expect": ""
+    },
+    {
+      "id": "spec-zeropad-2",
+      "group": "format-spec",
+      "track": "kid-a",
+      "pattern": "%tracknumber:02%",
+      "expect": "08"
+    },
+    {
+      "id": "spec-zeropad-3",
+      "group": "format-spec",
+      "track": "kid-a",
+      "pattern": "%tracknumber:03%",
+      "expect": "008"
+    },
+    {
+      "id": "spec-zeropad-shorter-than-value",
+      "group": "format-spec",
+      "track": "kid-a",
+      "pattern": "%samplerate:02%",
+      "expect": "44100",
+      "note": "A width narrower than the value never truncates. Zero-padding is a minimum width."
+    },
+    {
+      "id": "spec-upper",
+      "group": "format-spec",
+      "track": "kid-a",
+      "pattern": "%artist:u%",
+      "expect": "RADIOHEAD"
+    },
+    {
+      "id": "spec-lower",
+      "group": "format-spec",
+      "track": "kid-a",
+      "pattern": "%artist:l%",
+      "expect": "radiohead"
+    },
+    {
+      "id": "spec-title",
+      "group": "format-spec",
+      "track": "kid-a",
+      "pattern": "%album:t%",
+      "expect": "Kid A"
+    },
+    {
+      "id": "spec-title-from-lower",
+      "group": "format-spec",
+      "track": "kid-a",
+      "pattern": "%codec:t%",
+      "expect": "Flac"
+    },
+    {
+      "id": "spec-upper-on-absent",
+      "group": "format-spec",
+      "track": "no-album",
+      "pattern": "[%album:u%]",
+      "expect": "",
+      "note": "A case conversion on an absent field leaves it absent; it does not produce an empty non-absent string that would keep the block alive."
+    },
+    {
+      "id": "spec-lower-unicode",
+      "group": "format-spec",
+      "track": "unicode",
+      "pattern": "%genre:l%",
+      "expect": "j-pop"
+    },
+    {
+      "id": "spec-upper-rtl-unchanged",
+      "group": "format-spec",
+      "track": "unicode",
+      "pattern": "%artist:u%",
+      "expect": "مقام العجم",
+      "note": "Arabic is unicase: upper-casing it must leave every code point untouched rather than fall back to some ASCII-only transform."
+    },
+    {
+      "id": "req-efs-003-with-album",
+      "group": "optional-blocks",
+      "req": "REQ-EFS-003",
+      "track": "kid-a",
+      "pattern": "%artist% - %title%[ (%album%)]",
+      "expect": "Radiohead - Idioteque (Kid A)",
+      "note": "The normative example from §10.3, present so the spec's own illustration is a test."
+    },
+    {
+      "id": "req-efs-003-without-album",
+      "group": "optional-blocks",
+      "req": "REQ-EFS-003",
+      "track": "no-album",
+      "pattern": "%artist% - %title%[ (%album%)]",
+      "expect": "Radiohead - Idioteque"
+    },
+    {
+      "id": "block-one-of-two-present",
+      "group": "optional-blocks",
+      "req": "REQ-EFS-003",
+      "track": "kid-a",
+      "pattern": "[%album% / %genre%]",
+      "expect": "Kid A / Electronic"
+    },
+    {
+      "id": "block-partial-renders-in-full",
+      "group": "optional-blocks",
+      "req": "REQ-EFS-003",
+      "track": "kid-a",
+      "pattern": "[%artist% / %nosuchfield%]",
+      "expect": "Radiohead / ",
+      "note": "If AT LEAST ONE field reference resolves, the block renders in full — including the literals around the absent one. This is the rule that makes the feature predictable, and it is also its sharpest edge: pattern authors who want per-field bracketing must write nested blocks, as the next cases show."
+    },
+    {
+      "id": "block-nested-inner-collapses",
+      "group": "optional-blocks",
+      "track": "kid-a",
+      "pattern": "[%album%[ (%year%)]]",
+      "expect": "Kid A (2000)"
+    },
+    {
+      "id": "block-nested-inner-collapses-2",
+      "group": "optional-blocks",
+      "track": "kid-a",
+      "pattern": "[%album%[ (%nosuchfield%)]]",
+      "expect": "Kid A"
+    },
+    {
+      "id": "block-nested-outer-collapses",
+      "group": "optional-blocks",
+      "track": "kid-a",
+      "pattern": "[%nosuchfield%[ (%year%)]]",
+      "expect": "2000",
+      "note": "An inner block is evaluated on its own field references. Because %year% resolves, the inner block renders, which makes the OUTER block non-empty — so the outer block renders too, even though its own direct field reference was absent. Nesting composes upward: a block is empty only if everything inside it, at every depth, was absent."
+    },
+    {
+      "id": "block-nested-all-absent",
+      "group": "optional-blocks",
+      "track": "kid-a",
+      "pattern": "[%nosuchfield%[ (%alsomissing%)]]",
+      "expect": ""
+    },
+    {
+      "id": "block-three-deep",
+      "group": "optional-blocks",
+      "track": "kid-a",
+      "pattern": "[%artist%[ - %album%[ (%year%)]]]",
+      "expect": "Radiohead - Kid A (2000)"
+    },
+    {
+      "id": "block-three-deep-middle-absent",
+      "group": "optional-blocks",
+      "track": "kid-a",
+      "pattern": "[%artist%[ - %nope%[ (%year%)]]]",
+      "expect": "Radiohead - (2000)"
+    },
+    {
+      "id": "block-no-field-refs-renders",
+      "group": "optional-blocks",
+      "req": "REQ-EFS-003",
+      "track": "kid-a",
+      "pattern": "[ - ]",
+      "expect": " - ",
+      "note": "A block containing NO field reference renders in full. Read literally, §10.3's “every field reference inside it resolved to an absent value” is vacuously true when there are none, which would make `[ - ]` vanish. That reading is rejected here: the rule exists to hide separators belonging to absent data, and a block with no data cannot have absent data. Recorded in docs/OPEN-QUESTIONS.md."
+    },
+    {
+      "id": "block-only-function-renders",
+      "group": "optional-blocks",
+      "track": "kid-a",
+      "pattern": "[$upper(abc)]",
+      "expect": "ABC",
+      "note": "Same rule: functions do not participate in block collapse, only field references do."
+    },
+    {
+      "id": "block-function-over-absent-field",
+      "group": "optional-blocks",
+      "track": "no-album",
+      "pattern": "[$upper(%album%)]",
+      "expect": "",
+      "note": "The field reference is inside the block even though it is also inside a function, so its absence still collapses the block. Depth of nesting in functions is irrelevant."
+    },
+    {
+      "id": "block-empty",
+      "group": "optional-blocks",
+      "track": "kid-a",
+      "pattern": "[]",
+      "expect": ""
+    },
+    {
+      "id": "block-adjacent",
+      "group": "optional-blocks",
+      "track": "kid-a",
+      "pattern": "[%album%][%genre%]",
+      "expect": "Kid AElectronic"
+    },
+    {
+      "id": "block-tracknumber-default",
+      "group": "optional-blocks",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "[%tracknumber:02%. ]%artist% - %title%",
+      "expect": "08. Radiohead - Idioteque"
+    },
+    {
+      "id": "block-tracknumber-absent",
+      "group": "optional-blocks",
+      "req": "REQ-EFS-010",
+      "track": "no-album",
+      "pattern": "[%tracknumber:02%. ]%artist% - %title%",
+      "expect": "Radiohead - Idioteque"
+    },
+    {
+      "id": "req-efs-004-empty-string-field-is-absent",
+      "group": "absent-vs-empty",
+      "req": "REQ-EFS-004",
+      "track": "kid-a",
+      "pattern": "[%comment%]",
+      "expect": "",
+      "note": "`comment` is the empty string on this track. §10.4 says a field is absent if the value is NULL or empty after trimming, so an empty tag behaves exactly like a missing one — which is what a user means when they leave a field blank."
+    },
+    {
+      "id": "req-efs-004-whitespace-only-is-absent",
+      "group": "absent-vs-empty",
+      "req": "REQ-EFS-004",
+      "track": "kid-a",
+      "pattern": "[%grouping%]",
+      "expect": ""
+    },
+    {
+      "id": "req-efs-004-empty-literal-does-not-collapse",
+      "group": "absent-vs-empty",
+      "req": "REQ-EFS-004",
+      "track": "kid-a",
+      "pattern": "[''%album%]",
+      "expect": "Kid A"
+    },
+    {
+      "id": "req-efs-004-literal-keeps-block-empty-when-field-absent",
+      "group": "absent-vs-empty",
+      "req": "REQ-EFS-004",
+      "track": "no-album",
+      "pattern": "[-%album%-]",
+      "expect": "",
+      "note": "Literals inside a block do not keep it alive. Only field references count, which is the whole point: the literals are the punctuation you want removed with the data."
+    },
+    {
+      "id": "absent-untagged-title",
+      "group": "absent-vs-empty",
+      "track": "untagged",
+      "pattern": "[%title%]",
+      "expect": ""
+    },
+    {
+      "id": "absent-fallback-to-filename",
+      "group": "absent-vs-empty",
+      "track": "untagged",
+      "pattern": "$if2(%title%,%filename%)",
+      "expect": "track01.mp3",
+      "note": "The idiomatic untagged-file pattern."
+    },
+    {
+      "id": "absent-zero-is-not-absent",
+      "group": "absent-vs-empty",
+      "track": "untagged",
+      "pattern": "[%playcount%]",
+      "expect": "0",
+      "note": "Numeric zero is a value, not an absence. A play count of 0 is a fact about the track and must render; treating it as absent would hide “never played”, which is precisely the information a listener wants."
+    },
+    {
+      "id": "absent-false-is-not-absent",
+      "group": "absent-vs-empty",
+      "track": "untagged",
+      "pattern": "[%loved%]",
+      "expect": "0"
+    },
+    {
+      "id": "quote-percent",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "'%'",
+      "expect": "%"
+    },
+    {
+      "id": "quote-dollar",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "'$'",
+      "expect": "$"
+    },
+    {
+      "id": "quote-brackets",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "'['x']'",
+      "expect": "[x]"
+    },
+    {
+      "id": "quote-single-quote-pair",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "''",
+      "expect": "",
+      "note": "An empty quoted run is the escape for nothing at all; it is how a pattern separates two things that would otherwise lex as one token."
+    },
+    {
+      "id": "quote-run",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "'%artist% - %title%'",
+      "expect": "%artist% - %title%"
+    },
+    {
+      "id": "quote-inside-literal",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "Track '['%tracknumber%']'",
+      "expect": "Track [8]"
+    },
+    {
+      "id": "quote-percent-then-field",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "'%'%tracknumber%",
+      "expect": "%8"
+    },
+    {
+      "id": "quote-dollar-then-function",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "'$'$upper(x)",
+      "expect": "$X"
+    },
+    {
+      "id": "quote-adjacent-quoted-runs",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "'a''b'",
+      "expect": "ab"
+    },
+    {
+      "id": "quote-unclosed-runs-to-end",
+      "group": "quoting",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "'abc",
+      "expect": "abc",
+      "note": "An unterminated quoted run is closed at the end of the pattern rather than being an error, per REQ-EFS-006's “renders as much as it can”."
+    },
+    {
+      "id": "quote-comma-in-function-arg",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "$if(1,'a,b',c)",
+      "expect": "a,b",
+      "note": "Quoting is how a comma survives inside an argument list. Without it the argument would split and $if would see the wrong arity."
+    },
+    {
+      "id": "quote-bracket-in-function-arg",
+      "group": "quoting",
+      "track": "kid-a",
+      "pattern": "$upper('[')",
+      "expect": "["
+    },
+    {
+      "id": "if-true",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if(%album%,yes,no)",
+      "expect": "yes"
+    },
+    {
+      "id": "if-false",
+      "group": "conditional",
+      "track": "no-album",
+      "pattern": "$if(%album%,yes,no)",
+      "expect": "no"
+    },
+    {
+      "id": "if-no-else",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if(%album%,yes)",
+      "expect": "yes"
+    },
+    {
+      "id": "if-no-else-false",
+      "group": "conditional",
+      "track": "no-album",
+      "pattern": "$if(%album%,yes)",
+      "expect": ""
+    },
+    {
+      "id": "if-zero-is-truthy",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if(0,yes,no)",
+      "expect": "yes",
+      "note": "$if tests for a NON-EMPTY string, not for truth. `0` is non-empty. Numeric truth is $ifequal's job — keeping the two apart is why both exist."
+    },
+    {
+      "id": "if-nested",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if(%album%,$if(%year%,both,album only),neither)",
+      "expect": "both"
+    },
+    {
+      "id": "if2-first",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if2(%album%,%genre%)",
+      "expect": "Kid A"
+    },
+    {
+      "id": "if2-second",
+      "group": "conditional",
+      "track": "no-album",
+      "pattern": "$if2(%album%,%genre%)",
+      "expect": ""
+    },
+    {
+      "id": "if2-second-present",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if2(%nope%,%artist%)",
+      "expect": "Radiohead"
+    },
+    {
+      "id": "if3-first-non-empty",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if3(%nope%,%album%,%genre%)",
+      "expect": "Kid A"
+    },
+    {
+      "id": "if3-falls-through",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if3(%nope%,%alsonope%,%genre%)",
+      "expect": "Electronic"
+    },
+    {
+      "id": "if3-all-absent",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if3(%a%,%b%,%c%)",
+      "expect": ""
+    },
+    {
+      "id": "if3-many-args",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$if3(%a%,%b%,%c%,%d%,%artist%)",
+      "expect": "Radiohead"
+    },
+    {
+      "id": "ifequal-equal",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$ifequal(%tracknumber%,8,match,differ)",
+      "expect": "match"
+    },
+    {
+      "id": "ifequal-unequal",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$ifequal(%tracknumber%,9,match,differ)",
+      "expect": "differ"
+    },
+    {
+      "id": "ifequal-numeric-not-textual",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$ifequal(08,8,match,differ)",
+      "expect": "match",
+      "note": "Numeric equality, so `08` equals `8`. A string comparison would say otherwise, and §10.5 is explicit that these are numeric."
+    },
+    {
+      "id": "ifequal-non-numeric-is-absent",
+      "group": "conditional",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$ifequal(abc,8,match,differ)",
+      "expect": "",
+      "note": "Non-numeric input to a numeric function yields ABSENT, never an error dialog (REQ-EFS-005). The whole call disappears; neither branch is taken."
+    },
+    {
+      "id": "ifgreater-true",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$ifgreater(%playcount%,10,popular,rare)",
+      "expect": "popular"
+    },
+    {
+      "id": "ifgreater-false-on-equal",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$ifgreater(%playcount%,42,gt,not)",
+      "expect": "not",
+      "note": "Strictly greater."
+    },
+    {
+      "id": "ifless-true",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$ifless(%skipcount%,5,few,many)",
+      "expect": "few"
+    },
+    {
+      "id": "ifless-negative",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$ifless(-3,0,neg,pos)",
+      "expect": "neg"
+    },
+    {
+      "id": "iflonger-true",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$iflonger(%title%,5,long,short)",
+      "expect": "long",
+      "note": "$iflonger compares STRING LENGTH, not numeric value — the one comparison in this group that is not numeric, which is why it has its own name."
+    },
+    {
+      "id": "iflonger-false",
+      "group": "conditional",
+      "track": "kid-a",
+      "pattern": "$iflonger(%title%,20,long,short)",
+      "expect": "short"
+    },
+    {
+      "id": "iflonger-graphemes",
+      "group": "conditional",
+      "track": "unicode",
+      "pattern": "$iflonger(%title%,4,long,short)",
+      "expect": "short",
+      "note": "“Café” is 4 grapheme clusters (5 code points). Length is measured in grapheme clusters throughout EFS; see the unicode group."
+    },
+    {
+      "id": "upper",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$upper(%artist%)",
+      "expect": "RADIOHEAD"
+    },
+    {
+      "id": "lower",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$lower(%artist%)",
+      "expect": "radiohead"
+    },
+    {
+      "id": "title-simple",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$title(%album%)",
+      "expect": "Kid A"
+    },
+    {
+      "id": "title-lowercases-rest",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$title(RADIOHEAD)",
+      "expect": "Radiohead",
+      "note": "$title normalises the whole word: first letter up, remainder down. $caps only raises the first letter and leaves the rest as typed — that is the difference between them."
+    },
+    {
+      "id": "caps-preserves-rest",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$caps(RADIOHEAD)",
+      "expect": "RADIOHEAD"
+    },
+    {
+      "id": "caps-raises-first",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$caps(radiohead rocks)",
+      "expect": "Radiohead Rocks"
+    },
+    {
+      "id": "trim",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$trim('  padded  ')",
+      "expect": "padded"
+    },
+    {
+      "id": "trim-inner-preserved",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$trim('  a  b  ')",
+      "expect": "a  b"
+    },
+    {
+      "id": "len",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$len(%artist%)",
+      "expect": "9"
+    },
+    {
+      "id": "len-empty",
+      "group": "string",
+      "track": "no-album",
+      "pattern": "$len(%album%)",
+      "expect": "0",
+      "note": "$len of an absent field is 0, not absent: a length is always answerable."
+    },
+    {
+      "id": "sub-start-only",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$sub(%artist%,4)",
+      "expect": "ohead",
+      "note": "$sub is ZERO-BASED. Fixtures are the definition, and this one exists because a one-based reading is equally plausible and silently produces off-by-one output everywhere."
+    },
+    {
+      "id": "sub-start-len",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$sub(%artist%,0,5)",
+      "expect": "Radio"
+    },
+    {
+      "id": "sub-past-end",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$sub(%artist%,50,5)",
+      "expect": "",
+      "note": "Out-of-range indices clamp to the string and yield the empty string. They do not yield absent, and they do not error."
+    },
+    {
+      "id": "sub-len-past-end",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$sub(%artist%,5,99)",
+      "expect": "head"
+    },
+    {
+      "id": "sub-negative-start",
+      "group": "string",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$sub(%artist%,-3)",
+      "expect": "",
+      "note": "A negative index is invalid input to a numeric parameter, so the call is absent. Python-style negative indexing is deliberately NOT provided; it would make $sub(s,-1) mean two different things to two authors."
+    },
+    {
+      "id": "left",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$left(%artist%,5)",
+      "expect": "Radio"
+    },
+    {
+      "id": "left-longer-than-string",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$left(%artist%,99)",
+      "expect": "Radiohead"
+    },
+    {
+      "id": "left-zero",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$left(%artist%,0)",
+      "expect": ""
+    },
+    {
+      "id": "right",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$right(%artist%,4)",
+      "expect": "head"
+    },
+    {
+      "id": "right-longer-than-string",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$right(%artist%,99)",
+      "expect": "Radiohead"
+    },
+    {
+      "id": "pad-left",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$pad(%tracknumber%,4)",
+      "expect": "   8",
+      "note": "$pad right-ALIGNS by padding on the left. The name describes the operation, the direction is the default because right-aligned numbers are the common case in a playlist column."
+    },
+    {
+      "id": "pad-custom-char",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$pad(%tracknumber%,4,0)",
+      "expect": "0008"
+    },
+    {
+      "id": "pad-never-truncates",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$pad(%artist%,3)",
+      "expect": "Radiohead",
+      "note": "$pad is a minimum width. $fixed is the function that also cuts."
+    },
+    {
+      "id": "padright",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$padright(%tracknumber%,4)",
+      "expect": "8   "
+    },
+    {
+      "id": "padright-custom-char",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$padright(%tracknumber%,4,.)",
+      "expect": "8..."
+    },
+    {
+      "id": "cut",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$cut(%artist%,5)",
+      "expect": "Radio"
+    },
+    {
+      "id": "cut-no-ellipsis",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$cut(%title%,4)",
+      "expect": "Idio",
+      "note": "No ellipsis, by design: the caller adds one if they want it, so a column that is exactly N wide stays exactly N wide."
+    },
+    {
+      "id": "cut-longer-than-string",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$cut(%artist%,99)",
+      "expect": "Radiohead"
+    },
+    {
+      "id": "cut-zero",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$cut(%artist%,0)",
+      "expect": ""
+    },
+    {
+      "id": "abbr",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$abbr(%album%)",
+      "expect": "KA"
+    },
+    {
+      "id": "abbr-multiword",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$abbr('The Bends')",
+      "expect": "TB"
+    },
+    {
+      "id": "abbr-with-threshold-under",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$abbr(%album%,10)",
+      "expect": "Kid A",
+      "note": "With a threshold, $abbr only abbreviates when the string is LONGER than n. Under the threshold it returns the string untouched, which is what makes it usable in a column that must not shrink short values."
+    },
+    {
+      "id": "abbr-with-threshold-over",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$abbr('Amnesiac Deluxe Edition',10)",
+      "expect": "ADE"
+    },
+    {
+      "id": "replace",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$replace(%artist%,head,HEAD)",
+      "expect": "RadioHEAD"
+    },
+    {
+      "id": "replace-all-occurrences",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$replace(aXbXc,X,-)",
+      "expect": "a-b-c",
+      "note": "Every occurrence, not just the first."
+    },
+    {
+      "id": "replace-not-found",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$replace(%artist%,zzz,x)",
+      "expect": "Radiohead"
+    },
+    {
+      "id": "replace-with-empty",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$replace(%artist%,head,)",
+      "expect": "Radio"
+    },
+    {
+      "id": "strchr-found",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$strchr(%artist%,d)",
+      "expect": "2",
+      "note": "ZERO-BASED index of the first occurrence, consistent with $sub. Not found is absent, not 0 — because 0 is a real answer for a match at the start, and a sentinel that collides with a valid result is a bug waiting to be written."
+    },
+    {
+      "id": "strchr-first-of-repeats",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$strchr(%artist%,a)",
+      "expect": "1"
+    },
+    {
+      "id": "strchr-not-found",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$strchr(%artist%,z)",
+      "expect": ""
+    },
+    {
+      "id": "strstr-found",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$strstr(%artist%,head)",
+      "expect": "5"
+    },
+    {
+      "id": "strstr-at-start",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$strstr(%artist%,Radio)",
+      "expect": "0"
+    },
+    {
+      "id": "strstr-not-found",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$strstr(%artist%,zzz)",
+      "expect": ""
+    },
+    {
+      "id": "insert",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$insert(%artist%,-,5)",
+      "expect": "Radio-head"
+    },
+    {
+      "id": "insert-at-zero",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$insert(%artist%,>,0)",
+      "expect": ">Radiohead"
+    },
+    {
+      "id": "insert-past-end-clamps",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$insert(%artist%,!,99)",
+      "expect": "Radiohead!"
+    },
+    {
+      "id": "repeat",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$repeat(ab,3)",
+      "expect": "ababab"
+    },
+    {
+      "id": "repeat-zero",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$repeat(ab,0)",
+      "expect": ""
+    },
+    {
+      "id": "repeat-at-limit",
+      "group": "string",
+      "req": "REQ-EFS-009",
+      "track": "kid-a",
+      "pattern": "$repeat(x,256)",
+      "expect": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "id": "repeat-over-limit-is-absent",
+      "group": "string",
+      "req": "REQ-EFS-009",
+      "track": "kid-a",
+      "pattern": "$repeat(x,257)",
+      "expect": "",
+      "note": "§10.5 caps n at 256 and says it is enforced. Enforcement is refusal, not silent clamping: a pattern that asked for 257 gets nothing, so the author sees the limit instead of quietly receiving different output than they wrote."
+    },
+    {
+      "id": "meta-sep-default",
+      "group": "string",
+      "track": "collab",
+      "pattern": "$meta_sep(artist)",
+      "expect": "Björk; Thom Yorke",
+      "note": "Default separator is `; `, matching the library's default multi-value separator so a round trip through tag and display is stable."
+    },
+    {
+      "id": "meta-sep-custom",
+      "group": "string",
+      "track": "collab",
+      "pattern": "$meta_sep(artist, & )",
+      "expect": "Björk & Thom Yorke"
+    },
+    {
+      "id": "meta-sep-single-value",
+      "group": "string",
+      "track": "kid-a",
+      "pattern": "$meta_sep(artist)",
+      "expect": "Radiohead",
+      "note": "A single-valued field is a one-element list; no separator appears."
+    },
+    {
+      "id": "meta-sep-absent",
+      "group": "string",
+      "track": "no-album",
+      "pattern": "[$meta_sep(album)]",
+      "expect": ""
+    },
+    {
+      "id": "meta-sep-takes-field-name-not-ref",
+      "group": "string",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$meta_sep(%artist%)",
+      "expect": "",
+      "note": "$meta_sep is the one function taking a FIELD NAME rather than a value, because a joined string has already lost the list. Passing `%artist%` passes the joined value, which is not a field name, so the call is absent."
+    },
+    {
+      "id": "add-two",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$add(2,3)",
+      "expect": "5"
+    },
+    {
+      "id": "add-many",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$add(1,2,3,4)",
+      "expect": "10"
+    },
+    {
+      "id": "add-field",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$add(%tracknumber%,1)",
+      "expect": "9"
+    },
+    {
+      "id": "add-negative",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$add(5,-8)",
+      "expect": "-3"
+    },
+    {
+      "id": "sub2",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$sub2(10,4)",
+      "expect": "6"
+    },
+    {
+      "id": "sub2-negative-result",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$sub2(4,10)",
+      "expect": "-6"
+    },
+    {
+      "id": "sub2-not-sub",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$sub2(%duration%,%position%)",
+      "expect": "363",
+      "note": "The subtraction function is `$sub2` because `$sub` was already taken by substring. An unfortunate name fixed by the spec, not by the implementation."
+    },
+    {
+      "id": "mul",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$mul(6,7)",
+      "expect": "42"
+    },
+    {
+      "id": "mul-many",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$mul(2,3,4)",
+      "expect": "24"
+    },
+    {
+      "id": "mul-by-zero",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$mul(%playcount%,0)",
+      "expect": "0"
+    },
+    {
+      "id": "div-exact",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$div(10,2)",
+      "expect": "5"
+    },
+    {
+      "id": "div-fractional",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$div(7,2)",
+      "expect": "3.5",
+      "note": "Division produces a decimal result with trailing zeros trimmed. Integer-only division would make $div useless for the ratios patterns actually want."
+    },
+    {
+      "id": "div-repeating",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$div(1,3)",
+      "expect": "0.333333",
+      "note": "Six fractional digits, then stop. A fixed precision is required for cross-platform identity: two engines rounding differently would fail REQ-GEN-031."
+    },
+    {
+      "id": "div-by-zero-is-absent",
+      "group": "numeric",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$div(%playcount%,0)",
+      "expect": "",
+      "note": "§10.5 states it outright: ÷0 yields absent. Not an error, not infinity, not zero."
+    },
+    {
+      "id": "div-by-zero-in-block",
+      "group": "numeric",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "[$div(1,0)]",
+      "expect": ""
+    },
+    {
+      "id": "div-negative",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$div(-9,2)",
+      "expect": "-4.5"
+    },
+    {
+      "id": "mod",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$mod(10,3)",
+      "expect": "1"
+    },
+    {
+      "id": "mod-by-zero-is-absent",
+      "group": "numeric",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$mod(10,0)",
+      "expect": ""
+    },
+    {
+      "id": "mod-negative",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$mod(-10,3)",
+      "expect": "-1",
+      "note": "Truncated division, so the result takes the sign of the dividend — C and SQL semantics, not Python's."
+    },
+    {
+      "id": "min",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$min(5,3,9)",
+      "expect": "3"
+    },
+    {
+      "id": "min-negative",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$min(-5,3)",
+      "expect": "-5"
+    },
+    {
+      "id": "max",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$max(5,3,9)",
+      "expect": "9"
+    },
+    {
+      "id": "max-single-arg",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$max(7)",
+      "expect": "7"
+    },
+    {
+      "id": "num-zeropad",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$num(%tracknumber%,3)",
+      "expect": "008"
+    },
+    {
+      "id": "num-wider-than-width",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$num(44100,2)",
+      "expect": "44100"
+    },
+    {
+      "id": "num-negative",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$num(-5,3)",
+      "expect": "-005",
+      "note": "The width applies to the digits; the sign is extra. The alternative — counting the sign in the width — makes a column of mixed-sign numbers misalign."
+    },
+    {
+      "id": "round-no-dp",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$round(3.7)",
+      "expect": "4"
+    },
+    {
+      "id": "round-half-away-from-zero",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$round(2.5)",
+      "expect": "3",
+      "note": "Half away from zero, not banker's rounding. Both engines must agree, and “round half up” is what a user predicts."
+    },
+    {
+      "id": "round-negative-half",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$round(-2.5)",
+      "expect": "-3"
+    },
+    {
+      "id": "round-dp",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$round(3.14159,2)",
+      "expect": "3.14"
+    },
+    {
+      "id": "round-dp-pads-nothing",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$round(3.1,3)",
+      "expect": "3.1",
+      "note": "$round does not pad to the requested precision; it limits it. $fixed pads."
+    },
+    {
+      "id": "abs-negative",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$abs(-7.2)",
+      "expect": "7.2"
+    },
+    {
+      "id": "abs-positive",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$abs(42)",
+      "expect": "42"
+    },
+    {
+      "id": "abs-field",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$abs(%replaygain_applied%)",
+      "expect": "7.2"
+    },
+    {
+      "id": "numeric-non-numeric-arg",
+      "group": "numeric",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$add(abc,1)",
+      "expect": ""
+    },
+    {
+      "id": "numeric-absent-arg",
+      "group": "numeric",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$add(%nope%,1)",
+      "expect": "",
+      "note": "An absent operand makes the whole numeric call absent rather than defaulting to 0. Defaulting would turn missing data into a confident wrong number."
+    },
+    {
+      "id": "numeric-overflow-is-absent",
+      "group": "numeric",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$mul(9223372036854775807,2)",
+      "expect": "",
+      "note": "Arithmetic is 64-bit signed. Overflow yields absent instead of wrapping, because a wrapped total displayed as fact is worse than no total."
+    },
+    {
+      "id": "numeric-underflow-is-absent",
+      "group": "numeric",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$sub2(-9223372036854775808,1)",
+      "expect": ""
+    },
+    {
+      "id": "numeric-huge-literal-is-absent",
+      "group": "numeric",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$add(99999999999999999999,1)",
+      "expect": ""
+    },
+    {
+      "id": "numeric-nested",
+      "group": "numeric",
+      "track": "kid-a",
+      "pattern": "$add($mul(2,3),$div(10,5))",
+      "expect": "8"
+    },
+    {
+      "id": "numeric-nested-absent-propagates",
+      "group": "numeric",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$add($div(1,0),5)",
+      "expect": ""
+    },
+    {
+      "id": "time-mmss",
+      "group": "time",
+      "track": "kid-a",
+      "pattern": "$time(500)",
+      "expect": "8:20"
+    },
+    {
+      "id": "time-under-a-minute",
+      "group": "time",
+      "track": "kid-a",
+      "pattern": "$time(63)",
+      "expect": "1:03"
+    },
+    {
+      "id": "time-zero",
+      "group": "time",
+      "track": "kid-a",
+      "pattern": "$time(0)",
+      "expect": "0:00"
+    },
+    {
+      "id": "time-hmmss",
+      "group": "time",
+      "track": "kid-a",
+      "pattern": "$time(3661)",
+      "expect": "1:01:01"
+    },
+    {
+      "id": "time-exactly-one-hour",
+      "group": "time",
+      "track": "kid-a",
+      "pattern": "$time(3600)",
+      "expect": "1:00:00",
+      "note": "At exactly one hour the format switches; 60:00 would be wrong."
+    },
+    {
+      "id": "time-negative-is-absent",
+      "group": "time",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$time(-5)",
+      "expect": ""
+    },
+    {
+      "id": "time-non-numeric-is-absent",
+      "group": "time",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$time(abc)",
+      "expect": ""
+    },
+    {
+      "id": "timems",
+      "group": "time",
+      "track": "kid-a",
+      "pattern": "$timems(500499)",
+      "expect": "8:20",
+      "note": "Truncates toward zero rather than rounding: a position of 8:20.9 is still inside the 8:20 second, and a clock that reads 8:21 while 8:20 is playing looks broken."
+    },
+    {
+      "id": "timems-zero",
+      "group": "time",
+      "track": "kid-a",
+      "pattern": "$timems(0)",
+      "expect": "0:00"
+    },
+    {
+      "id": "date-default-medium",
+      "group": "time",
+      "track": "kid-a",
+      "locale": "en-US",
+      "pattern": "$date('2000-10-02')",
+      "expect": "Oct 2, 2000"
+    },
+    {
+      "id": "date-explicit-pattern",
+      "group": "time",
+      "track": "kid-a",
+      "locale": "en-US",
+      "pattern": "$date('2000-10-02','yyyy-MM-dd')",
+      "expect": "2000-10-02",
+      "note": "Patterns are Unicode LDML field symbols, which both Qt and Android already speak, so one pattern string works on both platforms."
+    },
+    {
+      "id": "date-month-year",
+      "group": "time",
+      "track": "kid-a",
+      "locale": "en-US",
+      "pattern": "$date('2000-10-02','MMMM yyyy')",
+      "expect": "October 2000"
+    },
+    {
+      "id": "date-from-field",
+      "group": "time",
+      "track": "kid-a",
+      "locale": "en-US",
+      "pattern": "$date(%date%,'yyyy')",
+      "expect": "2000"
+    },
+    {
+      "id": "date-invalid-is-absent",
+      "group": "time",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "locale": "en-US",
+      "pattern": "$date('not-a-date')",
+      "expect": ""
+    },
+    {
+      "id": "year",
+      "group": "time",
+      "track": "kid-a",
+      "pattern": "$year('2000-10-02')",
+      "expect": "2000"
+    },
+    {
+      "id": "year-from-datetime",
+      "group": "time",
+      "track": "kid-a",
+      "pattern": "$year(%added%)",
+      "expect": "2019"
+    },
+    {
+      "id": "year-invalid-is-absent",
+      "group": "time",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$year(xyz)",
+      "expect": ""
+    },
+    {
+      "id": "age-days",
+      "group": "time",
+      "track": "kid-a",
+      "locale": "en-US",
+      "now": "2026-08-24T12:00:00Z",
+      "pattern": "$age(%lastplayed%)",
+      "expect": "22 days ago",
+      "note": "Relative to the evaluation instant, which every fixture pins with `now` — an unpinned relative time is untestable."
+    },
+    {
+      "id": "age-years",
+      "group": "time",
+      "track": "kid-a",
+      "locale": "en-US",
+      "now": "2026-08-24T12:00:00Z",
+      "pattern": "$age(%added%)",
+      "expect": "7 years ago"
+    },
+    {
+      "id": "age-invalid-is-absent",
+      "group": "time",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "now": "2026-08-24T12:00:00Z",
+      "pattern": "$age(nope)",
+      "expect": ""
+    },
+    {
+      "id": "char-decimal",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$char(8212)",
+      "expect": "—",
+      "note": "Decimal code point. Hex would need a prefix convention and a second parse path."
+    },
+    {
+      "id": "char-ascii",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$char(65)",
+      "expect": "A"
+    },
+    {
+      "id": "char-astral",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$char(127925)",
+      "expect": "🎵"
+    },
+    {
+      "id": "char-zero-is-absent",
+      "group": "presentation",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$char(0)",
+      "expect": "",
+      "note": "U+0000 in a display string is a truncation bug in whatever renders it later."
+    },
+    {
+      "id": "char-surrogate-is-absent",
+      "group": "presentation",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$char(55296)",
+      "expect": "",
+      "note": "A lone surrogate is not a character. Accepting it would let a pattern produce ill-formed UTF-8/UTF-16."
+    },
+    {
+      "id": "char-out-of-range-is-absent",
+      "group": "presentation",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$char(1114112)",
+      "expect": ""
+    },
+    {
+      "id": "crlf",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "a$crlf()b",
+      "expect": "a\nb",
+      "note": "One line separator, U+000A, regardless of platform. The name is historical; emitting CRLF on Windows would make the same pattern produce different strings on the two desktops and break REQ-GEN-031."
+    },
+    {
+      "id": "tab",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "a$tab()b",
+      "expect": "a\tb"
+    },
+    {
+      "id": "progress-midway",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$progress(137,500,20)",
+      "expect": "=====---------------"
+    },
+    {
+      "id": "progress-start",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$progress(0,500,10)",
+      "expect": "----------"
+    },
+    {
+      "id": "progress-end",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$progress(500,500,10)",
+      "expect": "=========="
+    },
+    {
+      "id": "progress-custom-chars",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$progress(1,4,8,#,.)",
+      "expect": "##......"
+    },
+    {
+      "id": "progress-total-zero-is-absent",
+      "group": "presentation",
+      "req": "REQ-EFS-005",
+      "track": "kid-a",
+      "pattern": "$progress(1,0,10)",
+      "expect": ""
+    },
+    {
+      "id": "progress-width-over-cap-is-absent",
+      "group": "presentation",
+      "req": "REQ-EFS-009",
+      "track": "kid-a",
+      "pattern": "$progress(1,2,257)",
+      "expect": "",
+      "note": "Width is capped at 256 for the same reason $repeat is: a downloaded skin must not be able to ask for a megabyte of bar."
+    },
+    {
+      "id": "stars-default-max",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$stars(80)",
+      "expect": "★★★★☆"
+    },
+    {
+      "id": "stars-rounds-half-up",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$stars(90)",
+      "expect": "★★★★★",
+      "note": "90/100 of five stars is 4.5, which rounds to 5 — consistent with $round."
+    },
+    {
+      "id": "stars-zero",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$stars(0)",
+      "expect": "☆☆☆☆☆"
+    },
+    {
+      "id": "stars-custom-max",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$stars(90,10)",
+      "expect": "★★★★★★★★★☆"
+    },
+    {
+      "id": "stars-from-field",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$stars(%rating%)",
+      "expect": "★★★★☆"
+    },
+    {
+      "id": "fixed-pads",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$fixed(%tracknumber%,4)",
+      "expect": "8   ",
+      "note": "$fixed guarantees exactly n: it pads on the right OR cuts. It is the function for a column that must never reflow."
+    },
+    {
+      "id": "fixed-cuts",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$fixed(%artist%,5)",
+      "expect": "Radio"
+    },
+    {
+      "id": "fixed-exact",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$fixed(%album%,5)",
+      "expect": "Kid A"
+    },
+    {
+      "id": "fixed-zero",
+      "group": "presentation",
+      "track": "kid-a",
+      "pattern": "$fixed(%artist%,0)",
+      "expect": ""
+    },
+    {
+      "id": "unicode-combining-len",
+      "group": "unicode",
+      "req": "REQ-EFS-012",
+      "track": "unicode",
+      "pattern": "$len(%title%)",
+      "expect": "4",
+      "note": "“Café” is e + U+0301 COMBINING ACUTE: 5 code points, 4 grapheme clusters. Every length and index in EFS counts GRAPHEME CLUSTERS, because the functions exist to fit text into a column and a user counts what they see."
+    },
+    {
+      "id": "unicode-combining-cut-keeps-mark",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$cut(%title%,4)",
+      "expect": "Café",
+      "note": "Cutting at 4 must not strand the combining mark or drop it — the accent belongs to the `e`, and splitting between them produces a different word."
+    },
+    {
+      "id": "unicode-combining-cut-before-mark",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$cut(%title%,3)",
+      "expect": "Caf"
+    },
+    {
+      "id": "unicode-combining-left",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$left(%title%,4)",
+      "expect": "Café"
+    },
+    {
+      "id": "unicode-combining-upper",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$upper(%title%)",
+      "expect": "CAFÉ",
+      "note": "Case mapping is per grapheme: the base letter changes, the mark survives."
+    },
+    {
+      "id": "unicode-zwj-emoji-is-one-grapheme",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$len($cut(%album%,1))",
+      "expect": "1",
+      "note": "The family emoji is four people joined by ZWJ — 7 code points, one grapheme. Cutting at 1 must yield the whole family, not a lone man followed by a dangling joiner."
+    },
+    {
+      "id": "unicode-zwj-emoji-cut",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$cut(%album%,1)",
+      "expect": "👨‍👩‍👧‍👦"
+    },
+    {
+      "id": "unicode-zwj-emoji-len",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$len(%album%)",
+      "expect": "8",
+      "note": "Family + space + F,a,m,i,l,y = 8 grapheme clusters."
+    },
+    {
+      "id": "unicode-rtl-len",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$len(%artist%)",
+      "expect": "10"
+    },
+    {
+      "id": "unicode-rtl-sub",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$sub(%artist%,0,4)",
+      "expect": "مقام",
+      "note": "Indexing is in LOGICAL order — the order the code points are stored, not the visual order they display in. An implementation that indexes visually would return the wrong substring here and pass every Latin-only test."
+    },
+    {
+      "id": "unicode-rtl-no-bidi-marks-added",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "%artist%",
+      "expect": "مقام العجم",
+      "note": "EFS never injects LRM/RLM or isolate characters. Bidi presentation is the renderer's job; a formatter that added control characters would make the string unequal to the tag it came from and break comparison and search."
+    },
+    {
+      "id": "unicode-mixed-direction",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "%artist% - %genre%",
+      "expect": "مقام العجم - J-Pop"
+    },
+    {
+      "id": "unicode-title-case-non-ascii",
+      "group": "unicode",
+      "track": "kid-a",
+      "pattern": "$title(björk)",
+      "expect": "Björk"
+    },
+    {
+      "id": "unicode-lower-turkish-not-special-cased",
+      "group": "unicode",
+      "track": "kid-a",
+      "locale": "tr-TR",
+      "pattern": "$lower(I)",
+      "expect": "i",
+      "note": "Case mapping is LOCALE-INDEPENDENT in EFS, so Turkish dotless-ı is not produced even under tr-TR. Locale affects dates, numbers, and durations; it must not affect case, or the same pattern would produce different strings for two users looking at the same library — and REQ-GEN-031 requires identical results."
+    },
+    {
+      "id": "unicode-pad-counts-graphemes",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$padright(%title%,6,.)",
+      "expect": "Café.."
+    },
+    {
+      "id": "unicode-fixed-counts-graphemes",
+      "group": "unicode",
+      "track": "unicode",
+      "pattern": "$fixed(%title%,3)",
+      "expect": "Caf"
+    },
+    {
+      "id": "cap-under-limit",
+      "group": "output-cap",
+      "req": "REQ-EFS-009",
+      "track": "kid-a",
+      "pattern": "$repeat(ab,256)",
+      "expect": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+    },
+    {
+      "id": "cap-nested-repeat-truncates",
+      "group": "output-cap",
+      "req": "REQ-EFS-009",
+      "track": "kid-a",
+      "pattern": "$repeat($repeat(ab,256),256)",
+      "expect": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+      "note": "Inner 512 chars × 256 would be 131,072. The pattern is truncated at exactly 4096 characters. Nesting is how the per-call limit of 256 is escaped, which is why the cap is on the OUTPUT of an evaluation and not only on the arguments."
+    },
+    {
+      "id": "cap-concatenation-truncates",
+      "group": "output-cap",
+      "req": "REQ-EFS-009",
+      "track": "kid-a",
+      "pattern": "$repeat(ab,256)$repeat(ab,256)$repeat(ab,256)$repeat(ab,256)$repeat(ab,256)$repeat(ab,256)$repeat(ab,256)$repeat(ab,256)$repeat(ab,256)",
+      "expect": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+    },
+    {
+      "id": "cap-truncation-counts-graphemes",
+      "group": "output-cap",
+      "req": "REQ-EFS-009",
+      "track": "kid-a",
+      "pattern": "$repeat($repeat(é,256),256)",
+      "expect": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+      "note": "65,536 graphemes requested, 4096 kept. The cap counts the way $len counts, so a string of 2-byte characters yields 4096 of them and not the 2048 a byte budget would leave. Both engines must cut at the same place or REQ-GEN-031 fails on the very first pathological skin."
+    },
+    {
+      "id": "cap-boundary-exact",
+      "group": "output-cap",
+      "req": "REQ-EFS-009",
+      "track": "kid-a",
+      "pattern": "$repeat(x,256)$repeat(y,256)",
+      "expect": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+    },
+    {
+      "id": "malformed-unterminated-field",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "%artist",
+      "expect": "%artist",
+      "note": "Renders the literal remainder. The editor is told about the parse error; the surface is not blanked."
+    },
+    {
+      "id": "malformed-unterminated-field-after-text",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "by %artist",
+      "expect": "by %artist"
+    },
+    {
+      "id": "malformed-lone-percent",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "100% done",
+      "expect": "100% done",
+      "note": "An unpaired `%` is common in real user text and must not destroy the pattern."
+    },
+    {
+      "id": "malformed-empty-field-ref",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "%%",
+      "expect": "%%"
+    },
+    {
+      "id": "malformed-unclosed-function",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "$upper(abc",
+      "expect": "$upper(abc",
+      "note": "An unclosed call cannot be applied, so it renders exactly as typed — visible to the author rather than silently swallowed."
+    },
+    {
+      "id": "malformed-unknown-function",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "$nosuch(x)",
+      "expect": "$nosuch(x)",
+      "note": "The function set is closed (REQ-EFS-008). A typo renders literally so the author sees it; contrast an unknown FIELD, which is absent because fields legitimately vary by track and by version."
+    },
+    {
+      "id": "malformed-wrong-arity",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "$if()",
+      "expect": "$if()",
+      "note": "The rule: a function that cannot be APPLIED (unknown name, wrong arity) renders literally; a function that is applied but gets invalid operands yields absent. One rule, two outcomes, no third case."
+    },
+    {
+      "id": "malformed-too-many-args",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "$upper(a,b)",
+      "expect": "$upper(a,b)"
+    },
+    {
+      "id": "malformed-unclosed-block",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "[%album%",
+      "expect": "[Kid A",
+      "note": "An unclosed `[` renders as a literal bracket and the remainder still evaluates. The alternative — closing it implicitly at end of pattern — would let a stray bracket silently hide the whole tail of a pattern on tracks with missing data."
+    },
+    {
+      "id": "malformed-unmatched-close",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "%album%]",
+      "expect": "Kid A]"
+    },
+    {
+      "id": "malformed-lone-dollar",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "cost: $5",
+      "expect": "cost: $5"
+    },
+    {
+      "id": "malformed-nested-unclosed",
+      "group": "malformed",
+      "req": "REQ-EFS-006",
+      "track": "kid-a",
+      "pattern": "[%artist%[%album%",
+      "expect": "[Radiohead[Kid A"
+    },
+    {
+      "id": "malformed-deep-nesting-terminates",
+      "group": "malformed",
+      "req": "REQ-EFS-002",
+      "track": "kid-a",
+      "pattern": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[%artist%]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "expect": "Radiohead",
+      "note": "Evaluation is linear in pattern length (REQ-EFS-002), so deep nesting is bounded work rather than a stack hazard. 64 is the same nesting depth the JSON parser allows, so one limit is remembered instead of two."
+    },
+    {
+      "id": "malformed-empty-pattern",
+      "group": "malformed",
+      "track": "kid-a",
+      "pattern": "",
+      "expect": ""
+    },
+    {
+      "id": "malformed-only-separators",
+      "group": "malformed",
+      "track": "kid-a",
+      "pattern": "' - '",
+      "expect": " - "
+    },
+    {
+      "id": "req-efs-010-playlistRowSingleLine",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "[%tracknumber:02%. ]%artist% - %title%",
+      "expect": "08. Radiohead - Idioteque"
+    },
+    {
+      "id": "req-efs-010-playlistRowTwoLinePrimary",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "%title%",
+      "expect": "Idioteque"
+    },
+    {
+      "id": "req-efs-010-playlistRowTwoLineSecondary",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "%artist%[ — %album%]",
+      "expect": "Radiohead — Kid A"
+    },
+    {
+      "id": "req-efs-010-windowTitle",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "$if(%playing_state%,%artist% - %title% — ,)Eclipse Player",
+      "expect": "Radiohead - Idioteque — Eclipse Player",
+      "note": "The `$if(%playing_state%,…,)` idiom has an EMPTY else-argument, which is legal and distinct from omitting it. On a stopped player the whole prefix vanishes and only the app name remains — see the stopped-track case."
+    },
+    {
+      "id": "req-efs-010-trayTooltip",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "%title%$crlf()%artist%$crlf()[%album%$crlf()]%position% / %length%",
+      "expect": "Idioteque\nRadiohead\nKid A\n2:17 / 8:20"
+    },
+    {
+      "id": "req-efs-010-nowPlayingPrimary",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "%title%",
+      "expect": "Idioteque"
+    },
+    {
+      "id": "req-efs-010-nowPlayingSecondary",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "%artist%",
+      "expect": "Radiohead"
+    },
+    {
+      "id": "req-efs-010-nowPlayingTertiary",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "[%album%[ (%year%)]]",
+      "expect": "Kid A (2000)"
+    },
+    {
+      "id": "req-efs-010-notificationPrimary",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "%title%",
+      "expect": "Idioteque"
+    },
+    {
+      "id": "req-efs-010-notificationSecondary",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "%artist% — %album%",
+      "expect": "Radiohead — Kid A"
+    },
+    {
+      "id": "req-efs-010-converterOutputName",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "%albumartist%/%album%[ (%year%)]/[%discnumber%-]%tracknumber:02% %title%",
+      "expect": "Radiohead/Kid A (2000)/1-08 Idioteque"
+    },
+    {
+      "id": "req-efs-010-groupingHeader",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "kid-a",
+      "pattern": "%album%[ — %albumartist%][ (%year%)]",
+      "expect": "Kid A — Radiohead (2000)"
+    },
+    {
+      "id": "req-efs-010-windowTitle-stopped",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "stopped",
+      "pattern": "$if(%playing_state%,%artist% - %title% — ,)Eclipse Player",
+      "expect": "Eclipse Player"
+    },
+    {
+      "id": "req-efs-010-playlistRowSingleLine-no-tracknumber",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "no-album",
+      "pattern": "[%tracknumber:02%. ]%artist% - %title%",
+      "expect": "Radiohead - Idioteque"
+    },
+    {
+      "id": "req-efs-010-twoLineSecondary-no-album",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "no-album",
+      "pattern": "%artist%[ — %album%]",
+      "expect": "Radiohead"
+    },
+    {
+      "id": "req-efs-010-nowPlayingTertiary-no-album",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "no-album",
+      "pattern": "[%album%[ (%year%)]]",
+      "expect": ""
+    },
+    {
+      "id": "req-efs-010-trayTooltip-no-album",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "no-album",
+      "pattern": "%title%$crlf()%artist%$crlf()[%album%$crlf()]%position% / %length%",
+      "expect": "Idioteque\nRadiohead\n0:00 / 8:32",
+      "note": "The album line and ITS newline disappear together, because the newline is inside the optional block. That is the pattern-authoring idiom the block syntax exists for."
+    },
+    {
+      "id": "req-efs-010-converter-no-disc",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "collab",
+      "pattern": "%albumartist%/%album%[ (%year%)]/[%discnumber%-]%tracknumber:02% %title%",
+      "expect": "Björk/Selmasongs (2000)/1-05 I've Seen It All"
+    },
+    {
+      "id": "req-efs-010-groupingHeader-unicode",
+      "group": "defaults",
+      "req": "REQ-EFS-010",
+      "track": "unicode",
+      "pattern": "%album%[ — %albumartist%][ (%year%)]",
+      "expect": "👨‍👩‍👧‍👦 Family (2021)",
+      "note": "No albumartist on this track, so the middle block collapses while the year block renders — two sibling blocks resolving independently."
+    },
+    {
+      "id": "purity-linear-long-title",
+      "group": "purity",
+      "req": "REQ-EFS-002",
+      "track": "long-title",
+      "pattern": "$len(%title%)",
+      "expect": "300"
+    },
+    {
+      "id": "purity-cut-long-title",
+      "group": "purity",
+      "track": "long-title",
+      "pattern": "$cut(%title%,10)",
+      "expect": "AAAAAAAAAA"
+    },
+    {
+      "id": "purity-fixed-long-title",
+      "group": "purity",
+      "track": "long-title",
+      "pattern": "$fixed(%title%,5)",
+      "expect": "AAAAA"
+    },
+    {
+      "id": "purity-no-recursion-possible",
+      "group": "purity",
+      "req": "REQ-EFS-002",
+      "track": "kid-a",
+      "pattern": "$upper($lower($upper(abc)))",
+      "expect": "ABC",
+      "note": "Nesting is bounded by the pattern text. There are no user-defined functions and no way for a pattern to refer to itself, so termination is structural rather than guarded by a step limit."
+    },
+    {
+      "id": "purity-same-input-same-output",
+      "group": "purity",
+      "req": "REQ-EFS-002",
+      "track": "kid-a",
+      "pattern": "%artist%|%artist%",
+      "expect": "Radiohead|Radiohead",
+      "note": "Pure: the second evaluation of the same reference cannot differ from the first."
+    }
+  ]
+}

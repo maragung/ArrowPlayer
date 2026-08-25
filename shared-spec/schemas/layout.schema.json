@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eclipse-player.org/schemas/layout/v1",
+  "title": "Eclipse Player Layout Document (.eclayout)",
+  "description": "A layout document is JSON and is INTERPRETED — never compiled or evaluated as code (REQ-THM-025). Specification: eclipse-player.md §11.4 (REQ-THM-025 … REQ-THM-034). The three properties that make a downloaded skin safe are encoded structurally here: the component vocabulary is a closed enum (REQ-THM-026), bindings are read-only paths into a whitelisted state model (REQ-THM-027), and actions are an enum drawn from the §13.2 command registry (REQ-THM-028). There is no expression syntax anywhere except EFS (§10, itself total and output-capped) and the restricted `when:` predicate (REQ-THM-030). The REQ-THM-033 budgets — 500 component instances, nesting depth 24, 64 bindings per tree — are counted by the validator during the §11.5 pipeline; JSON Schema cannot count recursive instances, so they live in code with their own tests rather than as an unenforceable comment here.",
+  "type": "object",
+  "required": ["schemaVersion", "surface", "root"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "surface": {
+      "enum": ["main-window", "now-playing", "mini-player", "library"],
+      "description": "Which built-in surface this document replaces. A surface absent from the package keeps its built-in layout (REQ-THM-032)."
+    },
+    "minSize": { "$ref": "#/$defs/size" },
+    "description": { "type": "string", "maxLength": 512 },
+    "root": { "$ref": "#/$defs/node" }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "$ref": "#/$defs/componentType" },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+          "description": "Author-facing name used only in validation messages (REQ-THM-033 requires the offending node be named)."
+        },
+        "when": { "$ref": "#/$defs/whenPredicate" },
+
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/node" },
+          "maxItems": 500,
+          "description": "Only container types may carry children; enforced by the `if/then` clauses below."
+        },
+
+        "padding": { "$ref": "#/$defs/spacingValue" },
+        "margin": { "$ref": "#/$defs/spacingValue" },
+        "spacing": { "$ref": "#/$defs/spacingValue" },
+        "sizing": { "$ref": "#/$defs/sizing" },
+        "size": { "$ref": "#/$defs/size" },
+        "width": { "$ref": "#/$defs/dimension" },
+        "height": { "$ref": "#/$defs/dimension" },
+        "align": { "enum": ["start", "center", "end", "stretch", "baseline"] },
+        "justify": { "enum": ["start", "center", "end", "spaceBetween", "spaceAround"] },
+        "background": { "$ref": "#/$defs/colorRef" },
+        "border": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "color": { "$ref": "#/$defs/colorRef" },
+            "width": { "type": "number", "minimum": 0, "maximum": 8 }
+          }
+        },
+        "radius": { "$ref": "#/$defs/radiusValue" },
+        "elevation": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "clip": { "type": "boolean" },
+
+        "text": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "A literal string. Mutually exclusive with `efs` and `bind` — three ways to fill one slot would make precedence a guessing game."
+        },
+        "efs": {
+          "type": "string",
+          "maxLength": 1024,
+          "description": "An Eclipse Format String (§10). Evaluation is total and capped at 4096 output characters (REQ-EFS-009)."
+        },
+        "bind": { "$ref": "#/$defs/statePath" },
+        "style": {
+          "description": "Two vocabularies share this name because REQ-THM-031's normative example uses it for both: a §12.1 type-scale token on text components, and a renderer name on Visualizer/PeakMeter/WaveformView. The `if/then` clauses below pin down which applies for a given `type`, so `\"style\": \"bars\"` on a Text node still fails validation.",
+          "anyOf": [
+            { "$ref": "#/$defs/typeStyleRef" },
+            { "$ref": "#/$defs/visualizerStyle" }
+          ]
+        },
+        "color": { "$ref": "#/$defs/colorRef" },
+        "overflow": { "enum": ["clip", "ellipsis", "wrap", "marquee"] },
+        "maxLines": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "textAlign": { "enum": ["start", "center", "end"] },
+
+        "action": { "$ref": "#/$defs/action" },
+        "tooltip": { "type": "string", "maxLength": 256 },
+        "accessibleName": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Required in practice for icon-only controls; the §11.5 validator warns when an interactive node has neither text nor accessibleName (REQ-UIX-060 family)."
+        },
+        "enabledWhen": { "$ref": "#/$defs/whenPredicate" },
+
+        "source": { "$ref": "#/$defs/assetRef" },
+        "icon": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "Icon name resolved against the active icon set, or against icons/ in the package when `icons` is a declared capability."
+        },
+        "iconSize": { "type": "number", "minimum": 8, "maximum": 128 },
+        "fit": { "enum": ["cover", "contain", "fill", "none"] },
+        "fallback": { "enum": ["placeholder", "none", "blurredColor"] },
+
+        "columns": { "type": "integer", "minimum": 1, "maximum": 12 },
+        "rows": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "orientation": { "enum": ["horizontal", "vertical"] },
+        "scrollDirection": { "enum": ["vertical", "horizontal", "both"] },
+        "split": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+
+        "buttons": {
+          "type": "array",
+          "description": "TransportBar contents. Closed set, and a subset of the §13.2 registry rather than free-form actions.",
+          "items": {
+            "enum": ["previous", "playPause", "play", "pause", "stop", "next",
+                     "shuffle", "repeat", "stopAfterCurrent", "loved", "rating"]
+          },
+          "minItems": 1,
+          "maxItems": 11,
+          "uniqueItems": true
+        },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "step": { "type": "number", "exclusiveMinimum": 0 },
+        "showBuffered": { "type": "boolean" },
+        "showLabels": { "type": "boolean" },
+        "placeholder": { "type": "string", "maxLength": 128 },
+        "barCount": { "type": "integer", "minimum": 4, "maximum": 256 },
+        "columnsSpec": {
+          "type": "array",
+          "description": "ListView columns. Each column's content is an EFS pattern, so a skin can restyle a list without any code.",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "required": ["efs"],
+            "additionalProperties": false,
+            "properties": {
+              "efs": { "type": "string", "maxLength": 1024 },
+              "header": { "type": "string", "maxLength": 64 },
+              "width": { "$ref": "#/$defs/dimension" },
+              "align": { "enum": ["start", "center", "end"] },
+              "style": { "$ref": "#/$defs/typeStyleRef" }
+            }
+          }
+        },
+        "tabs": {
+          "type": "array",
+          "maxItems": 9,
+          "items": {
+            "type": "object",
+            "required": ["label", "action"],
+            "additionalProperties": false,
+            "properties": {
+              "label": { "type": "string", "maxLength": 32 },
+              "icon": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$" },
+              "action": { "$ref": "#/$defs/action" }
+            }
+          }
+        },
+        "maxStars": { "type": "integer", "minimum": 3, "maximum": 10 },
+        "speed": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Marquee scroll speed in px/s. Bounded so a skin cannot produce a seizure-inducing surface, and it still honours reduced-motion (REQ-UIX-002)."
+        }
+      },
+
+      "allOf": [
+        {
+          "description": "Only containers may carry children.",
+          "if": {
+            "properties": {
+              "type": { "enum": ["Stack", "Row", "Column", "Grid", "Panel", "ScrollArea", "SplitPane"] }
+            },
+            "required": ["type"]
+          },
+          "else": { "not": { "required": ["children"] } }
+        },
+        {
+          "description": "SplitPane holds exactly two panes and must say which way it splits.",
+          "if": { "properties": { "type": { "const": "SplitPane" } }, "required": ["type"] },
+          "then": {
+            "required": ["orientation", "children"],
+            "properties": { "children": { "minItems": 2, "maxItems": 2 } }
+          }
+        },
+        {
+          "description": "Grid needs a column count; without one the interpreter would have to guess a layout.",
+          "if": { "properties": { "type": { "const": "Grid" } }, "required": ["type"] },
+          "then": { "required": ["columns"] }
+        },
+        {
+          "description": "TransportBar must declare its buttons.",
+          "if": { "properties": { "type": { "const": "TransportBar" } }, "required": ["type"] },
+          "then": { "required": ["buttons"] }
+        },
+        {
+          "description": "Text and Marquee need exactly one content source.",
+          "if": { "properties": { "type": { "enum": ["Text", "Marquee"] } }, "required": ["type"] },
+          "then": {
+            "oneOf": [
+              { "required": ["text"] },
+              { "required": ["efs"] },
+              { "required": ["bind"] }
+            ]
+          }
+        },
+        {
+          "description": "Image needs a package-relative source; Icon needs an icon name.",
+          "if": { "properties": { "type": { "const": "Image" } }, "required": ["type"] },
+          "then": { "required": ["source"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "Icon" } }, "required": ["type"] },
+          "then": { "required": ["icon"] }
+        },
+        {
+          "description": "On a visual-analysis component, `style` names a renderer.",
+          "if": { "properties": { "type": { "enum": ["Visualizer", "PeakMeter", "WaveformView"] } }, "required": ["type"] },
+          "then": { "properties": { "style": { "$ref": "#/$defs/visualizerStyle" } } },
+          "else": { "properties": { "style": { "$ref": "#/$defs/typeStyleRef" } } }
+        },
+        {
+          "description": "Button and ToggleButton do something, or they are decoration pretending to be a control.",
+          "if": { "properties": { "type": { "enum": ["Button", "ToggleButton"] } }, "required": ["type"] },
+          "then": { "required": ["action"] }
+        }
+      ]
+    },
+
+    "componentType": {
+      "description": "REQ-THM-026 closed vocabulary — exactly 30 components. Adding one is a schemaVersion change, not an implementation detail.",
+      "enum": [
+        "Stack", "Row", "Column", "Grid", "Panel", "Spacer", "ScrollArea", "SplitPane",
+        "Text", "Icon", "Image", "Marquee", "Divider", "Badge", "Rating", "ProgressBar",
+        "Button", "ToggleButton", "Slider", "VolumeControl", "TransportBar", "SearchField", "TabBar", "ListView",
+        "AlbumArt", "Visualizer", "SeekBar", "PeakMeter", "WaveformView", "LyricsView"
+      ]
+    },
+
+    "spacingValue": {
+      "description": "A §12.1 spacing token name, or a raw pixel value for the rare case a token does not fit.",
+      "anyOf": [
+        { "enum": ["none", "xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl"] },
+        { "type": "number", "minimum": 0, "maximum": 256 }
+      ]
+    },
+    "radiusValue": {
+      "anyOf": [
+        { "enum": ["none", "sm", "md", "lg", "xl", "full"] },
+        { "type": "number", "minimum": 0, "maximum": 9999 }
+      ]
+    },
+    "dimension": {
+      "anyOf": [
+        { "type": "number", "minimum": 0, "maximum": 16384 },
+        { "enum": ["fill", "auto"] },
+        { "type": "string", "pattern": "^([0-9]|[1-9][0-9]|100)%$" }
+      ]
+    },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": { "$ref": "#/$defs/dimension" },
+        "height": { "$ref": "#/$defs/dimension" }
+      }
+    },
+    "sizing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": { "$ref": "#/$defs/dimension" },
+        "height": { "$ref": "#/$defs/dimension" },
+        "minWidth": { "$ref": "#/$defs/dimension" },
+        "minHeight": { "$ref": "#/$defs/dimension" },
+        "maxWidth": { "$ref": "#/$defs/dimension" },
+        "maxHeight": { "$ref": "#/$defs/dimension" },
+        "grow": { "type": "number", "minimum": 0, "maximum": 32 }
+      }
+    },
+    "colorRef": {
+      "type": "string",
+      "pattern": "^color\\.[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*){0,2}$",
+      "description": "A dotted path into the active theme's `color` object (§11.2), e.g. `color.background.raised`. Literal hex is deliberately NOT accepted: a skin that hard-codes colours would break every theme it is combined with, and would slip past the REQ-THM-041 contrast check."
+    },
+    "visualizerStyle": {
+      "enum": ["bars", "oscilloscope", "spectrum", "vuMeter", "none"],
+      "description": "Selecting a visualiser, not scripting one. projectM presets are chosen in settings, never by a skin — a skin that could choose shader code would be executable content (ADR 0003)."
+    },
+    "typeStyleRef": {
+      "type": "string",
+      "pattern": "^typography\\.scale\\.(display|headline|title|body|label|caption|mono)$",
+      "description": "One of the seven §12.1 type-scale tokens. Free-form font sizes are excluded for the same reason as literal colours."
+    },
+    "assetRef": {
+      "type": "string",
+      "pattern": "^(images|icons)/[A-Za-z0-9._-]+$",
+      "description": "Package-relative. Absolute paths, URLs, and '..' are rejected — a layout must not be able to reference anything outside its own package (REQ-THM-018), and must not be able to make a network request."
+    },
+
+    "statePath": {
+      "description": "REQ-THM-027: read-only paths into a whitelisted presentation state model. This enum IS the whitelist; docs/SKIN-AUTHORING.md documents each entry. Note the `settings.*` entries: REQ-THM-027 says the model exposes no settings values, while the REQ-THM-031 worked example binds `settings.showMiniVisualizer`. The narrowest reading that keeps both true is followed here — only settings that are themselves statements about what the UI shows are exposed, and the discrepancy is recorded in docs/OPEN-QUESTIONS.md rather than resolved silently.",
+      "enum": [
+        "track.title", "track.artist", "track.albumArtist", "track.album", "track.genre",
+        "track.composer", "track.year", "track.trackNumber", "track.discNumber",
+        "track.duration", "track.rating", "track.isLoved", "track.hasArtwork",
+        "track.hasLyrics", "track.codec", "track.bitrate", "track.sampleRate",
+        "track.bitDepth", "track.channels", "track.isLossless", "track.fileName",
+
+        "player.state", "player.positionMs", "player.durationMs", "player.remainingMs",
+        "player.volume", "player.isMuted", "player.repeatMode", "player.shuffleMode",
+        "player.speed", "player.isBitPerfect", "player.replayGainApplied",
+        "player.hasNext", "player.hasPrevious",
+
+        "queue.index", "queue.total", "list.index", "list.total", "list.selectionCount",
+
+        "settings.showMiniVisualizer", "settings.showVisualizer", "settings.showLyrics",
+        "settings.reducedMotion", "settings.accessibleContrast",
+
+        "app.version", "app.isPortable"
+      ]
+    },
+
+    "whenPredicate": {
+      "type": "string",
+      "maxLength": 256,
+      "description": "REQ-THM-030 grammar: `when = clause {(\"and\"|\"or\") clause}; clause = [\"not\"] atom; atom = state-path [operator literal]`. A deliberately strict subset of the smart-playlist comparison grammar: no functions, and no nesting beyond one level. The pattern below is a shape check only — the validator parses the predicate properly and rejects any state-path outside the whitelist above, so a typo fails at install time rather than silently evaluating false forever.",
+      "pattern": "^\\s*(not\\s+)?[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)+(\\s*(==|!=|>=|<=|>|<)\\s*('[^']{0,64}'|-?[0-9]+(\\.[0-9]+)?|true|false))?(\\s+(and|or)\\s+(not\\s+)?[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)+(\\s*(==|!=|>=|<=|>|<)\\s*('[^']{0,64}'|-?[0-9]+(\\.[0-9]+)?|true|false))?)*\\s*$"
+    },
+
+    "action": {
+      "description": "REQ-THM-028: actions are enum-only, and the enum mirrors the §13.2 command registry — one registry, six consumers, so an action a skin references cannot fail to exist. An unknown action fails validation at INSTALL time, not silently at runtime. `window.*` is flagged in docs/OPEN-QUESTIONS.md: REQ-THM-032 counts `close` among the controls a skin must never be able to remove, yet §13.3 lists no window command, so these three are present because the requirement needs them and the gap is recorded rather than papered over.",
+      "enum": [
+        "player.playPause", "player.next", "player.previous",
+        "player.seekForward", "player.seekBackward",
+        "player.seekForwardLarge", "player.seekBackwardLarge",
+        "player.stop", "player.stopAfterCurrent",
+        "player.volumeUp", "player.volumeDown", "player.muteToggle",
+        "player.cycleRepeat", "player.cycleShuffle", "player.addBookmark",
+        "player.abRepeatSetA", "player.abRepeatSetB", "player.abRepeatClear",
+        "player.speedUp", "player.speedDown", "player.speedReset",
+
+        "view.focusSearch", "view.commandPalette",
+        "view.gotoTab1", "view.gotoTab2", "view.gotoTab3", "view.gotoTab4", "view.gotoTab5",
+        "view.gotoTab6", "view.gotoTab7", "view.gotoTab8", "view.gotoTab9",
+        "view.nextTab", "view.previousTab",
+        "view.fullScreenNowPlaying", "view.toggleMiniPlayer", "view.toggleWindowshade",
+        "view.toggleAlwaysOnTop", "view.scrollToCurrentTrack", "view.toggleLyrics",
+        "view.toggleVisualizer", "view.showEqualizer", "view.dismiss",
+
+        "file.openFiles", "file.openFolder", "file.openUrl", "file.deleteFromDisk",
+
+        "playlist.new", "playlist.save", "playlist.closeTab", "playlist.selectAll",
+        "playlist.removeSelected", "playlist.undo", "playlist.redo",
+
+        "queue.addSelected", "queue.playNext",
+
+        "track.showTechnicalInfo", "track.editTags", "track.toggleLoved",
+        "track.setRating0", "track.setRating1", "track.setRating2",
+        "track.setRating3", "track.setRating4", "track.setRating5",
+
+        "library.rescanAll",
+
+        "window.close", "window.minimize", "window.maximizeRestore"
+      ]
+    }
+  }
+}

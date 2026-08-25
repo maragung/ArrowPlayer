@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "id": "washed-out",
+  "name": "Washed Out",
+  "author": "Eclipse Player maintainers",
+  "version": "2.1.0",
+  "license": "MPL-2.0",
+  "homepage": "https://eclipse-player.org/themes/midnight-pro",
+  "description": "Every token group populated, used as the token-coverage fixture.",
+  "minAppVersion": "1.0.0",
+  "mode": "dark",
+  "color": {
+    "background": {
+      "base": "#3A3F46",
+      "sunken": "#0A0C0F",
+      "raised": "#181B21",
+      "overlay": "#1F232A",
+      "scrim": "#000000B3"
+    },
+    "surface": {
+      "base": "#181B21",
+      "hover": "#1F232A",
+      "pressed": "#262B33",
+      "selected": "#2E3540",
+      "disabled": "#14171C"
+    },
+    "text": {
+      "primary": "#6B7280",
+      "secondary": "#5A6270",
+      "tertiary": "#7C8794",
+      "disabled": "#55606C",
+      "inverse": "#101216",
+      "onAccent": "#101216",
+      "link": "#7FB0FF"
+    },
+    "accent": {
+      "base": "#4C8DFF",
+      "hover": "#6BA0FF",
+      "pressed": "#3A7AE8",
+      "subtle": "#1B2A45",
+      "muted": "#24344F"
+    },
+    "border": {
+      "base": "#2A3038",
+      "subtle": "#1E232A",
+      "strong": "#3C444F",
+      "focus": "#4C8DFF"
+    },
+    "state": {
+      "success": "#3FBF7F",
+      "warning": "#E0A030",
+      "error": "#E5484D",
+      "info": "#4C8DFF"
+    },
+    "playback": {
+      "progress": "#4C8DFF",
+      "progressTrack": "#2A3038",
+      "buffered": "#3C444F",
+      "waveform": "#55606C",
+      "waveformPlayed": "#4C8DFF",
+      "peakMeter": "#3FBF7F",
+      "peakMeterClip": "#E5484D"
+    },
+    "visualizer": {
+      "palette": [
+        "#4C8DFF",
+        "#7FB0FF",
+        "#3FBF7F",
+        "#E0A030",
+        "#E5484D"
+      ],
+      "background": "#0A0C0F"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": [
+        "Inter",
+        "Segoe UI",
+        "Noto Sans",
+        "sans-serif"
+      ],
+      "mono": [
+        "JetBrains Mono",
+        "Consolas",
+        "monospace"
+      ],
+      "display": [
+        "Inter Display",
+        "Inter",
+        "sans-serif"
+      ]
+    },
+    "baseSize": 14,
+    "scale": {
+      "display": {
+        "size": 34,
+        "lineHeight": 1.15,
+        "weight": 700,
+        "letterSpacing": -0.5
+      },
+      "headline": {
+        "size": 24,
+        "lineHeight": 1.25,
+        "weight": 600,
+        "letterSpacing": -0.25
+      },
+      "title": {
+        "size": 18,
+        "lineHeight": 1.3,
+        "weight": 600,
+        "letterSpacing": 0
+      },
+      "body": {
+        "size": 14,
+        "lineHeight": 1.5,
+        "weight": 400,
+        "letterSpacing": 0
+      },
+      "label": {
+        "size": 13,
+        "lineHeight": 1.4,
+        "weight": 500,
+        "letterSpacing": 0.1,
+        "transform": "none"
+      },
+      "caption": {
+        "size": 12,
+        "lineHeight": 1.35,
+        "weight": 400,
+        "letterSpacing": 0.2
+      },
+      "mono": {
+        "size": 13,
+        "lineHeight": 1.45,
+        "weight": 400,
+        "letterSpacing": 0
+      }
+    }
+  },
+  "shape": {
+    "radius": {
+      "none": 0,
+      "sm": 4,
+      "md": 8,
+      "lg": 12,
+      "xl": 16,
+      "full": 9999
+    },
+    "borderWidth": {
+      "hairline": 1,
+      "thin": 1,
+      "thick": 2
+    }
+  },
+  "spacing": {
+    "unit": 4,
+    "scale": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      24,
+      32,
+      48,
+      64
+    ],
+    "density": "comfortable"
+  },
+  "elevation": [
+    {
+      "offsetY": 1,
+      "blur": 2,
+      "color": "#0000001A"
+    },
+    {
+      "offsetY": 2,
+      "blur": 4,
+      "color": "#0000001F"
+    },
+    {
+      "offsetY": 4,
+      "blur": 8,
+      "color": "#00000024"
+    },
+    {
+      "offsetY": 8,
+      "blur": 16,
+      "color": "#00000029"
+    },
+    {
+      "offsetY": 16,
+      "blur": 32,
+      "color": "#00000033"
+    }
+  ],
+  "motion": {
+    "duration": {
+      "instant": 80,
+      "fast": 150,
+      "normal": 250,
+      "slow": 400
+    },
+    "easing": {
+      "standard": [
+        0.2,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "decelerate": [
+        0.0,
+        0.0,
+        0.2,
+        1.0
+      ],
+      "accelerate": [
+        0.4,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "emphasized": [
+        0.2,
+        0.0,
+        0.0,
+        1.0
+      ]
+    }
+  },
+  "opacity": {
+    "disabled": 0.38,
+    "hover": 0.08,
+    "pressed": 0.12,
+    "scrim": 0.7,
+    "ghost": 0.6
+  },
+  "icons": {
+    "setId": "eclipse-outline",
+    "style": "outline",
+    "strokeWidth": 1.5,
+    "sizeScale": 1.0
+  },
+  "assets": {
+    "background": "images/backdrop.png",
+    "backgroundFit": "cover",
+    "backgroundOpacity": 0.15,
+    "logo": "images/logo.svg"
+  },
+  "a11y": {
+    "contrastTarget": "AA",
+    "respectsReducedMotion": true,
+    "minTouchTarget": 44,
+    "focusRingWidth": 2
+  }
+}

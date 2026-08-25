@@ -1,0 +1,891 @@
+{
+  "schemaVersion": 1,
+  "$comment": "Conformance fixtures for smart playlists. Source: eclipse-player.md §9.6. REQ-PLS-012 requires the eight worked examples in this file; they carry req: REQ-PLS-012 and are the first eight cases. Every case gives the text form (grammars/smart-playlist.ebnf), the canonical JSON rule (schemas/smart-playlist.schema.json), whether the rule is schema-valid, and for valid rules the expected parameterised SQL fragment with its bound parameters. expectSql.where is a normalised fragment: whitespace-insensitive, table alias `t`, `?` placeholders. An implementation may emit different but equivalent SQL, in which case it MUST record the deviation and MUST still bind exactly expectSql.params in order — the parameter list, not the SQL text, is what REQ-SEC-009 constrains. REQ-GEN-031 requires desktop and Android to produce identical verdicts on every case here.",
+  "cases": [
+    {
+      "id": "req-pls-012-neglected-favourites",
+      "intent": "Neglected favourites",
+      "req": "REQ-PLS-012",
+      "text": "rating >= 80 AND (lastplayed < -180d OR lastplayed IS NULL)",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "and",
+          "rules": [
+            {
+              "field": "rating",
+              "operator": "gte",
+              "value": 80
+            },
+            {
+              "op": "or",
+              "rules": [
+                {
+                  "field": "lastplayed",
+                  "operator": "lt",
+                  "value": "-180d"
+                },
+                {
+                  "field": "lastplayed",
+                  "operator": "isNull"
+                }
+              ]
+            }
+          ]
+        },
+        "name": "Neglected favourites"
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "(rating >= ? AND (lastplayed < ? OR lastplayed IS NULL))",
+        "params": [
+          80,
+          "-180d"
+        ]
+      },
+      "note": "`IS NULL` takes no operand, so it contributes no bound parameter. A rule that emitted a placeholder for it would bind one value too many."
+    },
+    {
+      "id": "req-pls-012-fresh-and-unheard",
+      "intent": "Fresh and unheard",
+      "req": "REQ-PLS-012",
+      "text": "added > -14d AND playcount = 0 ORDER BY added DESC LIMIT 100",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "and",
+          "rules": [
+            {
+              "field": "added",
+              "operator": "gt",
+              "value": "-14d"
+            },
+            {
+              "field": "playcount",
+              "operator": "eq",
+              "value": 0
+            }
+          ]
+        },
+        "name": "Fresh and unheard",
+        "orderBy": [
+          {
+            "field": "added",
+            "direction": "desc"
+          }
+        ],
+        "limit": 100
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "(added > ? AND playcount = ?)",
+        "params": [
+          "-14d",
+          0
+        ]
+      },
+      "note": "ORDER BY and LIMIT are structure, not operands: the column name and direction are chosen from a closed set at compile time and never interpolated from user text."
+    },
+    {
+      "id": "req-pls-012-good-jazz",
+      "intent": "Good jazz, well-played",
+      "req": "REQ-PLS-012",
+      "text": "genre CONTAINS 'Jazz' AND playcount > 5",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "and",
+          "rules": [
+            {
+              "field": "genre",
+              "operator": "contains",
+              "value": "Jazz"
+            },
+            {
+              "field": "playcount",
+              "operator": "gt",
+              "value": 5
+            }
+          ]
+        },
+        "name": "Good jazz, well-played"
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "(genre LIKE ? AND playcount > ?)",
+        "params": [
+          "%Jazz%",
+          5
+        ]
+      },
+      "note": "CONTAINS becomes LIKE with the wildcards added to the BOUND VALUE, never to the SQL text. `%` and `_` inside the user's value are escaped so a search for `50%` does not become a wildcard."
+    },
+    {
+      "id": "req-pls-012-hi-res-only",
+      "intent": "Hi-res only",
+      "req": "REQ-PLS-012",
+      "text": "islossless = true AND (samplerate > 48000 OR bitdepth > 16)",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "and",
+          "rules": [
+            {
+              "field": "islossless",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "op": "or",
+              "rules": [
+                {
+                  "field": "samplerate",
+                  "operator": "gt",
+                  "value": 48000
+                },
+                {
+                  "field": "bitdepth",
+                  "operator": "gt",
+                  "value": 16
+                }
+              ]
+            }
+          ]
+        },
+        "name": "Hi-res only"
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "(islossless = ? AND (samplerate > ? OR bitdepth > ?))",
+        "params": [
+          true,
+          48000,
+          16
+        ]
+      }
+    },
+    {
+      "id": "req-pls-012-long-form",
+      "intent": "Long-form",
+      "req": "REQ-PLS-012",
+      "text": "duration > 10m AND NOT genre CONTAINS 'Podcast'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "and",
+          "rules": [
+            {
+              "field": "duration",
+              "operator": "gt",
+              "value": "10m"
+            },
+            {
+              "field": "genre",
+              "operator": "contains",
+              "value": "Podcast",
+              "not": true
+            }
+          ]
+        },
+        "name": "Long-form"
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "(duration > ? AND NOT (genre LIKE ?))",
+        "params": [
+          600,
+          "%Podcast%"
+        ]
+      },
+      "note": "`10m` is a duration literal and compiles to 600 — seconds, the unit of the `duration` column. The literal is normalised BEFORE binding, so the database never parses a unit suffix."
+    },
+    {
+      "id": "req-pls-012-workout",
+      "intent": "Workout",
+      "req": "REQ-PLS-012",
+      "text": "bpm BETWEEN 120 AND 140 AND loved = true ORDER BY random LIMIT 50",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "and",
+          "rules": [
+            {
+              "field": "bpm",
+              "operator": "between",
+              "from": 120,
+              "to": 140
+            },
+            {
+              "field": "loved",
+              "operator": "eq",
+              "value": true
+            }
+          ]
+        },
+        "name": "Workout",
+        "orderBy": [
+          {
+            "field": "random"
+          }
+        ],
+        "limit": 50
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "(bpm BETWEEN ? AND ? AND loved = ?)",
+        "params": [
+          120,
+          140,
+          true
+        ]
+      },
+      "note": "BETWEEN binds two parameters and is inclusive at both ends. `ORDER BY random` maps to the backend's own random function, chosen at compile time — not to a value."
+    },
+    {
+      "id": "req-pls-012-custom-taxonomy",
+      "intent": "Custom taxonomy",
+      "req": "REQ-PLS-012",
+      "text": "custom:mood = 'melancholy' AND year < 1990",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "and",
+          "rules": [
+            {
+              "field": "custom:mood",
+              "operator": "eq",
+              "value": "melancholy"
+            },
+            {
+              "field": "year",
+              "operator": "lt",
+              "value": 1990
+            }
+          ]
+        },
+        "name": "Custom taxonomy"
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "(EXISTS (SELECT 1 FROM custom_tags ct WHERE ct.track_id = t.id AND ct.key = ? AND ct.value = ?) AND year < ?)",
+        "params": [
+          "mood",
+          "melancholy",
+          1990
+        ]
+      },
+      "note": "A custom field's NAME is a bound parameter too. It is user-supplied text, and the one thing that must never happen is a user-chosen tag name reaching the query as SQL."
+    },
+    {
+      "id": "req-pls-012-needs-attention",
+      "intent": "Needs attention",
+      "req": "REQ-PLS-012",
+      "text": "hasartwork = false OR haslyrics = false",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "or",
+          "rules": [
+            {
+              "field": "hasartwork",
+              "operator": "eq",
+              "value": false
+            },
+            {
+              "field": "haslyrics",
+              "operator": "eq",
+              "value": false
+            }
+          ]
+        },
+        "name": "Needs attention"
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "(hasartwork = ? OR haslyrics = ?)",
+        "params": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "op-ne",
+      "intent": "Not-equal",
+      "text": "codec != 'mp3'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "codec",
+          "operator": "ne",
+          "value": "mp3"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "codec != ?",
+        "params": [
+          "mp3"
+        ]
+      }
+    },
+    {
+      "id": "op-lte",
+      "intent": "Less-or-equal",
+      "text": "rating <= 40",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "rating",
+          "operator": "lte",
+          "value": 40
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "rating <= ?",
+        "params": [
+          40
+        ]
+      }
+    },
+    {
+      "id": "op-notcontains",
+      "intent": "NOTCONTAINS",
+      "text": "comment NOTCONTAINS 'demo'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "comment",
+          "operator": "notContains",
+          "value": "demo"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "comment NOT LIKE ?",
+        "params": [
+          "%demo%"
+        ]
+      }
+    },
+    {
+      "id": "op-startswith",
+      "intent": "STARTSWITH",
+      "text": "artist STARTSWITH 'The '",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "artist",
+          "operator": "startsWith",
+          "value": "The "
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "artist LIKE ?",
+        "params": [
+          "The %"
+        ]
+      }
+    },
+    {
+      "id": "op-endswith",
+      "intent": "ENDSWITH",
+      "text": "filename ENDSWITH '.flac'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "filename",
+          "operator": "endsWith",
+          "value": ".flac"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "filename LIKE ?",
+        "params": [
+          "%.flac"
+        ]
+      }
+    },
+    {
+      "id": "op-in",
+      "intent": "IN with a list",
+      "text": "genre IN ('Jazz', 'Blues', 'Soul')",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "genre",
+          "operator": "in",
+          "values": [
+            "Jazz",
+            "Blues",
+            "Soul"
+          ]
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "genre IN (?, ?, ?)",
+        "params": [
+          "Jazz",
+          "Blues",
+          "Soul"
+        ]
+      },
+      "note": "One placeholder per value, generated from the list LENGTH — a count, which is structure, never from the values themselves."
+    },
+    {
+      "id": "op-isnotnull",
+      "intent": "IS NOT NULL",
+      "text": "bpm IS NOT NULL",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "bpm",
+          "operator": "isNotNull"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "bpm IS NOT NULL",
+        "params": []
+      }
+    },
+    {
+      "id": "op-not-group",
+      "intent": "NOT over a group",
+      "text": "NOT (genre = 'Metal' OR genre = 'Punk')",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "or",
+          "rules": [
+            {
+              "field": "genre",
+              "operator": "eq",
+              "value": "Metal"
+            },
+            {
+              "field": "genre",
+              "operator": "eq",
+              "value": "Punk"
+            }
+          ],
+          "not": true
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "NOT ((genre = ? OR genre = ?))",
+        "params": [
+          "Metal",
+          "Punk"
+        ]
+      }
+    },
+    {
+      "id": "req-pls-013-matches-glob-star",
+      "intent": "MATCHES uses glob `*`, not regex `.*`",
+      "req": "REQ-PLS-013",
+      "text": "path MATCHES '*/Live/*'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "path",
+          "operator": "matches",
+          "value": "*/Live/*"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "path GLOB ?",
+        "params": [
+          "*/Live/*"
+        ]
+      },
+      "note": "Glob, not a regular expression. Regex is deliberately excluded because catastrophic backtracking is a denial-of-service surface inside a rule the user can share in a playlist file."
+    },
+    {
+      "id": "req-pls-013-matches-regex-is-literal",
+      "intent": "A regex metacharacter is a literal in glob",
+      "req": "REQ-PLS-013",
+      "text": "title MATCHES 'a.*b'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "title",
+          "operator": "matches",
+          "value": "a.*b"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "title GLOB ?",
+        "params": [
+          "a.*b"
+        ]
+      },
+      "note": "`a.*b` matches a literal dot followed by any run: `a.xb` matches, `aab` does not. An implementation that quietly treats MATCHES as regex fails this case, which is exactly why it is a fixture."
+    },
+    {
+      "id": "req-pls-013-matches-catastrophic-pattern-is-safe",
+      "intent": "A pattern that would hang a backtracking regex engine",
+      "req": "REQ-PLS-013",
+      "text": "title MATCHES '*a*a*a*a*a*a*b'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "title",
+          "operator": "matches",
+          "value": "*a*a*a*a*a*a*b"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "title GLOB ?",
+        "params": [
+          "*a*a*a*a*a*a*b"
+        ]
+      },
+      "note": "Under `(a+)+b` semantics this is exponential. Under glob it is linear. The case exists so a future switch to regex cannot pass the suite."
+    },
+    {
+      "id": "case-insensitive-default",
+      "intent": "String comparison is case-insensitive by default",
+      "text": "artist = 'bjork'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "artist",
+          "operator": "eq",
+          "value": "bjork"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "artist = ? COLLATE NOCASE",
+        "params": [
+          "bjork"
+        ]
+      },
+      "note": "Matches how a listener thinks about their library. §9.2.3's sort keys use the same collation, so filtering and sorting cannot disagree."
+    },
+    {
+      "id": "case-sensitive-opt-in",
+      "intent": "caseSensitive: true opts out",
+      "text": "artist = 'bjork'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "artist",
+          "operator": "eq",
+          "value": "bjork",
+          "caseSensitive": true
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "artist = ?",
+        "params": [
+          "bjork"
+        ]
+      }
+    },
+    {
+      "id": "lit-duration-compound",
+      "intent": "Compound duration literal",
+      "text": "duration > 3m30s",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "duration",
+          "operator": "gt",
+          "value": "3m30s"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "duration > ?",
+        "params": [
+          210
+        ]
+      }
+    },
+    {
+      "id": "lit-duration-hours",
+      "intent": "Hour duration literal",
+      "text": "duration >= 1h",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "duration",
+          "operator": "gte",
+          "value": "1h"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "duration >= ?",
+        "params": [
+          3600
+        ]
+      }
+    },
+    {
+      "id": "lit-date-iso",
+      "intent": "ISO-8601 date literal",
+      "text": "added > '2026-01-01'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "added",
+          "operator": "gt",
+          "value": "2026-01-01"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "added > ?",
+        "params": [
+          "2026-01-01"
+        ]
+      },
+      "note": "Bound as the column's storage form. The comparison is resolved by the database, not by string ordering in the compiler."
+    },
+    {
+      "id": "lit-relative-weeks",
+      "intent": "Relative date in weeks",
+      "text": "lastplayed < -6w",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "lastplayed",
+          "operator": "lt",
+          "value": "-6w"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "lastplayed < ?",
+        "params": [
+          "-6w"
+        ]
+      },
+      "note": "Relative dates are resolved against evaluation time, not against the time the rule was written, so a saved rule stays meaningful (REQ-PLS-014 re-evaluates on refresh)."
+    },
+    {
+      "id": "sec-injection-in-value",
+      "intent": "A value containing SQL is data, not code",
+      "req": "REQ-SEC-009",
+      "text": "title = ''; DROP TABLE tracks; --'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "title",
+          "operator": "eq",
+          "value": "'; DROP TABLE tracks; --"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "title = ? COLLATE NOCASE",
+        "params": [
+          "'; DROP TABLE tracks; --"
+        ]
+      },
+      "note": "The value reaches the database as one bound string and matches nothing. The SQL text is identical to the harmless case above it — that identity IS the property being tested."
+    },
+    {
+      "id": "sec-injection-in-custom-field-name",
+      "intent": "A custom field name containing SQL is rejected before compilation",
+      "req": "REQ-SEC-009",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "custom:x' OR 1=1 --",
+          "operator": "eq",
+          "value": "y"
+        }
+      },
+      "schemaValid": false,
+      "expectSchemaError": "custom field name is not a valid identifier",
+      "note": "Defence in depth, and the order matters. The schema's identifier pattern `^custom:[A-Za-z_][A-Za-z0-9_]{0,63}$` rejects this rule outright, so a hostile tag name never reaches the compiler. The next case proves that even a name that IS valid is still bound rather than interpolated, because a validator and a compiler that both have to be right is weaker than either one being sufficient."
+    },
+    {
+      "id": "sec-custom-field-name-is-bound",
+      "intent": "A valid custom field name is still a bound parameter",
+      "req": "REQ-SEC-009",
+      "text": "custom:mood = 'melancholy'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "custom:mood",
+          "operator": "eq",
+          "value": "melancholy"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "EXISTS (SELECT 1 FROM custom_tags ct WHERE ct.track_id = t.id AND ct.key = ? AND ct.value = ?)",
+        "params": [
+          "mood",
+          "melancholy"
+        ]
+      },
+      "note": "Two bound parameters: the tag name and the tag value. The name is user-supplied text and is bound for the same reason the value is."
+    },
+    {
+      "id": "sec-like-wildcards-escaped",
+      "intent": "LIKE metacharacters in a value are escaped",
+      "req": "REQ-SEC-009",
+      "text": "album CONTAINS '100%_live'",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "album",
+          "operator": "contains",
+          "value": "100%_live"
+        }
+      },
+      "schemaValid": true,
+      "expectSql": {
+        "where": "album LIKE ? ESCAPE '\\'",
+        "params": [
+          "%100\\%\\_live%"
+        ]
+      },
+      "note": "Without escaping, a search for `100%_live` would match `100 anything live`. The ESCAPE clause is fixed SQL text; only the pattern is bound."
+    },
+    {
+      "id": "invalid-operand-with-isnull",
+      "intent": "isNull must not carry a value",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "rating",
+          "operator": "isNull",
+          "value": 5
+        }
+      },
+      "schemaValid": false,
+      "expectSchemaError": "isNull takes no operand"
+    },
+    {
+      "id": "invalid-between-missing-to",
+      "intent": "between requires both from and to",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "bpm",
+          "operator": "between",
+          "from": 120
+        }
+      },
+      "schemaValid": false,
+      "expectSchemaError": "between requires from and to"
+    },
+    {
+      "id": "invalid-in-with-value",
+      "intent": "in requires values, not value",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "genre",
+          "operator": "in",
+          "value": "Jazz"
+        }
+      },
+      "schemaValid": false,
+      "expectSchemaError": "in requires values"
+    },
+    {
+      "id": "invalid-unknown-field",
+      "intent": "An unknown builtin field is rejected",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "mood",
+          "operator": "eq",
+          "value": "sad"
+        }
+      },
+      "schemaValid": false,
+      "expectSchemaError": "unknown field",
+      "note": "`mood` without the `custom:` prefix is not a builtin. The 37 builtin names are a closed set; an unrecognised bare name is a typo, and accepting it would compile to a query against a column that does not exist."
+    },
+    {
+      "id": "invalid-unknown-operator",
+      "intent": "An unknown operator is rejected",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "title",
+          "operator": "regex",
+          "value": "^a"
+        }
+      },
+      "schemaValid": false,
+      "expectSchemaError": "unknown operator",
+      "note": "There is no `regex` operator, by design (REQ-PLS-013)."
+    },
+    {
+      "id": "invalid-empty-group",
+      "intent": "A group needs at least one rule",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "op": "and",
+          "rules": []
+        }
+      },
+      "schemaValid": false,
+      "expectSchemaError": "rules must not be empty"
+    },
+    {
+      "id": "invalid-limit-zero",
+      "intent": "LIMIT 0 is not a playlist",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "loved",
+          "operator": "eq",
+          "value": true
+        },
+        "limit": 0
+      },
+      "schemaValid": false,
+      "expectSchemaError": "limit below minimum"
+    },
+    {
+      "id": "invalid-missing-schema-version",
+      "intent": "schemaVersion is required",
+      "rule": {
+        "match": {
+          "field": "loved",
+          "operator": "eq",
+          "value": true
+        }
+      },
+      "schemaValid": false,
+      "expectSchemaError": "schemaVersion is required"
+    },
+    {
+      "id": "invalid-additional-property",
+      "intent": "Unknown members are rejected, not ignored",
+      "rule": {
+        "schemaVersion": 1,
+        "match": {
+          "field": "loved",
+          "operator": "eq",
+          "value": true
+        },
+        "sortBy": "artist"
+      },
+      "schemaValid": false,
+      "expectSchemaError": "additional property sortBy",
+      "note": "A stored rule is not a network message: tolerating an unknown member here would let a typo like `sortBy` silently do nothing while the user believes it works."
+    }
+  ]
+}

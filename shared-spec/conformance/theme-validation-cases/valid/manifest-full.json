@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "midnight-pro",
+  "name": "Midnight Pro",
+  "author": "Eclipse Player maintainers",
+  "version": "2.1.0",
+  "license": "MPL-2.0",
+  "homepage": "https://eclipse-player.org/themes/midnight-pro",
+  "description": "Theme, layouts, icons, images and one font.",
+  "minAppVersion": "1.0.0",
+  "capabilities": [
+    "theme",
+    "layout",
+    "icons",
+    "images",
+    "fonts"
+  ],
+  "targetSurfaces": [
+    "main-window",
+    "now-playing",
+    "mini-player"
+  ],
+  "preview": "preview.png",
+  "i18n": [
+    "en",
+    "id",
+    "pt-BR"
+  ],
+  "checksums": {
+    "theme.json": "0000000000000000000000000000000000000000000000000000000000000000",
+    "LICENSE": "1111111111111111111111111111111111111111111111111111111111111111",
+    "preview.png": "2222222222222222222222222222222222222222222222222222222222222222",
+    "layout/main-window.eclayout": "3333333333333333333333333333333333333333333333333333333333333333",
+    "layout/now-playing.eclayout": "4444444444444444444444444444444444444444444444444444444444444444",
+    "layout/mini-player.eclayout": "5555555555555555555555555555555555555555555555555555555555555555",
+    "icons/play.svg": "6666666666666666666666666666666666666666666666666666666666666666",
+    "icons/pause.svg": "7777777777777777777777777777777777777777777777777777777777777777",
+    "images/backdrop.png": "8888888888888888888888888888888888888888888888888888888888888888",
+    "images/logo.svg": "9999999999999999999999999999999999999999999999999999999999999999",
+    "fonts/Inter-Regular.woff2": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fonts/LICENSE-fonts": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "i18n/en.json": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "i18n/id.json": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "i18n/pt-BR.json": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  }
+}

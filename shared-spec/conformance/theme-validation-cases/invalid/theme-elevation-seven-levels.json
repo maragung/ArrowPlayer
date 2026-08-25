@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "midnight",
+  "name": "Midnight",
+  "version": "1.0.0",
+  "mode": "dark",
+  "color": {
+    "background": {
+      "base": "#101216"
+    },
+    "surface": {
+      "base": "#181B21"
+    },
+    "text": {
+      "primary": "#F5F7FA",
+      "secondary": "#A9B2BD"
+    },
+    "accent": {
+      "base": "#4C8DFF"
+    },
+    "border": {
+      "base": "#2A3038"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": [
+        "Inter",
+        "Segoe UI",
+        "Noto Sans",
+        "sans-serif"
+      ]
+    },
+    "scale": {
+      "body": {
+        "size": 14
+      },
+      "label": {
+        "size": 13
+      }
+    }
+  },
+  "elevation": [
+    {
+      "offsetY": 0,
+      "blur": 0,
+      "color": "#00000022"
+    },
+    {
+      "offsetY": 1,
+      "blur": 1,
+      "color": "#00000022"
+    },
+    {
+      "offsetY": 2,
+      "blur": 2,
+      "color": "#00000022"
+    },
+    {
+      "offsetY": 3,
+      "blur": 3,
+      "color": "#00000022"
+    },
+    {
+      "offsetY": 4,
+      "blur": 4,
+      "color": "#00000022"
+    },
+    {
+      "offsetY": 5,
+      "blur": 5,
+      "color": "#00000022"
+    },
+    {
+      "offsetY": 6,
+      "blur": 6,
+      "color": "#00000022"
+    }
+  ]
+}

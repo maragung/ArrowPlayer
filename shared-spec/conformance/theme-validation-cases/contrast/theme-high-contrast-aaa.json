@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "high-contrast",
+  "name": "High Contrast",
+  "version": "1.0.0",
+  "mode": "dark",
+  "color": {
+    "background": {
+      "base": "#000000"
+    },
+    "surface": {
+      "base": "#000000"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#FFFFFF"
+    },
+    "accent": {
+      "base": "#FFFF00"
+    },
+    "border": {
+      "base": "#FFFFFF"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": [
+        "Inter",
+        "Segoe UI",
+        "Noto Sans",
+        "sans-serif"
+      ]
+    },
+    "scale": {
+      "body": {
+        "size": 14
+      },
+      "label": {
+        "size": 13
+      }
+    }
+  },
+  "a11y": {
+    "contrastTarget": "AAA"
+  }
+}

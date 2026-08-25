@@ -1,0 +1,1132 @@
+{
+  "schemaVersion": 1,
+  "$comment": "Machine-readable index of the theme/skin validation corpus. Source: eclipse-player.md §11.5. REQ-GEN-031 requires the desktop and Android engines to reach IDENTICAL verdicts on this corpus, so the verdicts live here rather than in either implementation's tests. `pipelineStep` is the REQ-THM-040 step that judges the fixture; the pipeline stops at the first failure, so a fixture is only ever a test of its own step. `schema` names the $id a JSON fixture is validated against, or null when the judge is code (path safety, SVG sanitisation, contrast, archive limits). `generated` replaces a committed file with a recipe both engines build identically — used for the multi-megabyte and 10,000-element cases. Verdicts: accept, reject, accept-with-warning (contrast, default settings), and table (the fixture is itself a list of sub-cases with their own verdicts).",
+  "req": [
+    "REQ-THM-040",
+    "REQ-THM-041",
+    "REQ-THM-042",
+    "REQ-THM-043",
+    "REQ-GEN-031"
+  ],
+  "pipelineSteps": {
+    "1": "ZIP structural integrity; REQ-THM-017 limits",
+    "2": "Path safety for every entry (REQ-THM-018)",
+    "3": "manifest.json against its schema; checksum verification of every file",
+    "4": "theme.json against theme-schema.json",
+    "5": "Contrast enforcement (REQ-THM-041)",
+    "6": "Every .eclayout against layout.schema.json, plus whitelist and budget checks",
+    "7": "Every SVG sanitised (REQ-THM-042)",
+    "8": "Every raster image probed for dimensions BEFORE decode",
+    "9": "Fonts: format check, and fonts/LICENSE-fonts presence",
+    "10": "Every EFS pattern parsed and its output cap verified"
+  },
+  "verdictCounts": {
+    "reject": 109,
+    "table": 2,
+    "accept": 10,
+    "accept-with-warning": 1
+  },
+  "totalCases": 122,
+  "openConflicts": [
+    "invalid/theme-extends-accent-only.json",
+    "malicious/layout-efs-output-bomb.eclayout"
+  ],
+  "cases": [
+    {
+      "file": "malicious/font-count-over-cap",
+      "pipelineStep": 1,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "9 fonts exceeds the limit of 8.",
+      "req": "REQ-THM-017",
+      "generated": {
+        "kind": "zip",
+        "repeat": {
+          "pathTemplate": "fonts/F{n}.woff2",
+          "count": 9,
+          "uncompressedBytes": 1024
+        }
+      }
+    },
+    {
+      "file": "malicious/image-dimensions-over-cap",
+      "pipelineStep": 1,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "8193 x 8193 exceeds the 8192 x 8192 probe limit (REQ-LIB-068).",
+      "req": "REQ-THM-017",
+      "note": "Judged at step 8 by probing the header, BEFORE decode. A fixture that had to be decoded to be rejected would be the bug it is meant to catch.",
+      "generated": {
+        "kind": "png",
+        "width": 8193,
+        "height": 8193
+      }
+    },
+    {
+      "file": "malicious/layout-count-over-cap",
+      "pipelineStep": 1,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "17 layout documents exceeds the limit of 16.",
+      "req": "REQ-THM-017",
+      "generated": {
+        "kind": "zip",
+        "repeat": {
+          "pathTemplate": "layout/l{n}.eclayout",
+          "count": 17,
+          "uncompressedBytes": 256
+        }
+      }
+    },
+    {
+      "file": "malicious/zip-bomb-compression-ratio",
+      "pipelineStep": 1,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "A single entry compressed 1024:1 exceeds the 100:1 limit.",
+      "req": "REQ-THM-017",
+      "generated": {
+        "kind": "zip",
+        "entries": [
+          {
+            "path": "images/pad.png",
+            "uncompressedBytes": 1048576,
+            "compressedBytes": 1024
+          }
+        ],
+        "_note": "1024:1"
+      }
+    },
+    {
+      "file": "malicious/zip-bomb-entry-count",
+      "pipelineStep": 1,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "2,001 entries exceeds the limit of 2,000.",
+      "req": "REQ-THM-017",
+      "generated": {
+        "kind": "zip",
+        "repeat": {
+          "pathTemplate": "images/f{n}.png",
+          "count": 2001,
+          "uncompressedBytes": 16
+        }
+      }
+    },
+    {
+      "file": "malicious/zip-bomb-single-file",
+      "pipelineStep": 1,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "One file over 8 MiB.",
+      "req": "REQ-THM-017",
+      "generated": {
+        "kind": "zip",
+        "entries": [
+          {
+            "path": "images/pad.png",
+            "uncompressedBytes": 8388609
+          }
+        ]
+      }
+    },
+    {
+      "file": "malicious/zip-bomb-total-size",
+      "pipelineStep": 1,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Total uncompressed size 32 MiB + 1 byte exceeds the 32 MiB limit.",
+      "req": "REQ-THM-017",
+      "generated": {
+        "kind": "zip",
+        "entries": [
+          {
+            "path": "images/pad.png",
+            "uncompressedBytes": 33554432
+          }
+        ]
+      }
+    },
+    {
+      "file": "malicious/zip-entry-paths.json",
+      "pipelineStep": 2,
+      "schema": null,
+      "verdict": "table",
+      "reason": "A table of archive paths with the verdict path validation must return for each.",
+      "req": "REQ-THM-018",
+      "note": "18 entries: 4 accept, 14 reject. Consumed by the installer's own test, not by a JSON-Schema run — which is why its verdict is `table`."
+    },
+    {
+      "file": "invalid/manifest-capabilities-empty.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`minItems: 1` — a package that declares no capability does nothing.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-capability-duplicate.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`uniqueItems`.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-capability-unknown.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`scripts` is not in the enum, and never will be (ADR 0003).",
+      "req": "REQ-THM-016",
+      "note": "The most valuable single line in this schema: the capability a malicious skin would want cannot be spelled."
+    },
+    {
+      "file": "invalid/manifest-checksum-not-a-string.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Digest must be a string.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-checksum-truncated.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "A SHA-256 is 64 hex characters.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-checksum-uppercase-hex.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Digests are lower-case hex so verification is a byte compare.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-checksums-too-few.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`minProperties: 3`: theme.json, LICENSE and preview.png are all mandatory.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-i18n-bad-tag.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "BCP-47 shape: 2–3 letters plus optional subtags.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-minappversion-missing.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Required: without it the loader cannot refuse a package built for a newer app.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-missing-checksums.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`checksums` is required — it is the integrity check, not an optimisation.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-preview-renamed.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`const \"preview.png\"` — REQ-THM-015 fixes the name.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-surface-unknown.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Four surfaces only; adding one is a schemaVersion change.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/manifest-unknown-member.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`additionalProperties: false`.",
+      "req": "REQ-THM-016",
+      "note": "Same reasoning as the theme: an install hook is exactly the member a hostile package would add."
+    },
+    {
+      "file": "malicious/manifest-checksum-key-absolute.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Absolute path.",
+      "req": "REQ-THM-018"
+    },
+    {
+      "file": "malicious/manifest-checksum-key-backslash.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Backslash separator.",
+      "req": "REQ-THM-018"
+    },
+    {
+      "file": "malicious/manifest-checksum-key-control-char.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Control character.",
+      "req": "REQ-THM-018"
+    },
+    {
+      "file": "malicious/manifest-checksum-key-depth-5.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Depth beyond the two segments the pattern allows.",
+      "req": "REQ-THM-018"
+    },
+    {
+      "file": "malicious/manifest-checksum-key-drive-letter.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Drive letter.",
+      "req": "REQ-THM-018"
+    },
+    {
+      "file": "malicious/manifest-checksum-key-manifest-self.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "manifest.json is excluded from the pattern: it cannot checksum itself, and an entry claiming to is either confused or an attempt to make verification circular.",
+      "req": "REQ-THM-018"
+    },
+    {
+      "file": "malicious/manifest-checksum-key-nul.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "Embedded NUL, expressed in JSON as \\u0000 — legal JSON, illegal path.",
+      "req": "REQ-THM-018",
+      "note": "Doubles as a parser test: §21.2's parser must carry the NUL through as a code point instead of truncating the string, or this fixture would appear to be the harmless `theme.json` and pass."
+    },
+    {
+      "file": "malicious/manifest-checksum-key-too-long.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`maxLength: 200`.",
+      "req": "REQ-THM-018"
+    },
+    {
+      "file": "malicious/manifest-checksum-key-traversal.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`packagePath` is an allowlist pattern; traversal cannot match it.",
+      "req": "REQ-THM-018",
+      "note": "Defence in depth: step 2 already refused this path in the archive. The manifest is checked again because the two lists must agree, and a checksum map is itself a place to smuggle a path."
+    },
+    {
+      "file": "malicious/manifest-checksum-key-unlisted-dir.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "reject",
+      "reason": "`bin/` is not a permitted top-level directory.",
+      "req": "REQ-THM-018"
+    },
+    {
+      "file": "valid/manifest-full.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "accept",
+      "reason": "All five capabilities, three surfaces, i18n, fonts with their licence file.",
+      "req": "REQ-THM-016",
+      "note": "`fonts/LICENSE-fonts` is present because pipeline step 9 requires it whenever the fonts capability is used. The schema cannot express that dependency — it is a cross-file rule — so this fixture is what makes step 9 testable."
+    },
+    {
+      "file": "valid/manifest-minimal.json",
+      "pipelineStep": 3,
+      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "verdict": "accept",
+      "reason": "Theme-only package: the three mandatory files, one capability.",
+      "req": "REQ-THM-016",
+      "note": "`minProperties: 3` on checksums is exactly this package — theme.json, LICENSE, preview.png. A package cannot be smaller and still be well-formed."
+    },
+    {
+      "file": "invalid/theme-a11y-contrast-target-aaaa.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "AA or AAA.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-a11y-touch-target-too-small.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "Minimum 24. REQ-UIX-057's floor is not a skin's decision.",
+      "req": "REQ-THM-016"
+    },
+    {
+      "file": "invalid/theme-assets-backgroundfit-unknown.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "Not in the enum — and parallax is forbidden by design-system/motion.md.",
+      "req": "REQ-THM-010",
+      "note": "The token vocabulary and the motion rules agree; a value the design system bans is not reachable through the schema either."
+    },
+    {
+      "file": "invalid/theme-bezier-out-of-range.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "Control points are clamped to [-2, 2]; 9 produces an unusable overshoot.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-bezier-three-items.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "A cubic-bezier is exactly four numbers.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-color-named.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "CSS colour names are not a colour.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-color-rgb-function.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "Functional notation is not accepted.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-color-three-digit-hex.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`#fff` fails the colour pattern: 6 or 8 hex digits only.",
+      "req": "REQ-THM-010",
+      "note": "Shorthand is rejected rather than expanded. Accepting it would mean two spellings of one colour and a normalisation step before every comparison."
+    },
+    {
+      "file": "invalid/theme-duration-too-long.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "2000 ms is the ceiling. A skin must not be able to make the UI feel broken.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-elevation-missing-blur.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "offsetY, blur and color are all required.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-elevation-seven-levels.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`maxItems: 6` on the elevation ladder.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-extends-accent-only.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`color` requires background, surface, text, accent and border; `typography` is required at the root. This five-line theme cannot validate.",
+      "req": "REQ-THM-011",
+      "note": "A SPEC CONFLICT captured as a fixture, not smoothed over. REQ-THM-011 states that 'an author MUST be able to ship a five-line theme that only changes the accent colour'; the §11.2 schema transcribed verbatim into theme-schema.json forbids exactly that. The verdict recorded here is what the schema does TODAY. Resolving the conflict means a schema change — making `color`/`typography` and the inner `required` lists conditional on `extends` — which is a specification decision, not something an implementation may quietly assume. Logged in docs/OPEN-QUESTIONS.md; when it is resolved this fixture moves to valid/ and its verdict flips to accept.",
+      "conflict": "REQ-THM-011 vs the §11.2 schema"
+    },
+    {
+      "file": "invalid/theme-fontstack-empty.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`fontStack` requires at least one family.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-fontstack-string-not-array.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "A font stack is an array, so fallbacks are explicit and ordered.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-icons-setid-uppercase.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`setId` pattern is lower-case.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-icons-strokewidth-zero.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "Minimum 0.5; 0 makes an outline icon invisible.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-id-leading-dash.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`id` must start and end alphanumeric.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-id-too-long.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`id` exceeds 64 characters.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-id-uppercase.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`id` must be lower-case kebab.",
+      "req": "REQ-THM-010",
+      "note": "Case-insensitive filesystems make `Midnight` and `midnight` the same directory but different ids, which is how one skin overwrites another."
+    },
+    {
+      "file": "invalid/theme-missing-color.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`color` is required.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-missing-text-secondary.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`color.text` requires both primary and secondary.",
+      "req": "REQ-THM-010",
+      "note": "Two text roles are the minimum because §12.1's hierarchy needs a de-emphasised tone; a theme with only `primary` would force the app to invent one."
+    },
+    {
+      "file": "invalid/theme-mode-auto.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`mode` is light or dark. Following the system is an app setting that picks between two themes; it is not a third mode a theme can declare.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-opacity-above-one.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "Opacity is a unit interval.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-radius-full-wrong-const.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`full` is `const 9999` — the sentinel for a pill, not a number to tune.",
+      "req": "REQ-THM-010",
+      "note": "Fixing the value keeps `full` meaning 'fully rounded whatever the height', which a concrete radius cannot express."
+    },
+    {
+      "file": "invalid/theme-schemaversion-2.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`schemaVersion` is `const 1`; a future version must be refused by a v1 loader, not partially read.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-schemaversion-string.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`const 1` is the number 1, not the string.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-spacing-scale-too-short.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`minItems: 4`.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-typestyle-missing-size.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`size` is the one required member of a type style.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-typestyle-size-too-large.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`size` maximum is 96.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-typography-missing-label.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`scale` requires body and label.",
+      "req": "REQ-THM-010",
+      "note": "Those two carry nearly every string in the UI; the other five inherit."
+    },
+    {
+      "file": "invalid/theme-unknown-color-role.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "Unknown member inside `color.text`.",
+      "req": "REQ-THM-010",
+      "note": "Roles are closed too. A skin cannot introduce a role the app never reads."
+    },
+    {
+      "file": "invalid/theme-unknown-top-level-key.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`additionalProperties: false` at the root.",
+      "req": "REQ-THM-010",
+      "note": "This is the schema doing ADR 0003's work: an unknown member is the shape a code-injection channel would take, so the format has no room for one."
+    },
+    {
+      "file": "invalid/theme-version-prerelease.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "The pattern is anchored; a pre-release suffix does not match.",
+      "req": "REQ-THM-010",
+      "note": "Deliberate: skin versions are compared numerically by the updater, and a pre-release ordering rule is a whole specification of its own."
+    },
+    {
+      "file": "invalid/theme-version-two-part.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`version` must be three dot-separated integers.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-visualizer-palette-empty.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`minItems: 1` — an empty palette would render nothing.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "invalid/theme-visualizer-palette-seventeen.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`maxItems: 16`.",
+      "req": "REQ-THM-010"
+    },
+    {
+      "file": "malicious/theme-assetref-absolute.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "Absolute path.",
+      "req": "REQ-THM-012"
+    },
+    {
+      "file": "malicious/theme-assetref-data-uri.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "A data: URI does not match the pattern either.",
+      "req": "REQ-THM-012",
+      "note": "Rejected even though it fetches nothing: an inline blob of arbitrary size bypasses the REQ-THM-017 per-file limit and the step-8 dimension probe, both of which work on package entries."
+    },
+    {
+      "file": "malicious/theme-assetref-http-url.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "A URL would turn applying a theme into a network request — a fingerprinting beacon in a format that promises no network access.",
+      "req": "REQ-THM-012"
+    },
+    {
+      "file": "malicious/theme-assetref-outside-permitted-dir.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "Only images/, icons/ and fonts/ are asset directories.",
+      "req": "REQ-THM-012"
+    },
+    {
+      "file": "malicious/theme-assetref-traversal.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "`assetRef` allows one directory and a flat filename; no traversal fits.",
+      "req": "REQ-THM-012",
+      "note": "REQ-THM-012 calls this pattern a security control rather than a convenience, and this is the fixture that makes the claim testable."
+    },
+    {
+      "file": "malicious/theme-assetref-windows-unc.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "reject",
+      "reason": "UNC path.",
+      "req": "REQ-THM-012"
+    },
+    {
+      "file": "valid/theme-full.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "accept",
+      "reason": "Every token group populated; no unknown members.",
+      "req": "REQ-THM-010",
+      "note": "Values are taken from design-system/tokens.json so the fixture cannot drift away from §12.1. `emphasized` repeats the `standard` curve on purpose — §12.1 makes it emphatic by pairing that curve with the slow duration, not by defining a fifth curve."
+    },
+    {
+      "file": "valid/theme-minimal.json",
+      "pipelineStep": 4,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "accept",
+      "reason": "Exactly the required members and nothing else.",
+      "req": "REQ-THM-010",
+      "note": "The floor of the format. Everything absent here inherits per REQ-THM-011, so this fixture also pins what 'unset' means: absent, not null. A null would be a type error."
+    },
+    {
+      "file": "contrast/pairs.json",
+      "pipelineStep": 5,
+      "schema": null,
+      "verdict": "table",
+      "reason": "13 colour pairs with the exact ratio both engines must compute and the verdict for each of the two enforcement settings.",
+      "req": "REQ-THM-041",
+      "note": "A fourth directory beyond valid/invalid/malicious, because a contrast result is neither a schema pass nor an attack: it is a number that two engines must agree on. Recorded in this directory's README."
+    },
+    {
+      "file": "contrast/theme-below-aa.json",
+      "pipelineStep": 5,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "accept-with-warning",
+      "reason": "Schema-valid and installable; primary text on base background is 2.1946:1, well under the 4.5 floor, so the loader warns and names the offending pairs.",
+      "req": "REQ-THM-041",
+      "note": "The fixture that keeps step 4 and step 5 distinct. A validator that rejected this at the schema layer would be stricter than the specification and would make the 'Enforce accessible contrast' setting meaningless.",
+      "enforcedVerdict": "reject",
+      "schemaVerdict": "accept"
+    },
+    {
+      "file": "contrast/theme-high-contrast-aaa.json",
+      "pipelineStep": 5,
+      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "verdict": "accept",
+      "reason": "21:1 on every text pair; meets the AAA target §29.1 requires of the High Contrast theme.",
+      "req": "REQ-THM-041",
+      "note": "`secondary` deliberately equals `primary`. A high-contrast theme has no room for a de-emphasised tone, and REQ-UIX-058's rule that meaning never rests on colour alone is what makes dropping the distinction acceptable here."
+    },
+    {
+      "file": "invalid/layout-asset-ref-traversal.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "`assetRef` forbids traversal; only `images/` and `icons/` with a flat name match.",
+      "req": "REQ-THM-018",
+      "note": "On `source`, which is the assetRef. `icon` is a different field — a name resolved against the active icon set — and its own pattern admits no slash at all, so neither field can carry a path out of the package."
+    },
+    {
+      "file": "invalid/layout-dimension-out-of-range.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "Maximum dimension is 16384.",
+      "req": "REQ-THM-026"
+    },
+    {
+      "file": "invalid/layout-freeform-typestyle.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "`typeStyleRef` is one of the seven §12.1 tokens.",
+      "req": "REQ-THM-026"
+    },
+    {
+      "file": "invalid/layout-icon-name-is-not-a-path.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "`icon` names an icon in the active set; a filename with a slash and an extension does not match its pattern.",
+      "req": "REQ-THM-026",
+      "note": "Easy for a skin author to get wrong, which is why it is a fixture: the error message must say 'icon name' and not 'invalid path'."
+    },
+    {
+      "file": "invalid/layout-id-with-space.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "Node ids are identifier-shaped so validation messages can name them unambiguously.",
+      "req": "REQ-THM-026"
+    },
+    {
+      "file": "invalid/layout-literal-hex-color.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "`colorRef` requires a dotted token path; literal hex is rejected.",
+      "req": "REQ-THM-026",
+      "note": "A hard-coded colour would survive the REQ-THM-041 contrast check untouched and then look wrong under every other theme."
+    },
+    {
+      "file": "invalid/layout-missing-root.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "`root` is required.",
+      "req": "REQ-THM-026"
+    },
+    {
+      "file": "invalid/layout-node-unknown-property.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "`additionalProperties: false` on every node — an `on*` handler is unrepresentable.",
+      "req": "REQ-THM-026",
+      "note": "The layout DSL closes the same door the SVG sanitiser closes at step 7. Two formats, one rule."
+    },
+    {
+      "file": "invalid/layout-percent-over-hundred.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "The percentage pattern admits 0–100 only.",
+      "req": "REQ-THM-026"
+    },
+    {
+      "file": "invalid/layout-predicate-function-call.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "No functions in a predicate.",
+      "req": "REQ-THM-030",
+      "note": "A function library inside `when` would be a second expression language to harden, evaluated on every repaint."
+    },
+    {
+      "file": "invalid/layout-predicate-nested-parens.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "No nesting beyond one level: the grammar admits a flat and/or chain, no parentheses.",
+      "req": "REQ-THM-030",
+      "note": "Flatness is what keeps predicate evaluation obviously linear and its error messages pointable at a single clause."
+    },
+    {
+      "file": "invalid/layout-predicate-word-operator.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "REQ-THM-030's grammar uses symbolic comparison operators; `greaterThan` is the smart-playlist spelling and does not belong here.",
+      "req": "REQ-THM-030",
+      "note": "The two grammars are close enough to confuse — the `when` predicate is a deliberately strict subset of the smart-playlist comparison grammar — and the operator vocabulary is where they differ. Worth a fixture precisely because the mistake reads as correct."
+    },
+    {
+      "file": "invalid/layout-schemaversion-2.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "`const 1`.",
+      "req": "REQ-THM-026"
+    },
+    {
+      "file": "invalid/layout-surface-unknown.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "Four surfaces only.",
+      "req": "REQ-THM-026"
+    },
+    {
+      "file": "invalid/layout-unknown-action.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "Actions are enum-only and mirror the §13.2 command registry.",
+      "req": "REQ-THM-028"
+    },
+    {
+      "file": "invalid/layout-unknown-component.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "`WebView` is not one of the 30 components.",
+      "req": "REQ-THM-026",
+      "note": "The closed vocabulary is the second half of ADR 0003: no unknown component means no escape hatch to a browser engine."
+    },
+    {
+      "file": "invalid/layout-unknown-statepath.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "reject",
+      "reason": "`bind` must name a whitelisted presentation-state path.",
+      "req": "REQ-THM-027",
+      "note": "The whitelist is why a skin cannot read anything the app did not choose to publish; a denylist here would leak on the first new field added."
+    },
+    {
+      "file": "valid/main-window.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "accept",
+      "reason": "Exercises 20 of the 30 components, both binding kinds, a `when` and an `enabledWhen` predicate, and one action per interactive node.",
+      "req": "REQ-THM-026",
+      "note": "Every interactive node carries `accessibleName` or a `tooltip`, because REQ-UIX-063 makes them the same string and REQ-TST-019 tests for a non-empty accessible name. A skin that omitted them would validate against the schema and fail accessibility, so this fixture is the shape a reviewer should copy."
+    },
+    {
+      "file": "valid/mini-player-req-thm-031.eclayout",
+      "pipelineStep": 6,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "accept",
+      "reason": "The REQ-THM-031 worked example from §11.4, transcribed so the specification's own illustration is a test.",
+      "req": "REQ-THM-031",
+      "note": "Binds `settings.showMiniVisualizer`, which is the case REQ-THM-027 and REQ-THM-031 disagree about: the former says the state model exposes no settings values, the latter binds one. layout.schema.json follows the narrowest reading that keeps both true — a short allowlist of presentation-affecting settings only. Because this fixture comes from the spec verbatim, it is also the evidence for that reading."
+    },
+    {
+      "file": "malicious/svg-billion-laughs.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Entity expansion bomb: 10^8 characters from 700 bytes.",
+      "req": "REQ-THM-042",
+      "note": "REQ-THM-042 requires entity expansion be DISABLED, so the defence is that the expansion never starts — not a size limit reached after some of it has happened. The fixture is small on purpose: a validator that survives it by hitting a memory cap has still failed the requirement."
+    },
+    {
+      "file": "malicious/svg-doctype.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Any DOCTYPE declaration, even this entirely conventional one.",
+      "req": "REQ-THM-042",
+      "note": "Rejected without inspecting what it references. A DOCTYPE is where entity declarations live, and a validator that allows 'harmless' DOCTYPEs has to decide which ones are harmless — a decision with a long history of being got wrong. The cost is that legitimate exports from older editors are refused; the fix belongs in the authoring tool, and docs/SKIN-AUTHORING.md says so."
+    },
+    {
+      "file": "malicious/svg-element-count-over-cap.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "10,001 elements exceeds REQ-THM-042's cap of 10,000.",
+      "req": "REQ-THM-042",
+      "note": "Generated by the test runner from the recipe above rather than committed: the file is ~50 KB of noise and both engines can build it identically from three numbers. Committing it would also invite someone to 'tidy' it.",
+      "generated": {
+        "kind": "svg-repeat-element",
+        "element": "g",
+        "count": 10001
+      }
+    },
+    {
+      "file": "malicious/svg-external-entity-xxe.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "External entity pointing at a local file — classic XXE.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-foreignobject.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "`<foreignObject>` embeds a whole other document type — an HTML renderer reached through an icon file.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-href-external.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Any `href` that is not an internal fragment — a clickable icon that navigates.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-image-protocol-relative.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Protocol-relative href.",
+      "req": "REQ-THM-042",
+      "note": "A check for a `http`/`https` prefix misses this one; the correct test is that the value is a `data:` URI or an internal fragment, everything else refused."
+    },
+    {
+      "file": "malicious/svg-image-remote-href.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "`<image>` with a non-`data:` href. REQ-THM-042 permits `data:` here and nothing else.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-nested-entity-quadratic.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Quadratic blowup: one modest entity referenced many times, which stays under naive depth limits while still expanding 400 KB.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-not-well-formed.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Unclosed element: not well-formed XML.",
+      "req": "REQ-THM-042",
+      "note": "Rejected rather than recovered. HTML-style error recovery is how one parser's view of a document diverges from another's, and the sanitiser's view must be the renderer's view exactly."
+    },
+    {
+      "file": "malicious/svg-on-attribute-mixed-case.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "`OnClIcK` is the same attribute: XML attribute names are case-sensitive but HTML event handlers are matched case-insensitively by browsers and by Qt's SVG renderer.",
+      "req": "REQ-THM-042",
+      "note": "The rule must be applied case-insensitively or the denylist is trivially bypassed."
+    },
+    {
+      "file": "malicious/svg-on-attribute-namespaced.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "A prefixed event attribute. The check is on the local name, not the qualified name.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-onload-attribute.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Any `on*` event attribute.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-parameter-entity.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Parameter entity fetching an external DTD — the out-of-band XXE variant used to exfiltrate when the response is not echoed back.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-script-cdata.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Same element wrapped in CDATA.",
+      "req": "REQ-THM-042",
+      "note": "Present because a regex-based sanitiser that looks for `<script>` followed by text can be fooled by the CDATA wrapper. Sanitisation must run on a parsed tree."
+    },
+    {
+      "file": "malicious/svg-script-element.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "`<script>` is named first in REQ-THM-042's strip-and-reject list.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-style-import.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "`<style>` containing `@import`: the same network fetch through CSS.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-use-external-file.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "`file://` through the legacy xlink attribute — local file read, not just a fetch.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-use-external.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "`<use>` with an external reference: a network fetch at paint time.",
+      "req": "REQ-THM-042"
+    },
+    {
+      "file": "malicious/svg-xml-bomb-attribute.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "reject",
+      "reason": "Entity expanded inside an attribute value rather than text content.",
+      "req": "REQ-THM-042",
+      "note": "Some parsers guard text nodes and not attributes."
+    },
+    {
+      "file": "valid/icon-play-safe.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "accept",
+      "reason": "Survives sanitisation byte-for-byte: no script, no external reference, no DOCTYPE, 8 elements.",
+      "req": "REQ-THM-042",
+      "note": "`fill=\"url(#g1)\"` is an INTERNAL fragment reference and must be kept. A sanitiser that strips every `url(...)` breaks legitimate gradients, so the accept side of the rule needs a fixture as much as the reject side does."
+    },
+    {
+      "file": "valid/svg-element-count-at-cap.svg",
+      "pipelineStep": 7,
+      "schema": null,
+      "verdict": "accept",
+      "reason": "Exactly 10,000 elements is within the cap.",
+      "req": "REQ-THM-042",
+      "note": "The boundary pair matters more than either side alone: an off-by-one here either rejects a legal icon set or admits an unbounded one.",
+      "generated": {
+        "kind": "svg-repeat-element",
+        "element": "g",
+        "count": 10000
+      }
+    },
+    {
+      "file": "malicious/layout-efs-output-bomb.eclayout",
+      "pipelineStep": 10,
+      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "verdict": "accept",
+      "reason": "Schema-valid: `efs` is a string and the pattern is syntactically fine. Step 10 is the judge, not step 6.",
+      "req": "REQ-EFS-009",
+      "note": "A DELIBERATE two-verdict fixture. REQ-EFS-009 caps rendered output at 4096 characters, so at runtime this pattern is harmless — it truncates. REQ-THM-040 step 10 nonetheless requires every EFS pattern's 'output cap verified' at install time, which is only meaningful if a pattern that would exceed the cap is REFUSED rather than silently clipped. Both readings are defensible: refusing tells the author, clipping keeps a working skin working. The stricter one is recorded here because a skin whose text is invisibly truncated is a bug report nobody can diagnose. Logged in docs/OPEN-QUESTIONS.md.",
+      "stepTenVerdict": "reject",
+      "conflict": "REQ-THM-040 step 10 vs REQ-EFS-009"
+    }
+  ]
+}

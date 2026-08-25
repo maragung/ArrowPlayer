@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eclipse-player.org/schemas/skin-manifest/v1",
+  "title": "Eclipse Player Skin Manifest",
+  "description": "manifest.json inside a .eclipseskin package. Specification: eclipse-player.md §11.3 (REQ-THM-015 … REQ-THM-019). Several REQ-THM-017 hard limits are expressed here where a schema can express them (entry count, layout-document count, font count, path length); the rest — total uncompressed size, per-entry compression ratio, image dimensions, and the per-directory caps of 16 layout documents and 8 fonts — are enforced by the installer BEFORE extraction. JSON Schema cannot count properties matching a pattern, so those caps deliberately live in code with their own tests rather than as an unenforceable comment here.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "version",
+    "license",
+    "capabilities",
+    "minAppVersion",
+    "checksums"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]{1,62}[a-z0-9])?$",
+      "description": "Stable identity. Two packages with the same id are the same skin at different versions."
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "author": { "type": "string", "maxLength": 128 },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "license": {
+      "type": "string",
+      "maxLength": 64,
+      "description": "SPDX identifier. The package also carries the full text in LICENSE (REQ-THM-015)."
+    },
+    "homepage": { "type": "string", "format": "uri", "maxLength": 512 },
+    "description": { "type": "string", "maxLength": 512 },
+    "minAppVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "REQ-THM-016. A skin declaring a newer app version than the running one is refused with a message naming both versions, not loaded partially."
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "REQ-THM-016. Which tiers the package actually uses. A capability not listed here MUST NOT be honoured even if the corresponding directory is present — this is what makes the declaration load-bearing rather than decorative.",
+      "items": { "enum": ["theme", "layout", "icons", "images", "fonts"] },
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true
+    },
+    "targetSurfaces": {
+      "type": "array",
+      "description": "REQ-THM-016. Surfaces whose built-in layout this package overrides. Any surface not listed keeps the built-in layout (REQ-THM-032, graceful degradation).",
+      "items": { "$ref": "#/$defs/surface" },
+      "maxItems": 16,
+      "uniqueItems": true
+    },
+    "preview": {
+      "type": "string",
+      "const": "preview.png",
+      "description": "REQ-THM-015 fixes both the name and the 1280×800 dimensions; the field exists so the manifest is self-describing."
+    },
+    "i18n": {
+      "type": "array",
+      "description": "BCP-47 tags for which i18n/<lang>.json exists. Skin-authored strings only; never application strings.",
+      "items": { "type": "string", "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$" },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "checksums": {
+      "type": "object",
+      "description": "REQ-THM-016: SHA-256 of every other file in the package, keyed by package-relative path. The installer verifies every entry AND refuses a package containing a file absent from this map — an unlisted file is the whole point of the check.",
+      "minProperties": 3,
+      "maxProperties": 1999,
+      "propertyNames": { "$ref": "#/$defs/packagePath" },
+      "additionalProperties": { "$ref": "#/$defs/sha256" }
+    }
+  },
+  "$defs": {
+    "surface": {
+      "enum": ["main-window", "now-playing", "mini-player", "library"],
+      "description": "Closed set. Adding a surface is a schemaVersion change (mirrors the closed component vocabulary of REQ-THM-026)."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lower-case hex. Case is fixed so comparison is a byte compare."
+    },
+    "packagePath": {
+      "type": "string",
+      "maxLength": 200,
+      "pattern": "^(theme\\.json|LICENSE|preview\\.png|(layout|icons|images|fonts|i18n)/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)?)$",
+      "description": "REQ-THM-018 zip-slip prevention, expressed as an allowlist rather than a denylist: relative, ≤200 bytes, confined to a permitted top-level directory, depth ≤4, and structurally incapable of holding '..', an absolute prefix, a drive letter, a NUL, or a control character. manifest.json itself is excluded — it cannot checksum itself."
+    }
+  }
+}
