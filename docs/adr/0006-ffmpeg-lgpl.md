@@ -18,7 +18,7 @@ in the source tree, that would only be discovered by someone auditing a release.
 
 Shipped FFmpeg builds are configured with:
 
-```
+```text
 --disable-gpl  --disable-nonfree
 --disable-programs --disable-doc
 --disable-encoders --disable-muxers --disable-filters --disable-devices
