@@ -1,0 +1,34 @@
+// markdownlint-cli2 runner configuration.
+//
+// Rules live in .markdownlint.json, which every markdownlint front end reads
+// (editors, extensions, the v1 CLI). This file holds only the two things that
+// are specific to the cli2 runner: which files it walks, and which it skips.
+//
+// Both belong here rather than in a .markdownlintignore, because cli2 does not
+// read that file. A .markdownlintignore next to a cli2 invocation is inert, and
+// an inert ignore file is worse than none: it makes an exclusion look enforced
+// while the linter quietly walks build/ and reformats nothing that matters.
+{
+  // Dot-directories are included, so .github/ is covered without a second glob.
+  "globs": ["**/*.md"],
+
+  "ignores": [
+    // The specification is consumed, not authored, here: it is the upstream
+    // source of every REQ id in the repository. Reformatting it to satisfy a
+    // line-length rule would churn the one file whose line numbers are quoted
+    // in commit messages, ADRs, and code comments.
+    "eclipse-player.md",
+
+    // Generated documents — fix the generator, not the output.
+    // docs/THIRD-PARTY.md: REQ-GEN-012, and section 27 marks it "Generated".
+    // CHANGELOG.md: REQ-BLD-036, "generated but MUST be human-curated".
+    "docs/THIRD-PARTY.md",
+    "CHANGELOG.md",
+
+    // Not ours. desktop/third_party/ holds vendored archives, but its README is
+    // ours and is linted: the pattern skips the subdirectories, not the directory.
+    "node_modules/**",
+    "desktop/third_party/*/**",
+    "build/**"
+  ]
+}

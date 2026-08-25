@@ -329,6 +329,49 @@ even though all of them are installed — a silent, misleading result.
   truthful but easy to misread as "this machine cannot build the adapter" when it
   actually means "pkg-config was not told where to look". Leaning yes.
 
+### OQ-028 — The Markdown gate had never excluded anything it claimed to · **Settled**
+
+`9e12695` reported "0 issues in 27 files" and added a `.markdownlintignore`
+listing six exclusions. Both halves were wrong in the same way.
+
+`markdownlint-cli2` does not read `.markdownlintignore` — that file belongs to
+the v1 `markdownlint` CLI. cli2 takes its file set from `globs` and its
+exclusions from `ignores`, both in `.markdownlint-cli2.jsonc`. With no such file
+present, every exclusion in the repository was inert:
+
+| Invocation | Files | Result |
+|---|---|---|
+| `markdownlint-cli2 "**/*.md"` | 109 | 2869 issues in 73 files — it walked `build/_deps/googletest-src/` |
+| `git ls-files '*.md' \| xargs markdownlint-cli2` | 28 | 718 issues in 1 file — `eclipse-player.md`, the file the ignore list exists to protect |
+
+So the green result came from an invocation that happened to name a file set
+excluding the specification, not from an exclusion being honoured. The gate was
+neither green nor red; it had no fixed subject.
+
+- **Correction of record:** "27 files" was never the tracked-document count.
+  There were 24 tracked `.md` files at `9e12695` and 22 of them lintable, so the
+  figure did not correspond to any set the repository defines. It is now 26 of the
+  28 tracked documents — `eclipse-player.md` and `CHANGELOG.md` are the two live
+  exclusions, `docs/THIRD-PARTY.md` is pre-listed against the generator that will
+  produce it — and all of them are visible in the linter's own `Finding:` line.
+- **Fixed here:** `.markdownlintignore` is deleted and `.markdownlint-cli2.jsonc`
+  carries `globs` plus `ignores`. Rules stay in `.markdownlint.json` so that
+  editors and the v1 CLI keep reading the same rule set as the gate. Dot
+  directories are walked by default, so `.github/**` needs no second glob.
+- **One exclusion was too broad and is narrowed:** `desktop/third_party/` skipped
+  `desktop/third_party/README.md`, which is ours and hand-written. The pattern is
+  now `desktop/third_party/*/**` — vendored subdirectories are skipped, the
+  README is linted.
+- **The invocation is now part of the gate, not a detail of it.** `CONTRIBUTING.md`
+  states that the command is `npx markdownlint-cli2` with **no arguments**,
+  because arguments are exactly how the wrong file set got linted.
+- **Verified, both directions:** 0 issues over 26 files; and an over-long line
+  appended to `docs/PRIVACY.md` is reported as
+  `MD013/line-length … Expected: 88; Actual: 125`, so the clean result is the
+  linter working rather than the linter idle. A scratch file at 85 columns also
+  confirms `.markdownlint.json` is the rule source in effect — default
+  markdownlint flags it at 80, this configuration does not.
+
 ### OQ-022 — `arm64` is not CI-tested · **Gap**
 
 §3.1 lists `arm64` in the support matrix. No arm64 runner is configured, so arm64
