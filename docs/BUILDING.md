@@ -57,7 +57,7 @@ Every external library is **optional at configure time**. The tree always
 configures, and adapters whose library is absent are simply not built. Configure
 prints exactly what was found:
 
-```
+```text
   --- adapters (dependency-gated) ---
   SQLite3       : ON
   FFmpeg        : OFF
@@ -89,6 +89,64 @@ sudo apt-get install -y \
 REQ-GEN-014). Your distribution's FFmpeg may be either; CI asserts the linked
 build reports LGPL at runtime (REQ-GEN-015). For release artifacts, build FFmpeg
 from source with the flag set in §4.4.
+
+### Building the dependencies into a user-local prefix
+
+If you cannot install system packages — no root, a locked-down machine, or you
+simply want the exact decode-only FFmpeg the project targets — build into
+`~/.local` and point the build at it. This is a supported path, not a workaround;
+it is how the project is developed.
+
+```bash
+# FFmpeg 7.1 — LGPL, decode-oriented, no network transports at all.
+# This configuration is REQ-GEN-014 and REQ-GEN-016 expressed as flags.
+./configure --prefix="$HOME/.local" --enable-shared --disable-static \
+  --disable-everything --disable-doc --disable-debug --disable-network \
+  --disable-avdevice --disable-swscale --disable-postproc \
+  --disable-ffplay --disable-ffprobe \
+  --enable-avcodec --enable-avformat --enable-avutil --enable-swresample \
+  --enable-avfilter --enable-protocol='file,pipe' \
+  --enable-decoder='mp3,mp3float,flac,alac,aac,aac_latm,vorbis,opus,wavpack,ape,mpc7,mpc8,wmav1,wmav2,wmapro,pcm_s16le,pcm_s24le,pcm_s32le,pcm_f32le,pcm_f64le,pcm_s16be,pcm_s24be,pcm_s32be,pcm_u8,pcm_s8' \
+  --enable-demuxer='mp3,flac,wav,w64,aiff,aac,mov,ogg,wv,ape,mpc,mpc8,asf,caf,matroska,pcm_s16le' \
+  --enable-parser='mpegaudio,flac,aac,aac_latm,vorbis,opus' \
+  --enable-filter='aresample,aformat,anull,atrim,volume' \
+  --enable-libmp3lame \
+  --enable-encoder='flac,alac,wavpack,vorbis,opus,libmp3lame,pcm_s16le,pcm_s24le,pcm_f32le' \
+  --enable-muxer='wav,flac,ogg,mp3,wv,caf,aiff,mov,mp4,ipod'
+```
+
+Two flags in there deserve an explanation, because both look like scope creep:
+
+- **`--disable-network` and `--enable-protocol='file,pipe'`.** A player that
+  reads local files does not need FFmpeg's HTTP, RTMP or TLS transports, and
+  §19.5 makes the zero-connection default structural rather than a policy. This
+  removes the capability instead of declining to use it.
+- **`--enable-libmp3lame` and the encoder list.** These exist to **generate the
+  test corpus**, not to ship. §8.11 test 3 proves gapless playback by comparing
+  decoded output byte-for-byte across a track boundary, which means something has
+  to encode the boundary in the first place — and MP3 needs LAME. `libmp3lame` is
+  LGPL-2.1 and `REQ-GEN-016` permits it as a separately-enabled component.
+  **`libfdk_aac` is not permitted** under any circumstances: it is non-free.
+
+TagLib and alsa-lib build into the same prefix with their usual CMake and
+autotools invocations.
+
+**Then tell the build where to look.** `EclipseDependencies.cmake` finds FFmpeg,
+TagLib, ALSA and libsamplerate through `pkg-config`, which does not search a
+user-local prefix by default:
+
+```bash
+export PKG_CONFIG_PATH="$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH"
+export LD_LIBRARY_PATH="$HOME/.local/lib:$LD_LIBRARY_PATH"
+```
+
+Without those two lines the configure summary prints `OFF` for every adapter even
+though all of them are installed — which reads as "this machine cannot build the
+adapter" when it actually means "pkg-config was not told where to look". The
+presets deliberately do **not** hardcode a prefix, because a committed preset
+that assumes one contributor's home directory changes dependency resolution for
+everyone else. See `OQ-021` in
+[`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).
 
 ## Qt
 

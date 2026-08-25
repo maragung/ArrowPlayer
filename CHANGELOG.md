@@ -54,10 +54,26 @@ stable yet.
   `commitlint.config.js` with the §0.2 scope enum and a custom rule requiring a
   REQ id in the body of every behavioural commit, `CONTRIBUTING.md`,
   `CODE_OF_CONDUCT.md`, `SECURITY.md`.
+- **Documentation.** `docs/BUILDING.md` including a root-free user-local
+  dependency build, `docs/PARITY.md` (the §29.2 matrix with an added Status
+  column), `docs/PRIVACY.md`, `docs/ROADMAP.md` (the 56 `[v1.x]` requirements,
+  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (24
+  registered assumptions, narrowings and gaps with stable `OQ-NNN` ids).
 - **ADRs** 0001 (MPL-2.0 core, LGPL-only dependencies), 0002 (`IAudioSink` with
   native backends rather than RtAudio), 0003 (no executable code in skins), 0005
   (Qt via `aqtinstall`, everything else via vcpkg), 0006 (FFmpeg decode-only in
   an LGPL configuration with a CI assertion).
+
+### Verified
+
+- **184 tests pass from a clean build** on the development machine under
+  `linux-release`, `linux-asan` (ASan + UBSan) and `linux-tsan`, clean under
+  `-Werror`, with CMake 3.31.6 / Ninja 1.12.1 / GCC 14.2.0. All four gate scripts
+  pass. This is a local reproduction, not a CI-only assertion.
+- **FFmpeg 7.1.1, TagLib 2.0.2, alsa-lib 1.2.12 and SQLite 3.46.1** are detected
+  by the configure step, so the adapters they gate can be built and tested
+  locally as they are written. The FFmpeg build is LGPL-configured with
+  `--disable-network`.
 
 ### Not yet true
 
@@ -73,10 +89,12 @@ and tested, and this section is what keeps that promise honest:
   `docs/adr/0011-desktop-first-sequencing.md`.
 - **`REQ-GEN-031` is half-proven.** One implementation conforming to the
   fixtures is not two implementations agreeing on them.
-- **The desktop test suite has never been executed on the development machine.**
-  CMake, Ninja, Qt and FFmpeg are absent from it and `sudo` is unavailable, so
-  the suite's results come from CI or from direct verification of individual
-  algorithms, not from a local `ctest` run. Tracked in
+- **The Qt UI is unverified anywhere but CI.** Qt is the one dependency that is
+  not installed on the development machine, so Phase 0 exit gates 1 ("the window
+  opens") and 7 ("the version is shown in About") are CI-only. It is not claimed
+  that a window has been observed to open. Tracked as `OQ-017` in
   `docs/OPEN-QUESTIONS.md`.
+- **Windows and `arm64` are CI-only.** WASAPI, the jump list and the installer
+  have no local test evidence (`OQ-022`, `OQ-023`).
 
 [Unreleased]: https://github.com/maragung/ArrowPlayer/commits/main

@@ -48,14 +48,19 @@ zero-connection test asserts no outbound traffic during a full session.
 | Hardened JSON parser (§21.2) | done | 25 |
 | RBJ biquads + 10/18-band EQ (§8.9.1) | done | 56 |
 | Gapless metadata: Xing/LAME, iTunSMPB, OpusHead, granule (§8.4) | done | 51 |
-| Architecture gates: layers, SQL safety, RT safety | done | 3 gates |
+| `shared-spec/` contract: schemas, grammars, 455 fixtures (§11, §10, §9.6) | done | 455 fixtures |
+| Architecture gates: layers, SQL safety, RT safety, spec/fixture sync | done | 4 gates |
 | Audio graph, sinks, decoders | not started | — |
 | Library index, scanner, tagging | not started | — |
 | Format strings, smart playlists, theme engine | not started | — |
 | Qt UI | not started | — |
 
-**184 tests, all passing**, clean under `-Werror` with a strict warning set and
-under ASan+UBSan.
+**184 tests, all passing** from a clean build, clean under `-Werror` with a strict
+warning set, and passing again under ASan+UBSan and under ThreadSanitizer.
+Reproduced locally on GCC 14.2 / CMake 3.31 / Ninja 1.12, not asserted from CI
+alone. The one dependency that is unavailable locally is Qt, so the UI is
+**CI-verified only** — see
+[`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md).
 
 Notable results already verified:
 
@@ -89,7 +94,7 @@ Full instructions, including Qt and the optional adapters:
 
 Five layers with a mechanically enforced dependency direction (§7.2):
 
-```
+```text
 5  PRESENTATION   QML + Widgets  |  Compose        no business logic
 4  APPLICATION    use cases, playback session, queue
 3  DOMAIN         pure entities and rules          zero dependencies
