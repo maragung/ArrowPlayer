@@ -79,7 +79,7 @@ reporter of any incident.
 > a real limitation, not an oversight. If it applies to you, GitHub's own
 > [Community Guidelines reporting](https://github.com/contact/report-abuse) is
 > the escalation path that does not run through this project. Establishing a
-> second point of contact is tracked in
+> second point of contact is tracked as `OQ-014` in
 > [`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md).
 
 ## Enforcement Guidelines

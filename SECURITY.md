@@ -24,7 +24,7 @@ If GitHub private reporting is unavailable to you, contact the maintainer
 for a private channel. Do not include vulnerability details in a public message.
 
 > **Not yet in place:** a dedicated, monitored security mailbox and a published
-> PGP key. Both are release blockers for 1.0.0 and are tracked in
+> PGP key. Both are release blockers for 1.0.0 and are tracked as `OQ-013` in
 > [`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md). Until then GitHub private
 > reporting is the only channel we can honestly promise to read.
 

@@ -55,7 +55,7 @@ platform done properly over two done partly.
 | `REQ-GEN-031` — desktop and Android agree on conformance fixtures | **Half-proven** | one engine can conform; agreement needs two |
 | `REQ-AUD-108` — desktop/Android DSP within −90 dBFS | **Untestable yet** | one side of the comparison is missing |
 | `REQ-LIB-001` — schema change applied to both platforms in one commit | **Unenforceable in one direction** | there is no second platform to fail the gate |
-| Phase 0 exit gates 1 and 7 — window opens, version shown in About | **CI-only** | Qt is not installable on the development machine; see `docs/OPEN-QUESTIONS.md` |
+| Phase 0 exit gates 1 and 7 — window opens, version shown in About | **CI-only** | Qt is not installable on the development machine; `OQ-017` in `docs/OPEN-QUESTIONS.md` |
 
 **Phase 0 is therefore not complete.** It is complete for the desktop scope. Under
 §28's own rule — a phase is complete only when every gate is green on every
