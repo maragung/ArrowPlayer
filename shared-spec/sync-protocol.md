@@ -36,7 +36,7 @@ exchange change sets directly.
 
 **Length-prefixed JSON.** Each message on the wire is:
 
-```
+```text
 +--------+--------+--------+--------+----------------------------+
 |          uint32  length  (big-endian)                          |
 +--------+--------+--------+--------+----------------------------+
@@ -335,7 +335,7 @@ claim, not a property.
 
 One connection, one sync session. States, with the message that leaves each:
 
-```
+```text
                     ┌───────────────┐
                     │     IDLE      │  sync disabled or nothing to do
                     └───────┬───────┘
@@ -451,9 +451,10 @@ playlist, or restore a stale resume position.
 
 **Mitigation.** TLS 1.3 defeats replay of the *transport*: a captured session
 cannot be re-injected into a new one. At the application layer, ordering is by
-Lamport clock, and application is idempotent — a `(deviceUuid, lamport, entity,
-entityUuid, field)` tuple at or below the recorded watermark is discarded with no
-effect. LWW fields cannot be rolled back, because an older `lamport` loses to the
+Lamport clock, and application is idempotent — a
+`(deviceUuid, lamport, entity, entityUuid, field)` tuple at or below the recorded
+watermark is discarded with no effect. LWW fields cannot be rolled back, because
+an older `lamport` loses to the
 value already held. Counters are per-device deltas, so a resent delta is
 recognised by its Lamport position rather than added again. Playlist deletes win
 only if their clock is later than every competing insert, so a replayed delete
