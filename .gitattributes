@@ -1,8 +1,114 @@
-* text=auto eol=lf
-*.png binary
-*.jpg binary
-*.webp binary
-*.ttf binary
-*.otf binary
-*.tar.gz binary
-*.eclipseskin binary
+# REQ-GEN-030: enforce LF in the repository, mark binary assets.
+#
+# Text files are stored with LF and checked out with LF on every platform. The
+# desktop build is Windows + Linux from one tree; letting Git rewrite line
+# endings per-checkout makes `clang-format --dry-run` and golden-file
+# comparisons differ between the two, which turns a CI failure into a
+# platform mystery.
+
+*               text=auto eol=lf
+
+# Explicitly text, so a stray CRLF is normalised on commit rather than shipped.
+*.c             text eol=lf
+*.cc            text eol=lf
+*.cpp           text eol=lf
+*.cxx           text eol=lf
+*.h             text eol=lf
+*.hpp           text eol=lf
+*.in            text eol=lf
+*.cmake         text eol=lf
+CMakeLists.txt  text eol=lf
+*.kt            text eol=lf
+*.kts           text eol=lf
+*.java          text eol=lf
+*.gradle        text eol=lf
+*.pro           text eol=lf
+*.qml           text eol=lf
+*.qrc           text eol=lf
+*.ts            text eol=lf
+*.ui            text eol=lf
+*.py            text eol=lf
+*.sh            text eol=lf
+*.json          text eol=lf
+*.jsonc         text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.toml          text eol=lf
+*.md            text eol=lf
+*.txt           text eol=lf
+*.ebnf          text eol=lf
+*.svg           text eol=lf
+*.eclayout      text eol=lf
+*.desktop       text eol=lf
+*.xml           text eol=lf
+*.wxs           text eol=lf
+*.nsi           text eol=lf
+.gitignore      text eol=lf
+.editorconfig   text eol=lf
+
+# Windows-native tooling that rejects LF.
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+*.ps1           text eol=crlf
+
+# Binary. Never diffed, never line-ending-mangled, never merged.
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.webp          binary
+*.ico           binary
+*.icns          binary
+*.gif           binary
+*.ttf           binary
+*.otf           binary
+*.woff          binary
+*.woff2         binary
+*.qm            binary
+*.eclipseskin   binary
+*.zip           binary
+*.gz            binary
+*.tar           binary
+*.xz            binary
+*.zst           binary
+*.7z            binary
+*.msi           binary
+*.exe           binary
+*.dll           binary
+*.so            binary
+*.dylib         binary
+*.a             binary
+*.lib           binary
+*.pdb           binary
+*.AppImage      binary
+*.deb           binary
+*.apk           binary
+*.aab           binary
+*.jar           binary
+*.keystore      binary
+*.jks           binary
+
+# Golden test corpus (§29.4). Audio fixtures are compared byte-for-byte by the
+# gapless and null tests; a merge or an EOL rewrite would silently invalidate
+# every expectation derived from them.
+*.wav           binary
+*.flac          binary
+*.mp3           binary
+*.m4a           binary
+*.aac           binary
+*.ogg           binary
+*.opus          binary
+*.wv            binary
+*.ape           binary
+*.dsf           binary
+*.dff           binary
+*.mpc           binary
+*.tta           binary
+
+# Generated — collapse in review, but keep them diffable for audit.
+docs/THIRD-PARTY.md  linguist-generated=true
+docs/PARITY.md       linguist-generated=true
+CHANGELOG.md         linguist-generated=true
+
+# The specification is the source of every requirement ID. Not generated, not
+# vendored, and it should count as this repository's language for statistics.
+eclipse-player.md    linguist-documentation=false

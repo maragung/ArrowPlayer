@@ -1,0 +1,14 @@
+# The specification is consumed, not authored, here: it is the upstream source of
+# every REQ id in the repository. Reformatting it to satisfy a line-length rule
+# would churn the one file whose line numbers are quoted in commit messages,
+# ADRs, and code comments.
+eclipse-player.md
+
+# Generated documents. Fix the generator, not the output.
+docs/THIRD-PARTY.md
+CHANGELOG.md
+
+# Not ours.
+node_modules/
+desktop/third_party/
+build/
