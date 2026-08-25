@@ -1,0 +1,554 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eclipse-player.org/schemas/settings/v1",
+  "title": "Eclipse Player Settings Export",
+  "description": "The settings export/import bundle (§19.4) and, inside it, the complete settings inventory (§19.1). REQ-SET-002 requires this file to enumerate EVERY key with its type, range, and default, and requires CI to assert the application's real defaults match what is written here — so this schema is the source of truth for defaults, not a description of them. REQ-SET-007 additionally requires the export be human-readable, so a user can inspect exactly what leaves their machine. What must never appear is as load-bearing as what must: REQ-SET-008 and REQ-SET-009 forbid credentials, tokens, the sync device key, machine identifiers, and absolute paths where a relative form suffices. `additionalProperties: false` throughout is how that prohibition is enforced rather than merely stated — a future field carrying a secret cannot be added without editing this file, which is a reviewable act.",
+  "type": "object",
+  "required": ["schemaVersion", "settings"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "exportedByAppVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+" },
+    "exportedOnPlatform": {
+      "enum": ["windows", "linux", "android"],
+      "description": "Platform family only. Not a hostname, not a device UUID, not a user name (REQ-SET-009)."
+    },
+    "exportedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "settings": { "$ref": "#/$defs/settings" },
+    "eqPresets": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/eqPreset" } },
+    "dspProfiles": { "type": "array", "maxItems": 128, "items": { "$ref": "#/$defs/dspProfile" } },
+    "shortcuts": {
+      "type": "object",
+      "description": "REQ-KEY-002: the whole map, exportable and importable. Keys are command ids from the §13.2 registry; values are the bound chords.",
+      "propertyNames": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*\\.[a-zA-Z][A-Za-z0-9]*$" },
+      "additionalProperties": {
+        "type": "array",
+        "maxItems": 4,
+        "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "maxItems": 256,
+      "description": "Library source definitions. Paths are exported verbatim because a music folder has no relative form that survives a move to another machine; the import dialog re-maps them (REQ-SET-008 requires a summary of what will change before anything is applied).",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "enabled": { "type": "boolean", "default": true },
+          "watch": { "type": "boolean", "default": true },
+          "label": { "type": "string", "maxLength": 128 }
+        }
+      }
+    },
+    "playlists": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/playlist" } },
+    "trackState": {
+      "type": "array",
+      "maxItems": 1000000,
+      "description": "Ratings, play counts, skip counts, loved flags, and resume positions, keyed by the cross-device track identity of REQ-SYN-004 rather than by a local row id — a row id means nothing on the importing machine.",
+      "items": { "$ref": "#/$defs/trackStateEntry" }
+    },
+    "bookmarks": { "type": "array", "maxItems": 100000, "items": { "$ref": "#/$defs/bookmark" } },
+    "radioStations": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/radioStation" } }
+  },
+
+  "$defs": {
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The fifteen groups of §19.1, in the order that section lists them.",
+      "properties": {
+        "general": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "§19.1 lists portable mode under this group. It is deliberately not a key here: REQ-SET-005 derives it from a marker file beside the executable or a `--portable` flag, so it is a property of the installation, not a stored preference, and REQ-SET-006 only requires it be detectable and shown in About. Exporting it would also make the bundle machine-specific.",
+          "properties": {
+            "language": {
+              "description": "BCP-47 tag, or \"system\" to follow the OS (§12.7).",
+              "anyOf": [
+                { "const": "system" },
+                { "type": "string", "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$" }
+              ],
+              "default": "system"
+            },
+            "startupBehaviour": { "enum": ["showWindow", "startMinimised", "startInTray"], "default": "showWindow" },
+            "resumePlaybackOnStartup": { "enum": ["never", "paused", "playing"], "default": "paused" },
+            "singleInstance": { "type": "boolean", "default": true },
+            "trayEnabled": { "type": "boolean", "default": true },
+            "closeButtonAction": { "enum": ["exit", "minimiseToTray"], "default": "exit" },
+            "minimiseToTray": { "type": "boolean", "default": false },
+            "checkForUpdates": {
+              "type": "boolean",
+              "default": false,
+              "description": "Off by default. An update check is an outbound request, and REQ-NET-001's global network switch is off until the user turns it on — a default-on update check would make the privacy claim false on first launch."
+            },
+            "updateCheckIntervalDays": { "type": "integer", "minimum": 1, "maximum": 90, "default": 7 }
+          }
+        },
+
+        "playback": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Fade ranges and defaults are exactly REQ-AUD-050's table; the seven fades are independently configurable because that is what makes transport feel click-free.",
+          "properties": {
+            "gaplessEnabled": { "type": "boolean", "default": true },
+            "fadeInOnPlayMs": { "type": "integer", "minimum": 0, "maximum": 2000, "default": 150 },
+            "fadeOutOnPauseMs": { "type": "integer", "minimum": 0, "maximum": 2000, "default": 150 },
+            "fadeOutOnStopMs": { "type": "integer", "minimum": 0, "maximum": 3000, "default": 300 },
+            "fadeAroundSeekMs": { "type": "integer", "minimum": 0, "maximum": 500, "default": 60 },
+            "fadeOnManualChangeMs": { "type": "integer", "minimum": 0, "maximum": 3000, "default": 200 },
+            "crossfadeMs": {
+              "type": "integer", "minimum": 0, "maximum": 15000, "default": 0,
+              "description": "0 = off, which is the default: a crossfade is wrong for a gapless album and the user should opt into it."
+            },
+            "fadeOutOnSleepTimerMs": { "type": "integer", "minimum": 0, "maximum": 120000, "default": 20000 },
+            "silenceRemovalEnabled": {
+              "type": "boolean", "default": false,
+              "description": "REQ-AUD-055 [v1.x]. Off by default, and automatically disabled when gapless metadata is present — trimming would break a sample-exact splice."
+            },
+            "silenceThresholdDbfs": { "type": "number", "minimum": -80, "maximum": -40, "default": -60 },
+            "repeatMode": { "enum": ["off", "all", "one"], "default": "off" },
+            "shuffleMode": { "enum": ["off", "tracks", "albums"], "default": "off" },
+            "resumeBehaviour": { "enum": ["never", "ask", "always"], "default": "always" },
+            "sleepTimerDefaultMinutes": { "type": "integer", "minimum": 1, "maximum": 480, "default": 30 },
+            "stopAfterCurrentTrack": { "type": "boolean", "default": false },
+            "abRepeatPersistsAcrossTracks": {
+              "type": "boolean", "default": false,
+              "description": "§19.1 lists A-B repeat among Playback settings. The A and B points themselves are session state rather than settings — what is configurable is whether a marked region survives a track change, and it does not by default."
+            }
+          }
+        },
+
+        "audioOutput": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "backend": {
+              "enum": ["auto", "wasapi", "alsa", "pulse", "jack", "asio", "rtaudio", "aaudio"],
+              "default": "auto",
+              "description": "REQ-AUD-061: user-overridable, persisted per device. `asio` and `rtaudio` exist only where compiled in (REQ-AUD-071, REQ-AUD-073, both OFF by default)."
+            },
+            "preferredDeviceName": {
+              "type": "string", "maxLength": 256, "default": "",
+              "description": "Human-readable device NAME, deliberately not the backend's device id. A WASAPI endpoint GUID or an ALSA `hw:` index is a machine identifier, and REQ-SET-009 forbids exporting one; a name can be re-matched on the importing machine, or fall back to the system default."
+            },
+            "exclusiveMode": {
+              "type": "boolean", "default": false,
+              "description": "Shared mode is the default (REQ-AUD-062). Exclusive mode takes the device away from every other application, which must be a deliberate choice."
+            },
+            "periodMs": {
+              "type": "integer", "minimum": 2, "maximum": 200, "default": 20,
+              "description": "Requested device period. The spec fixes no value; this default is chosen here as the smallest period that is reliable on a shared-mode Windows or PulseAudio path without underruns, and the sink clamps it to the device's min/max from REQ-AUD-060's DeviceInfo."
+            },
+            "bufferPeriods": { "type": "integer", "minimum": 2, "maximum": 16, "default": 4 },
+            "deviceRatePolicy": {
+              "enum": ["followSource", "fixedRate", "followSourceFamily"],
+              "default": "followSourceFamily",
+              "description": "REQ-AUD-058 calls `followSourceFamily` the recommended compromise — it avoids the frequent device restarts of `followSource` while still resampling only within a rate family, so 44.1 kHz material is never resampled to 48 kHz."
+            },
+            "fixedRateHz": { "enum": [44100, 48000, 88200, 96000, 176400, 192000], "default": 48000 },
+            "bitPerfect": {
+              "type": "boolean", "default": false,
+              "description": "Off by default because engaging it disables EQ, ReplayGain, the limiter, dither, and resampling (§8.8's nine-point contract). A user who has not asked for that would experience it as breakage."
+            },
+            "perDeviceProfiles": { "type": "boolean", "default": true }
+          }
+        },
+
+        "dsp": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "eqEnabled": { "type": "boolean", "default": false },
+            "eqMode": { "enum": ["graphic10", "graphic18", "parametric"], "default": "graphic10" },
+            "eqPreampDb": { "type": "number", "minimum": -12, "maximum": 12, "multipleOf": 0.1, "default": 0 },
+            "eqActivePreset": { "type": "string", "maxLength": 128, "default": "Flat" },
+            "effectsEnabled": { "type": "boolean", "default": false },
+            "bassBoostEnabled": { "type": "boolean", "default": false },
+            "bassBoostFrequencyHz": { "type": "number", "minimum": 40, "maximum": 200, "default": 80 },
+            "bassBoostGainDb": { "type": "number", "minimum": 0, "maximum": 12, "default": 0 },
+            "bassBoostQ": { "type": "number", "minimum": 0.5, "maximum": 1.5, "default": 0.7 },
+            "trebleBoostEnabled": { "type": "boolean", "default": false },
+            "trebleBoostFrequencyHz": { "type": "number", "minimum": 2000, "maximum": 12000, "default": 6000 },
+            "trebleBoostGainDb": { "type": "number", "minimum": 0, "maximum": 12, "default": 0 },
+            "trebleBoostQ": { "type": "number", "minimum": 0.5, "maximum": 1.5, "default": 0.7 },
+            "replayGainMode": {
+              "enum": ["off", "track", "album", "smart"], "default": "smart",
+              "description": "REQ-AUD-102. `smart` uses album gain while the queue plays a contiguous album and track gain otherwise, which is the only mode that is right for both a shuffled library and an album listen."
+            },
+            "replayGainPreampDb": { "type": "number", "minimum": -15, "maximum": 15, "default": 0 },
+            "replayGainFallbackDb": { "type": "number", "minimum": -15, "maximum": 15, "default": 0 },
+            "replayGainClippingPrevention": {
+              "type": "boolean", "default": true,
+              "description": "REQ-AUD-103: default on, and preferred over engaging the limiter."
+            },
+            "tempoPercent": { "type": "number", "minimum": 25, "maximum": 400, "default": 100 },
+            "pitchSemitones": { "type": "number", "minimum": -12, "maximum": 12, "default": 0 },
+            "speedPercent": { "type": "number", "minimum": 25, "maximum": 400, "default": 100 },
+            "limiterEnabled": { "type": "boolean", "default": true },
+            "limiterCeilingDbtp": { "type": "number", "minimum": -3.0, "maximum": 0.0, "default": -0.3 },
+            "resamplerQuality": {
+              "enum": ["best", "balanced", "fast", "minimal"],
+              "default": "best",
+              "description": "REQ-AUD-057: `best` on desktop, `balanced` on Android. `minimal` is linear interpolation for diagnostics and the UI must label it as low quality."
+            },
+            "ditherEnabled": {
+              "type": "boolean", "default": true,
+              "description": "REQ-AUD-059: TPDF at 1 LSB, applied only for device formats of 16 bits or fewer. At 24/32-bit it is inaudible and would break bit-perfect verification, so the engine skips it regardless of this setting."
+            },
+            "activeDspProfile": { "type": "string", "maxLength": 128, "default": "Default" },
+            "balance": { "type": "number", "minimum": -1, "maximum": 1, "default": 0 },
+            "monoDownmix": { "type": "boolean", "default": false }
+          }
+        },
+
+        "library": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "§19.1 also lists Sources under this group; they are a top-level export member (`sources`) because they are a list of records rather than a scalar preference.",
+          "properties": {
+            "scanOnStartup": { "type": "boolean", "default": true },
+            "watchFolders": { "type": "boolean", "default": true },
+            "extensionAllowlist": {
+              "type": "array",
+              "maxItems": 128,
+              "items": { "type": "string", "pattern": "^[a-z0-9]{1,12}$" },
+              "default": ["mp3", "flac", "wav", "aiff", "m4a", "aac", "ogg", "oga", "opus", "wv", "ape", "mpc", "wma", "caf", "mka", "aif", "w64"],
+              "description": "An allowlist, not a denylist: an unknown extension is skipped rather than probed, so a scan cannot be turned into a decoder fuzzing run by dropping a hostile file into a watched folder."
+            },
+            "ignorePatterns": { "type": "array", "maxItems": 256, "items": { "type": "string", "maxLength": 256 }, "default": [] },
+            "multiValueSeparators": {
+              "type": "array", "maxItems": 8,
+              "items": { "type": "string", "minLength": 1, "maxLength": 4 },
+              "default": [";"],
+              "description": "§9.2.2. Only `;` by default: splitting on `/` or `,` by default would shred legitimate single-artist names such as AC/DC or \"Earth, Wind & Fire\"."
+            },
+            "encodingOverride": {
+              "type": "string", "maxLength": 32, "default": "",
+              "description": "Empty means autodetect (§9.2.4). Set for libraries with legacy tags in a fixed legacy codepage."
+            },
+            "sortArticles": {
+              "type": "array", "maxItems": 32, "items": { "type": "string", "maxLength": 16 },
+              "default": ["The", "A", "An"],
+              "description": "Stripped when building sort keys (§9.2.3) but never when displaying."
+            },
+            "missingFilePolicy": { "enum": ["keepAndMark", "askOnLaunch", "removeAfterDays"], "default": "keepAndMark" },
+            "missingFileRemoveAfterDays": { "type": "integer", "minimum": 1, "maximum": 3650, "default": 90 }
+          }
+        },
+
+        "metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "writeTagsToFiles": {
+              "type": "boolean", "default": false,
+              "description": "Off by default. Writing tags modifies the user's own files, which must be an explicit choice — §9.2.5 additionally requires atomic writes and a backup option once it is on."
+            },
+            "preferredId3Version": { "enum": ["2.3", "2.4"], "default": "2.3" },
+            "artworkResolutionOrder": {
+              "type": "array",
+              "maxItems": 4,
+              "uniqueItems": true,
+              "items": { "enum": ["embedded", "folderImage", "cache", "none"] },
+              "default": ["embedded", "folderImage"]
+            },
+            "artworkCacheMaxMb": { "type": "integer", "minimum": 16, "maximum": 8192, "default": 512 },
+            "onlineMetadataLookup": {
+              "type": "boolean", "default": false,
+              "description": "§19.1 marks this off. It sends the user's tags to a third party, so it is opt-in and additionally gated behind the global network switch."
+            }
+          }
+        },
+
+        "appearance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "themeId": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$", "default": "eclipse-dark" },
+            "skinId": { "type": "string", "maxLength": 64, "default": "" },
+            "iconSetId": { "type": "string", "pattern": "^[a-z0-9-]{1,64}$", "default": "eclipse" },
+            "density": { "enum": ["compact", "comfortable", "spacious"], "default": "comfortable" },
+            "fontOverride": { "type": "string", "maxLength": 128, "default": "" },
+            "visualizer": { "enum": ["none", "bars", "oscilloscope", "spectrum", "vuMeter", "projectM"], "default": "bars" },
+            "efsPatterns": { "$ref": "#/$defs/efsPatterns" }
+          }
+        },
+
+        "accessibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enforceAccessibleContrast": {
+              "type": "boolean", "default": false,
+              "description": "When on, a theme whose token pairs fail the REQ-THM-041 contrast ratios is corrected rather than displayed as authored. Off by default so an author's theme looks as intended; the validator warns either way."
+            },
+            "reducedMotion": { "enum": ["system", "always", "never"], "default": "system" },
+            "textScale": { "type": "number", "minimum": 0.8, "maximum": 2.0, "default": 1.0 },
+            "focusRingWidth": { "type": "integer", "minimum": 1, "maximum": 8, "default": 2 },
+            "screenReaderVerbosity": { "enum": ["terse", "normal", "verbose"], "default": "normal" }
+          }
+        },
+
+        "shortcuts": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The map itself is a top-level export member; these are the switches that govern it.",
+          "properties": {
+            "globalHotkeysEnabled": { "type": "boolean", "default": true },
+            "mediaKeysEnabled": { "type": "boolean", "default": true }
+          }
+        },
+
+        "network": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "networkEnabled": {
+              "type": "boolean", "default": false,
+              "description": "The global switch. While false, every network feature below is inert regardless of its own value — one switch a user can verify with a firewall beats a dozen they have to trust."
+            },
+            "proxyMode": { "enum": ["system", "none", "manual"], "default": "system" },
+            "proxyHost": { "type": "string", "maxLength": 253, "default": "" },
+            "proxyPort": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 8080 },
+            "radioBufferSeconds": { "type": "integer", "minimum": 1, "maximum": 60, "default": 10 },
+            "podcastRefreshHours": { "type": "integer", "minimum": 1, "maximum": 168, "default": 24 },
+            "scrobblingEnabled": { "type": "boolean", "default": false },
+            "metadataLookupEnabled": { "type": "boolean", "default": false }
+          }
+        },
+
+        "sync": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "REQ-SYN-001: an optional module, disabled by default, compiled in but inert. Paired devices and the device key are deliberately absent — REQ-SET-009 forbids exporting the sync device key, and REQ-SET-008 requires re-authentication on the new device.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "discoveryEnabled": { "type": "boolean", "default": false },
+            "deviceName": { "type": "string", "maxLength": 64, "default": "" },
+            "conflictLogRetentionDays": { "type": "integer", "minimum": 1, "maximum": 365, "default": 30 },
+            "scope": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": ["playlists", "playCounts", "skipCounts", "ratings", "loved",
+                         "bookmarks", "resumePositions", "lastPlayed", "shortcuts"]
+              },
+              "default": ["playlists", "playCounts", "skipCounts", "ratings", "loved",
+                          "bookmarks", "resumePositions", "lastPlayed", "shortcuts"],
+              "description": "The complete REQ-SYN-003 v1.0 set. Audio files, artwork, and the library index are never in this list."
+            }
+          }
+        },
+
+        "plugins": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "§19.1 also lists installed plugins, their capabilities, and the quarantine log under this group. All three are read from the plugins directory and the quarantine record at runtime; only the switches are settings, and only they are exported. Importing a list of plugin ids would not install anything, and exporting one would leak what a user has installed.",
+          "properties": {
+            "quarantineLogRetentionDays": { "type": "integer", "minimum": 1, "maximum": 365, "default": 90 },
+            "enabled": { "type": "boolean", "default": true },
+            "disabledPluginIds": {
+              "type": "array", "maxItems": 512,
+              "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{0,127}$" },
+              "default": []
+            }
+          }
+        },
+
+        "privacy": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "§19.1 also lists data locations, clear caches, and delete all data under this group. Those are an information display and two actions, not stored values, so they have no key here.",
+          "properties": {
+            "telemetryEnabled": {
+              "const": false,
+              "description": "REQ-SET-010: not a setting that happens to default to off — a value the schema makes it impossible to set to true. There is no analytics SDK in the dependency tree for it to switch on, and CI asserts that by scanning the resolved graph against a denylist. Introducing telemetry would require changing this `const`, which is exactly the reviewable, major-version act REQ-SET-011 demands."
+            },
+            "crashReportAutoSend": {
+              "const": false,
+              "description": "REQ-SET-012: crash reporting is local-first. A report is written to the logs directory; sending it is a user action that opens a pre-filled GitHub issue in their browser. Nothing is transmitted automatically, ever."
+            },
+            "logLevel": {
+              "enum": ["error", "warn", "info", "debug", "trace"],
+              "default": "info",
+              "description": "REQ-SET-013: at `info` and above, paths are reduced to basenames and secrets are never written. `debug` and `trace` may contain full paths, and the log viewer warns before such a log is shared."
+            },
+            "logRetentionDays": { "type": "integer", "minimum": 1, "maximum": 365, "default": 14 },
+            "clearCachesOnExit": { "type": "boolean", "default": false }
+          }
+        },
+
+        "advanced": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "§19.1 lists log level under both Privacy and Advanced. It is one key, stored once at `privacy.logLevel`, and the Preferences dialog is free to surface it in both places — duplicating it here would let the two copies disagree. Reset-all-settings and export/import are actions rather than values and so have no key.",
+          "properties": {
+            "databaseAutoVacuum": { "type": "boolean", "default": true },
+            "safeMode": {
+              "type": "boolean", "default": false,
+              "description": "Starts with no skins, no plugins, and no DSP — the recovery path when a skin or plugin makes the UI unusable."
+            },
+            "analysisWorkerThreads": {
+              "type": "integer", "minimum": 0, "maximum": 64, "default": 0,
+              "description": "0 means derive from the CPU count. Never derived from it silently at export time, which would make an export machine-specific."
+            }
+          }
+        }
+      }
+    },
+
+    "efsPatterns": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The nine REQ-EFS-010 contexts and their exact shipped defaults. Every one is user-editable and resettable (REQ-EFS-011).",
+      "properties": {
+        "playlistRowSingleLine": { "type": "string", "maxLength": 1024, "default": "[%tracknumber:02%. ]%artist% - %title%" },
+        "playlistRowTwoLinePrimary": { "type": "string", "maxLength": 1024, "default": "%title%" },
+        "playlistRowTwoLineSecondary": { "type": "string", "maxLength": 1024, "default": "%artist%[ — %album%]" },
+        "windowTitle": { "type": "string", "maxLength": 1024, "default": "$if(%playing_state%,%artist% - %title% — ,)Eclipse Player" },
+        "trayTooltip": { "type": "string", "maxLength": 1024, "default": "%title%$crlf()%artist%$crlf()[%album%$crlf()]%position% / %length%" },
+        "nowPlayingPrimary": { "type": "string", "maxLength": 1024, "default": "%title%" },
+        "nowPlayingSecondary": { "type": "string", "maxLength": 1024, "default": "%artist%" },
+        "nowPlayingTertiary": { "type": "string", "maxLength": 1024, "default": "[%album%[ (%year%)]]" },
+        "notificationPrimary": { "type": "string", "maxLength": 1024, "default": "%title%" },
+        "notificationSecondary": { "type": "string", "maxLength": 1024, "default": "%artist% — %album%" },
+        "converterOutputName": { "type": "string", "maxLength": 1024, "default": "%albumartist%/%album%[ (%year%)]/[%discnumber%-]%tracknumber:02% %title%" },
+        "groupingHeader": { "type": "string", "maxLength": 1024, "default": "%album%[ — %albumartist%][ (%year%)]" }
+      }
+    },
+
+    "eqPreset": {
+      "type": "object",
+      "required": ["name", "mode", "gainsDb"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "mode": { "enum": ["graphic10", "graphic18", "parametric"] },
+        "preampDb": { "type": "number", "minimum": -12, "maximum": 12, "default": 0 },
+        "gainsDb": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 18,
+          "items": { "type": "number", "minimum": -12, "maximum": 12, "multipleOf": 0.1 },
+          "description": "One entry per band, in ascending centre-frequency order (REQ-AUD-080/081). Length must match the mode: 10, 18, or up to 10 for parametric."
+        },
+        "parametricBands": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": ["type", "frequencyHz", "gainDb", "q"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "enum": ["peaking", "lowshelf", "highshelf", "lowpass", "highpass", "notch", "bandpass"] },
+              "frequencyHz": { "type": "number", "minimum": 20, "maximum": 20000 },
+              "gainDb": { "type": "number", "minimum": -24, "maximum": 24 },
+              "q": { "type": "number", "minimum": 0.1, "maximum": 18.0 }
+            }
+          }
+        },
+        "builtin": { "type": "boolean", "default": false }
+      }
+    },
+
+    "dspProfile": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "eqPreset": { "type": "string", "maxLength": 128 },
+        "dsp": { "$ref": "#/$defs/settings/properties/dsp" },
+        "appliesToDeviceName": {
+          "type": "string", "maxLength": 256,
+          "description": "REQ-AUD-106 [v1.x]: per-output-device profiles. Matched by device NAME for the REQ-SET-009 reason given under audioOutput.preferredDeviceName."
+        }
+      }
+    },
+
+    "trackIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "REQ-SYN-004's resolution order, carried as data so the importer can try each rung in turn: MusicBrainz recording id, then Chromaprint fingerprint, then normalised (artist, album, title, duration ±2 s), then relative path. An entry that matches nothing is retained as pending — never dropped, and never merged into the wrong track.",
+      "properties": {
+        "musicbrainzRecordingId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+        "chromaprint": { "type": "string", "maxLength": 4096 },
+        "artist": { "type": "string", "maxLength": 512 },
+        "album": { "type": "string", "maxLength": 512 },
+        "title": { "type": "string", "maxLength": 512 },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "relativePath": {
+          "type": "string", "maxLength": 4096,
+          "description": "Relative to its library source, not absolute — REQ-SET-009 forbids an absolute path where a relative form suffices, and this is precisely such a case."
+        }
+      }
+    },
+
+    "trackStateEntry": {
+      "type": "object",
+      "required": ["identity"],
+      "additionalProperties": false,
+      "properties": {
+        "identity": { "$ref": "#/$defs/trackIdentity" },
+        "rating": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "isLoved": { "type": "boolean" },
+        "playCount": { "type": "integer", "minimum": 0 },
+        "skipCount": { "type": "integer", "minimum": 0 },
+        "lastPlayedAt": { "type": "string", "maxLength": 32 },
+        "resumePositionMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "playlist": {
+      "type": "object",
+      "required": ["name", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "kind": { "enum": ["manual", "smart"] },
+        "tracks": {
+          "type": "array",
+          "maxItems": 200000,
+          "items": { "$ref": "#/$defs/trackIdentity" },
+          "description": "Manual playlists only. Track identity per REQ-SYN-004, so the list survives the move to another machine."
+        },
+        "rule": {
+          "description": "Smart playlists only. The rule document, matching smart-playlist.schema.json. Validated against that schema on import before anything is applied (REQ-SET-008), because an imported rule is untrusted input.",
+          "type": "object"
+        },
+        "autoRefresh": { "type": "boolean", "default": true }
+      }
+    },
+
+    "bookmark": {
+      "type": "object",
+      "required": ["id", "identity", "positionMs"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+        "identity": { "$ref": "#/$defs/trackIdentity" },
+        "positionMs": { "type": "integer", "minimum": 0 },
+        "label": { "type": "string", "maxLength": 256 },
+        "createdAt": { "type": "string", "maxLength": 32 }
+      }
+    },
+
+    "radioStation": {
+      "type": "object",
+      "required": ["name", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "url": { "type": "string", "format": "uri", "maxLength": 2048 },
+        "genre": { "type": "string", "maxLength": 128 },
+        "bitrateHint": { "type": "integer", "minimum": 0, "maximum": 2000 }
+      }
+    }
+  }
+}

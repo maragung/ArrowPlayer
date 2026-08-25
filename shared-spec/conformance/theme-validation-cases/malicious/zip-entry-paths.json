@@ -1,0 +1,95 @@
+{
+  "$comment": "REQ-THM-018 corpus for pipeline step 2. Each entry is a path as it would appear in the ZIP central directory. `verdict` is what path validation must return. These are NOT schema fixtures: step 2 runs before manifest.json is parsed, so the check is code in the installer and this file is its table. REQ-THM-018 also requires the final resolved path be asserted inside the destination directory — a check that catches cases no string test can, such as a permitted-looking path whose parent is a symlink planted by an earlier entry. `symlinkTarget` marks the entries that exercise it.",
+  "req": "REQ-THM-018",
+  "entries": [
+    {
+      "path": "theme.json",
+      "verdict": "accept"
+    },
+    {
+      "path": "layout/main-window.eclayout",
+      "verdict": "accept"
+    },
+    {
+      "path": "i18n/pt-BR.json",
+      "verdict": "accept"
+    },
+    {
+      "path": "../../../etc/passwd",
+      "verdict": "reject",
+      "reason": "Parent traversal."
+    },
+    {
+      "path": "layout/../../../../home/user/.bashrc",
+      "verdict": "reject",
+      "reason": "Traversal that starts inside a permitted directory. Normalising first and then checking the prefix is the only order that catches this."
+    },
+    {
+      "path": "/etc/passwd",
+      "verdict": "reject",
+      "reason": "Absolute POSIX path."
+    },
+    {
+      "path": "C:\\Windows\\System32\\evil.dll",
+      "verdict": "reject",
+      "reason": "Drive letter plus backslash separators."
+    },
+    {
+      "path": "\\\\server\\share\\evil.dll",
+      "verdict": "reject",
+      "reason": "UNC path. Rejected on Linux too: the check must not depend on the host OS or a package would validate on one platform and escape on the other."
+    },
+    {
+      "path": "layout\\..\\..\\evil.txt",
+      "verdict": "reject",
+      "reason": "Backslash as a separator. ZIP mandates forward slashes, so a backslash is either a literal filename character or an attack; treating it as a separator for the purpose of REJECTING is the safe reading."
+    },
+    {
+      "path": "theme.json\u0000.png",
+      "verdict": "reject",
+      "reason": "Embedded NUL: truncates to `theme.json` in any C API."
+    },
+    {
+      "path": "layout/\u0001evil.eclayout",
+      "verdict": "reject",
+      "reason": "Control character."
+    },
+    {
+      "path": "bin/postinstall.sh",
+      "verdict": "reject",
+      "reason": "`bin/` is not a permitted top-level directory. Allowlist, not denylist: an unknown directory is refused without anyone having to predict its name."
+    },
+    {
+      "path": "layout/a/b/c/d/e.eclayout",
+      "verdict": "reject",
+      "reason": "Path depth 6 exceeds the limit of 4."
+    },
+    {
+      "path": "images/nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn.png",
+      "verdict": "reject",
+      "reason": "Path length over 200 bytes."
+    },
+    {
+      "path": "images/café.png",
+      "verdict": "accept",
+      "reason": "Non-ASCII is fine; the allowlist pattern in the manifest is stricter and would refuse it there, which is a documented narrowing, not a bug."
+    },
+    {
+      "path": "images/．．/evil.png",
+      "verdict": "reject",
+      "reason": "Fullwidth full stops. They are not `..` and must not be folded into it — the entry is refused because the segment is not in the allowlist, which is why an allowlist survives Unicode tricks a denylist does not."
+    },
+    {
+      "path": "images/logo.png",
+      "verdict": "reject",
+      "symlinkTarget": "/etc/shadow",
+      "reason": "A permitted path whose entry is a SYMLINK. REQ-THM-018 forbids symlinks, hard links and device nodes outright — the name tells you nothing."
+    },
+    {
+      "path": "layout/main-window.eclayout",
+      "verdict": "reject",
+      "duplicateOf": "layout/main-window.eclayout",
+      "reason": "A second entry with a path already seen. Last-write-wins extraction lets a benign first copy pass validation and a hostile second copy land on disk."
+    }
+  ]
+}

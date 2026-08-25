@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "surface": "mini-player",
+  "minSize": {
+    "width": 320,
+    "height": 96
+  },
+  "root": {
+    "type": "Row",
+    "padding": "md",
+    "spacing": "sm",
+    "background": "color.background.raised",
+    "children": [
+      {
+        "type": "AlbumArt",
+        "size": {
+          "width": 72,
+          "height": 72
+        },
+        "radius": "md",
+        "fallback": "placeholder"
+      },
+      {
+        "type": "Column",
+        "sizing": {
+          "width": "fill"
+        },
+        "spacing": "xs",
+        "justify": "center",
+        "children": [
+          {
+            "type": "Marquee",
+            "efs": "%title%",
+            "style": "typography.scale.title",
+            "color": "color.text.primary"
+          },
+          {
+            "type": "Text",
+            "efs": "%artist%[ — %album%]",
+            "style": "typography.scale.caption",
+            "color": "color.text.secondary",
+            "overflow": "ellipsis"
+          },
+          {
+            "type": "SeekBar",
+            "showBuffered": true,
+            "height": 4
+          }
+        ]
+      },
+      {
+        "type": "TransportBar",
+        "buttons": [
+          "previous",
+          "playPause",
+          "next"
+        ],
+        "iconSize": 24
+      },
+      {
+        "type": "Visualizer",
+        "style": "bars",
+        "sizing": {
+          "width": 64,
+          "height": "fill"
+        },
+        "when": "settings.showMiniVisualizer"
+      }
+    ]
+  }
+}

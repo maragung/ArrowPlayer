@@ -1,0 +1,25 @@
+(* Eclipse Format Strings (EFS) — the user-facing display-string language.
+ *
+ * Canonical grammar. Specification: eclipse-player.md §10.2 (REQ-EFS-002).
+ * Semantics: §10.3.  Fields: §10.4.  Functions: §10.5.
+ * Conformance fixtures that define behaviour: conformance/efs-cases.json.
+ *
+ * Both the desktop and the Android engine MUST implement exactly this
+ * grammar; neither may extend it without a schemaVersion change (REQ-EFS-008
+ * states the function set is deliberately closed).
+ *)
+
+pattern      = { element } ;
+element      = literal | field-ref | function | optional-block ;
+
+literal      = { any-char - ( "%" | "$" | "[" | "]" | "'" ) }
+             | "'" { any-char - "'" } "'" ;      (* single quotes escape literals *)
+
+field-ref    = "%" identifier [ ":" format-spec ] "%" ;
+format-spec  = digit { digit }                    (* zero-pad width: %tracknumber:02% *)
+             | "u" | "l" | "t" ;                  (* upper | lower | title case *)
+
+function     = "$" identifier "(" [ arg { "," arg } ] ")" ;
+arg          = pattern ;                          (* arguments are themselves patterns *)
+
+optional-block = "[" pattern "]" ;

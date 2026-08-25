@@ -1,0 +1,141 @@
+{
+  "$comment": "REQ-THM-041 fixtures for pipeline step 5. `ratio` is the WCAG 2.2 contrast ratio, computed to 4 decimal places from the sRGB relative-luminance formula, and both engines MUST agree to 3 decimals — an engine that rounds differently would accept a theme the other rejects and break REQ-GEN-031. Thresholds: 4.5 for normal text, 3.0 for large text, where large means >=18.66 px regular or >=14 px bold. At the design-system default scale only `display` (34 px) and `headline` (24 px) are large, so `title` at 18 px is judged as normal text despite reading as a heading — see design-system/typography.md. `verdict` is the DEFAULT behaviour: below the floor is accept-with-warning, because REQ-THM-041 makes rejection conditional on the user enabling 'Enforce accessible contrast' (default off, forced on by the high-contrast theme and by the OS high-contrast setting). `enforcedVerdict` is what the same pair produces once that switch is on. A theme is never rejected for contrast by default; recording both columns is what keeps the requirement from being read as one or the other.",
+  "req": "REQ-THM-041",
+  "alphaHandling": "The ratio is computed on the RGB channels, alpha ignored. Compositing the foreground over its actual backdrop would be more accurate but is not computable at validation time: the backdrop depends on which surface the text lands on and on assets.backgroundOpacity. Ignoring alpha is therefore the conservative, deterministic choice, and it is a documented narrowing of REQ-THM-041 rather than an oversight — logged in docs/OPEN-QUESTIONS.md.",
+  "largeTextStyles": [
+    "display",
+    "headline"
+  ],
+  "pairs": [
+    {
+      "foreground": "#FFFFFF",
+      "background": "#000000",
+      "typeStyle": "body",
+      "ratio": 21.0,
+      "threshold": 4.5,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "Anchor: the maximum ratio is exactly 21."
+    },
+    {
+      "foreground": "#000000",
+      "background": "#FFFFFF",
+      "typeStyle": "body",
+      "ratio": 21.0,
+      "threshold": 4.5,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "Order must not matter — the formula is symmetric."
+    },
+    {
+      "foreground": "#F5F7FA",
+      "background": "#101216",
+      "typeStyle": "body",
+      "ratio": 17.4686,
+      "threshold": 4.5,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "theme-full primary text on base background."
+    },
+    {
+      "foreground": "#A9B2BD",
+      "background": "#101216",
+      "typeStyle": "caption",
+      "ratio": 8.74,
+      "threshold": 4.5,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "theme-full secondary text on base background."
+    },
+    {
+      "foreground": "#7C8794",
+      "background": "#101216",
+      "typeStyle": "caption",
+      "ratio": 5.1335,
+      "threshold": 4.5,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "Tertiary text: the tightest passing pair in theme-full."
+    },
+    {
+      "foreground": "#101216",
+      "background": "#4C8DFF",
+      "typeStyle": "label",
+      "ratio": 5.8575,
+      "threshold": 4.5,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "onAccent over accent — the pair skins get wrong most often."
+    },
+    {
+      "foreground": "#767676",
+      "background": "#FFFFFF",
+      "typeStyle": "body",
+      "ratio": 4.5422,
+      "threshold": 4.5,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "Just over the 4.5 floor; the classic AA boundary grey."
+    },
+    {
+      "foreground": "#757575",
+      "background": "#FFFFFF",
+      "typeStyle": "body",
+      "ratio": 4.6075,
+      "threshold": 4.5,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "One step darker, still passing — brackets the boundary."
+    },
+    {
+      "foreground": "#777777",
+      "background": "#FFFFFF",
+      "typeStyle": "body",
+      "ratio": 4.4781,
+      "threshold": 4.5,
+      "verdict": "accept-with-warning",
+      "enforcedVerdict": "reject",
+      "why": "One step lighter: FAILS AA for normal text."
+    },
+    {
+      "foreground": "#6B7280",
+      "background": "#3A3F46",
+      "typeStyle": "body",
+      "ratio": 2.1946,
+      "threshold": 4.5,
+      "verdict": "accept-with-warning",
+      "enforcedVerdict": "reject",
+      "why": "Grey on grey: fails both floors."
+    },
+    {
+      "foreground": "#6B7280",
+      "background": "#3A3F46",
+      "typeStyle": "display",
+      "ratio": 2.1946,
+      "threshold": 3.0,
+      "verdict": "accept-with-warning",
+      "enforcedVerdict": "reject",
+      "why": "Same colours judged as large text: still fails."
+    },
+    {
+      "foreground": "#8A9099",
+      "background": "#3A3F46",
+      "typeStyle": "display",
+      "ratio": 3.299,
+      "threshold": 3.0,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "Passes the 3:1 large-text floor but not the 4.5 normal floor — the pair that proves the two thresholds are applied per type style, not per theme."
+    },
+    {
+      "foreground": "#4C8DFF80",
+      "background": "#101216",
+      "typeStyle": "body",
+      "ratio": 5.8575,
+      "threshold": 4.5,
+      "verdict": "accept",
+      "enforcedVerdict": "accept",
+      "why": "Alpha in the foreground. The ratio below IGNORES alpha and uses the RGB channels only."
+    }
+  ]
+}

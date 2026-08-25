@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "surface": "main-window",
+  "minSize": {
+    "width": 800,
+    "height": 560
+  },
+  "description": "Coverage fixture: containers, bindings, actions, predicates.",
+  "root": {
+    "type": "Column",
+    "spacing": "none",
+    "background": "color.background.base",
+    "children": [
+      {
+        "type": "Row",
+        "id": "header row",
+        "padding": "md",
+        "spacing": "sm",
+        "background": "color.background.raised",
+        "align": "center",
+        "children": [
+          {
+            "type": "SearchField",
+            "placeholder": "Search library",
+            "sizing": {
+              "width": "fill",
+              "maxWidth": 480
+            },
+            "accessibleName": "Search library"
+          },
+          {
+            "type": "Spacer",
+            "sizing": {
+              "grow": 1
+            }
+          },
+          {
+            "type": "Button",
+            "icon": "equalizer",
+            "iconSize": 20,
+            "action": "view.showEqualizer",
+            "tooltip": "Equalizer",
+            "accessibleName": "Equalizer"
+          },
+          {
+            "type": "ToggleButton",
+            "icon": "lyrics",
+            "iconSize": 20,
+            "action": "view.toggleLyrics",
+            "bind": "settings.showLyrics",
+            "tooltip": "Lyrics",
+            "accessibleName": "Lyrics"
+          }
+        ]
+      },
+      {
+        "type": "SplitPane",
+        "orientation": "horizontal",
+        "split": 0.22,
+        "sizing": {
+          "height": "fill"
+        },
+        "children": [
+          {
+            "type": "ScrollArea",
+            "scrollDirection": "vertical",
+            "children": [
+              {
+                "type": "TabBar",
+                "orientation": "vertical",
+                "tabs": [
+                  {
+                    "label": "Library",
+                    "icon": "library",
+                    "action": "view.gotoTab1"
+                  },
+                  {
+                    "label": "Playlists",
+                    "icon": "playlist",
+                    "action": "view.gotoTab2"
+                  },
+                  {
+                    "label": "Radio",
+                    "icon": "radio",
+                    "action": "view.gotoTab3"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "ListView",
+            "sizing": {
+              "width": "fill",
+              "height": "fill"
+            },
+            "columnsSpec": [
+              {
+                "efs": "%tracknumber:02%",
+                "header": "#",
+                "width": 40,
+                "align": "end"
+              },
+              {
+                "efs": "%title%",
+                "header": "Title",
+                "width": "fill"
+              },
+              {
+                "efs": "%artist%",
+                "header": "Artist",
+                "width": 180
+              },
+              {
+                "efs": "[%album%[ (%year%)]]",
+                "header": "Album",
+                "width": 180
+              },
+              {
+                "efs": "%length%",
+                "header": "Length",
+                "width": 64,
+                "align": "end"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Divider"
+      },
+      {
+        "type": "Row",
+        "id": "transport",
+        "padding": "sm",
+        "spacing": "md",
+        "align": "center",
+        "background": "color.background.raised",
+        "children": [
+          {
+            "type": "AlbumArt",
+            "size": {
+              "width": 56,
+              "height": 56
+            },
+            "radius": "sm",
+            "fallback": "placeholder"
+          },
+          {
+            "type": "Column",
+            "sizing": {
+              "width": "fill"
+            },
+            "spacing": "xs",
+            "justify": "center",
+            "children": [
+              {
+                "type": "Marquee",
+                "efs": "%title%",
+                "style": "typography.scale.title",
+                "color": "color.text.primary",
+                "speed": 1.0
+              },
+              {
+                "type": "Text",
+                "efs": "%artist%[ — %album%]",
+                "style": "typography.scale.caption",
+                "color": "color.text.secondary",
+                "overflow": "ellipsis",
+                "maxLines": 1
+              },
+              {
+                "type": "SeekBar",
+                "showBuffered": true,
+                "height": 4,
+                "enabledWhen": "player.durationMs > 0"
+              }
+            ]
+          },
+          {
+            "type": "TransportBar",
+            "buttons": [
+              "previous",
+              "playPause",
+              "next",
+              "stop"
+            ],
+            "iconSize": 24
+          },
+          {
+            "type": "Rating",
+            "maxStars": 5,
+            "bind": "track.rating",
+            "accessibleName": "Rating"
+          },
+          {
+            "type": "VolumeControl",
+            "sizing": {
+              "width": 120
+            }
+          },
+          {
+            "type": "PeakMeter",
+            "sizing": {
+              "width": 40,
+              "height": "fill"
+            },
+            "when": "not settings.reducedMotion"
+          },
+          {
+            "type": "Visualizer",
+            "style": "bars",
+            "barCount": 24,
+            "sizing": {
+              "width": 96,
+              "height": "fill"
+            },
+            "when": "settings.showVisualizer"
+          },
+          {
+            "type": "Text",
+            "efs": "%position% / %length%",
+            "style": "typography.scale.mono",
+            "color": "color.text.secondary"
+          }
+        ]
+      }
+    ]
+  }
+}

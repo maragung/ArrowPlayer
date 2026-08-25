@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "surface": "main-window",
+  "minSize": {
+    "width": 800,
+    "height": 560
+  },
+  "description": "Coverage fixture: containers, bindings, actions, predicates."
+}

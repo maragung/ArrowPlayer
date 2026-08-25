@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "midnight",
+  "name": "Midnight",
+  "version": "1.0.0",
+  "license": "MPL-2.0",
+  "capabilities": [
+    "theme"
+  ],
+  "minAppVersion": "1.0.0",
+  "checksums": {
+    "theme.json": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "LICENSE": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "preview.png": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  }
+}

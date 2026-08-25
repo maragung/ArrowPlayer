@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "midnight",
+  "name": "Midnight",
+  "version": "1.0.0",
+  "mode": "dark",
+  "color": {
+    "background": {
+      "base": "#101216"
+    },
+    "surface": {
+      "base": "#181B21"
+    },
+    "text": {
+      "primary": "#F5F7FA",
+      "secondary": "#A9B2BD"
+    },
+    "accent": {
+      "base": "rebeccapurple"
+    },
+    "border": {
+      "base": "#2A3038"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": [
+        "Inter",
+        "Segoe UI",
+        "Noto Sans",
+        "sans-serif"
+      ]
+    },
+    "scale": {
+      "body": {
+        "size": 14
+      },
+      "label": {
+        "size": 13
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+(* Smart-playlist rule grammar.
+ *
+ * Canonical grammar. Specification: eclipse-player.md §9.6 (REQ-PLS-011).
+ * Conformance fixtures: conformance/smart-playlist-cases.json.
+ *
+ * Rules compile to PARAMETERISED SQL. String interpolation into SQL is
+ * forbidden (REQ-PLS-010, REQ-SEC-009); every literal below becomes a bound
+ * parameter. MATCHES is glob, never regex (REQ-PLS-013) — regex would be a
+ * catastrophic-backtracking DoS surface in a rule a user can share.
+ *)
+
+query        = expression [ "ORDER" "BY" order-list ] [ "LIMIT" integer ] ;
+
+expression   = or-expr ;
+or-expr      = and-expr { "OR" and-expr } ;
+and-expr     = unary { "AND" unary } ;
+unary        = [ "NOT" ] ( "(" expression ")" | comparison ) ;
+
+comparison   = field operator operand
+             | field "BETWEEN" operand "AND" operand
+             | field "IN" "(" operand { "," operand } ")"
+             | field "IS" [ "NOT" ] "NULL" ;
+
+field        = builtin-field | "custom:" identifier ;
+builtin-field= "title"    | "artist"      | "albumartist" | "album"
+             | "genre"    | "composer"    | "comment"     | "grouping"
+             | "year"     | "date"        | "tracknumber" | "discnumber"
+             | "duration" | "bitrate"     | "samplerate"  | "bitdepth"
+             | "channels" | "codec"       | "container"   | "islossless"
+             | "rating"   | "loved"       | "playcount"   | "skipcount"
+             | "lastplayed"| "added"      | "bpm"         | "key"
+             | "path"     | "filename"    | "filesize"    | "source"
+             | "playlist" | "missing"     | "hasartwork"  | "haslyrics"
+             | "rgtrackgain" ;
+
+operator     = "=" | "!=" | ">" | "<" | ">=" | "<="
+             | "CONTAINS" | "NOTCONTAINS"
+             | "STARTSWITH" | "ENDSWITH"
+             | "MATCHES" ;                      (* glob, not regex — see REQ-PLS-013 *)
+
+operand      = string | number | boolean | duration-lit | date-lit | relative-date ;
+duration-lit = number ( "s" | "m" | "h" ) ;      (* 3m30s *)
+date-lit     = "'" iso-8601 "'" ;
+relative-date= "-" number ( "d" | "w" | "m" | "y" ) ;   (* -30d = 30 days ago *)
+
+order-list   = order-term { "," order-term } ;
+order-term   = ( field | "random" ) [ "ASC" | "DESC" ] ;

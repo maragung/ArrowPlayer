@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eclipse-player.org/schemas/smart-playlist/v1",
+  "title": "Eclipse Player Smart Playlist Rule",
+  "description": "The stored form of a smart playlist (`playlists.rule_json`). Specification: eclipse-player.md §9.6 (REQ-PLS-010 … REQ-PLS-015). This JSON tree and the text grammar at grammars/smart-playlist.ebnf are two surfaces over one model: REQ-PLS-015 requires the visual builder and the text editor to stay in sync bidirectionally, which is only possible if one of them is canonical — this file is. Compilation target: PARAMETERISED SQL. Every literal below becomes a bound parameter; string interpolation into SQL is forbidden by REQ-PLS-010 and REQ-SEC-009 and is enforced mechanically by tools/check-sql-safety.py, so this schema needs no opinion about quoting.",
+  "type": "object",
+  "required": ["schemaVersion", "match"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "description": { "type": "string", "maxLength": 512 },
+    "match": { "$ref": "#/$defs/expression" },
+    "orderBy": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/orderTerm" },
+      "minItems": 1,
+      "maxItems": 8
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000,
+      "description": "Bounded: a smart playlist is a view a user scrolls, and an unbounded rule over a large library is a UI freeze waiting to happen (REQ-PLS-014 forbids blocking the UI thread)."
+    },
+    "autoRefresh": {
+      "type": "boolean",
+      "default": true,
+      "description": "REQ-PLS-014: when set, the rule is also re-evaluated at app launch, matching AIMP 4.30's behaviour."
+    }
+  },
+  "$defs": {
+    "expression": {
+      "description": "Either a group (AND/OR over sub-expressions, optionally negated) or a single comparison. Nesting is permitted to any depth the validator's budget allows; the grammar's parenthesised sub-expressions map onto nested groups.",
+      "oneOf": [
+        { "$ref": "#/$defs/group" },
+        { "$ref": "#/$defs/comparison" }
+      ]
+    },
+
+    "group": {
+      "type": "object",
+      "required": ["op", "rules"],
+      "additionalProperties": false,
+      "properties": {
+        "op": { "enum": ["and", "or"] },
+        "not": {
+          "type": "boolean",
+          "default": false,
+          "description": "The grammar's `NOT ( expression )`. Kept as a flag on the group rather than as a separate node type so the visual builder has one checkbox per row instead of an invisible wrapper."
+        },
+        "rules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/expression" },
+          "minItems": 1,
+          "maxItems": 64
+        }
+      }
+    },
+
+    "comparison": {
+      "type": "object",
+      "required": ["field", "operator"],
+      "additionalProperties": false,
+      "properties": {
+        "field": { "$ref": "#/$defs/field" },
+        "not": { "type": "boolean", "default": false },
+        "operator": { "$ref": "#/$defs/operator" },
+        "value": {
+          "$ref": "#/$defs/operand",
+          "description": "Used by every operator except between / in / isNull / isNotNull."
+        },
+        "from": { "$ref": "#/$defs/operand" },
+        "to": { "$ref": "#/$defs/operand" },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/operand" },
+          "minItems": 1,
+          "maxItems": 256
+        },
+        "caseSensitive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Applies to the string operators only. Default insensitive, and comparison uses the §9.2.3 normalised form, so `bjork` finds `Björk`."
+        }
+      },
+      "allOf": [
+        {
+          "description": "Operand shape follows the operator: this is what makes an ill-formed rule a validation failure rather than a silently-empty playlist.",
+          "if": {
+            "properties": { "operator": { "const": "between" } },
+            "required": ["operator"]
+          },
+          "then": {
+            "required": ["from", "to"],
+            "not": { "anyOf": [ { "required": ["value"] }, { "required": ["values"] } ] }
+          }
+        },
+        {
+          "if": {
+            "properties": { "operator": { "const": "in" } },
+            "required": ["operator"]
+          },
+          "then": {
+            "required": ["values"],
+            "not": { "anyOf": [ { "required": ["value"] }, { "required": ["from"] }, { "required": ["to"] } ] }
+          }
+        },
+        {
+          "if": {
+            "properties": { "operator": { "enum": ["isNull", "isNotNull"] } },
+            "required": ["operator"]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["value"] },
+                { "required": ["values"] },
+                { "required": ["from"] },
+                { "required": ["to"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operator": {
+                "enum": ["eq", "ne", "gt", "lt", "gte", "lte",
+                         "contains", "notContains", "startsWith", "endsWith", "matches"]
+              }
+            },
+            "required": ["operator"]
+          },
+          "then": {
+            "required": ["value"],
+            "not": { "anyOf": [ { "required": ["values"] }, { "required": ["from"] }, { "required": ["to"] } ] }
+          }
+        }
+      ]
+    },
+
+    "field": {
+      "description": "A builtin field from REQ-PLS-011, or a user-defined tag as `custom:<identifier>`. The same 37 builtin names are available to Eclipse Format Strings (REQ-EFS-007), so a user learns one vocabulary, not two.",
+      "anyOf": [
+        { "$ref": "#/$defs/builtinField" },
+        {
+          "type": "string",
+          "pattern": "^custom:[A-Za-z_][A-Za-z0-9_]{0,63}$"
+        }
+      ]
+    },
+
+    "builtinField": {
+      "enum": [
+        "title", "artist", "albumartist", "album",
+        "genre", "composer", "comment", "grouping",
+        "year", "date", "tracknumber", "discnumber",
+        "duration", "bitrate", "samplerate", "bitdepth",
+        "channels", "codec", "container", "islossless",
+        "rating", "loved", "playcount", "skipcount",
+        "lastplayed", "added", "bpm", "key",
+        "path", "filename", "filesize", "source",
+        "playlist", "missing", "hasartwork", "haslyrics",
+        "rgtrackgain"
+      ]
+    },
+
+    "operator": {
+      "description": "The REQ-PLS-011 operator set, spelled as identifiers because JSON keys are not SQL. `matches` is GLOB, never a regular expression (REQ-PLS-013): regex is a catastrophic-backtracking denial-of-service surface inside a rule a user can ship inside a playlist file or a skin.",
+      "enum": [
+        "eq", "ne", "gt", "lt", "gte", "lte",
+        "contains", "notContains", "startsWith", "endsWith", "matches",
+        "between", "in", "isNull", "isNotNull"
+      ]
+    },
+
+    "operand": {
+      "description": "A literal. Which spelling is legal for a given field is decided by that field's type, not by this schema — the compiler knows `lastplayed` is a date and `duration` a length, so `'2020-01-01'` and `-30d` and `10m` are all just strings here and all become bound parameters. Ill-typed operands are rejected by the rule compiler with a message naming the field.",
+      "anyOf": [
+        { "type": "string", "maxLength": 512 },
+        { "type": "number" },
+        { "type": "boolean" }
+      ]
+    },
+
+    "orderTerm": {
+      "type": "object",
+      "required": ["field"],
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "anyOf": [
+            { "$ref": "#/$defs/field" },
+            {
+              "const": "random",
+              "description": "The grammar's `ORDER BY random`. Combined with LIMIT it is how a shuffle-of-a-subset playlist is expressed."
+            }
+          ]
+        },
+        "direction": { "enum": ["asc", "desc"], "default": "asc" }
+      }
+    }
+  }
+}
