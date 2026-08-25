@@ -97,6 +97,45 @@ rule makes unnecessary.
 
 ---
 
+### OQ-025 — `REQ-GEN-012`'s gate cannot pass against a resolved graph · **Open**
+
+`REQ-GEN-012` says CI "MUST fail if a dependency appears in the build that is
+absent from" the §4.2 register. The register lists **direct** dependencies. A
+resolved dependency graph contains more than that. Resolving
+`desktop/vcpkg.json` against the pinned baseline for `x64-linux-eclipse` yields
+six components no row in §4.2 describes:
+
+| Component | Pulled in by | Licence |
+|---|---|---|
+| `utfcpp` | taglib | Boost-1.0 |
+| `glm` | projectm | MIT |
+| `projectm-eval` | projectm | LGPL-2.1-or-later |
+| `opengl`, `opengl-registry`, `egl-registry` | projectm | Apache-2.0 / MIT |
+
+None of them is a licence problem. All of them would fail the gate as the
+sentence is literally written, which means the gate as written can only be
+satisfied by not running it.
+
+- **Assumption in force:** the §4.2 table is the register of **direct**
+  dependencies and is reproduced verbatim in `docs/THIRD-PARTY.md`;
+  `docs/THIRD-PARTY.md` additionally carries the transitive components, generated
+  from the resolved graph by `tools/gen-third-party`; and the CI gate compares
+  the graph against `docs/THIRD-PARTY.md` rather than against §4.2 alone.
+- **Why this is the narrow reading and not a weakening:** the property
+  REQ-GEN-012 protects is "nothing links into the build that nobody has looked
+  at". Comparing against a generated document that must be regenerated and
+  committed keeps that property and makes it *stronger*, because §4.2 alone has
+  never enumerated the transitive set at all.
+- **Recommendation:** amend REQ-GEN-012 to name `docs/THIRD-PARTY.md` as the
+  comparison target explicitly, since that is already the document §25.5 step 8
+  requires the release to regenerate and fail on if stale.
+- **Not deferred:** the two transitive components that *would* have been a
+  problem were removed rather than registered. `libzip`'s default features pull
+  in bzip2 and OpenSSL; `desktop/vcpkg.json` requests it with
+  `"default-features": false`, both because `REQ-THM-015` allows a skin archive
+  only "deflate or stored, no encryption, no other compression methods" and
+  because OpenSSL has no row in §4.2.
+
 ## 2 · Documented narrowings — the implementation is stricter than the requirement
 
 Each of these makes the implementation refuse something the requirement, read
@@ -209,6 +248,23 @@ check in `security.yml`. `security.yml` does not exist yet.
   `docs/PRIVACY.md` says so in its own words.
 - **Blocking:** `security.yml` is Phase 0 scaffolding and is next in sequence.
 
+### OQ-026 — CI installs dependencies with `apt`, so `REQ-BLD-022` has nothing to cache · **Gap**
+
+§6.2 says every non-Qt dependency comes from vcpkg in manifest mode, and
+`REQ-BLD-022` makes vcpkg binary caching **mandatory** rather than optional.
+`desktop-ci.yml` installs FFmpeg, TagLib, ALSA and the rest with `apt-get`. That
+is fast and it is why the workflow is currently green, but it means the manifest
+this repository commits is not the thing CI builds against, and a mandatory cache
+has nothing to cache.
+
+- **Assumption in force:** the `apt` matrix stays as the fast pre-check, and a
+  separate vcpkg job builds the manifest with binary caching. Two lanes rather
+  than one, because replacing `apt` outright would add tens of minutes to the
+  feedback loop that catches most breakage.
+- **Consequence if it stays unfixed:** the pinned baseline in `vcpkg.json` is
+  never exercised, so it can rot without anything going red — which is exactly
+  the failure `REQ-SEC-013` (no floating versions) is trying to prevent.
+
 ### OQ-016 — Two commits predate `commitlint.config.js` and do not satisfy it · **Settled**
 
 `bf91096` ("Initial commit") is not a conventional commit, and `873e5be` predates
@@ -296,15 +352,19 @@ decode path has no network transport even available to it.
 
 ### OQ-020 — `libsamplerate` is not installed · **Gap**
 
-`REQ-GEN-012` requires libsamplerate ≥ 0.1.9 — earlier releases were GPL and
-would be incompatible with the MPL-2.0 core. It is the one optional dependency
+The §4.2 register pins libsamplerate at **≥ 0.2.2** and notes separately that
+releases before 0.1.9 were GPL. It is the one optional dependency
 `EclipseDependencies.cmake` looks for that is absent locally, so
-`ECLIPSE_HAVE_SAMPLERATE` is `OFF`.
+`ECLIPSE_HAVE_SAMPLERATE` is `OFF` and now says so in the configure summary.
 
-- **Impact:** none yet. The resampler is Phase 6 work. This is recorded so that
-  when Phase 6 starts, the missing dependency is a known item rather than a
-  surprise, and so the version floor is not forgotten — a system libsamplerate
-  older than 0.1.9 would be a **licence** problem, not just a feature gap.
+- **Correction of record:** `EclipseDependencies.cmake` asked for `>= 0.1.9`,
+  the licence floor, where the register says `>= 0.2.2`. Those are two different
+  floors and only one of them is `REQ-GEN-012`. A 0.1.9 build would have been
+  licence-clean and still absent from the register, which REQ-GEN-012 makes a
+  build failure rather than a footnote. The check now requires `>= 0.2.2`; the
+  vcpkg baseline resolves exactly 0.2.2.
+- **Impact:** none yet. The resampler is Phase 6 work. Recorded so that when
+  Phase 6 starts the missing dependency is a known item rather than a surprise.
 
 ### OQ-021 — Dependency detection needs `PKG_CONFIG_PATH` for a user-local prefix · **Settled**
 
@@ -324,10 +384,33 @@ even though all of them are installed — a silent, misleading result.
   export LD_LIBRARY_PATH="$HOME/.local/lib:$LD_LIBRARY_PATH"
   ```
 
-- **Open sub-question:** whether the configure summary should *warn* when a
-  dependency is missing rather than printing a bare `OFF`. The current output is
-  truthful but easy to misread as "this machine cannot build the adapter" when it
-  actually means "pkg-config was not told where to look". Leaning yes.
+- **Sub-question, now answered:** whether the configure summary should say more
+  than a bare `OFF`. It should. A bare `OFF` is truthful and easy to misread as
+  "this machine cannot build the adapter" when it means "pkg-config was not told
+  where to look". The summary now names where dependencies came from (`system /
+  pkg-config` or `vcpkg (<triplet>)`), lists `libsamplerate` alongside the other
+  adapters instead of omitting it, and prints a three-line note pointing at
+  `docs/BUILDING.md` whenever anything is `OFF`. It is a note rather than a
+  `message(WARNING)` because building without the optional adapters is a
+  supported configuration, not a mistake.
+
+### OQ-027 — The vcpkg manifest is verified by resolution, not by a build · **Gap**
+
+What was actually run against `desktop/vcpkg.json`, on this machine, with vcpkg
+2026-07-27 at the pinned baseline:
+
+| Check | Result |
+|---|---|
+| `vcpkg install --dry-run --triplet x64-linux-eclipse` | resolves; `ffmpeg` pins to 7.1.2#5, no OpenSSL, no bzip2 in the graph |
+| triplet evaluation for 14 ports | linkage matches the §4.2 column exactly — LGPL dynamic, permissive static |
+| `cmake --preset linux-release` with `VCPKG_ROOT` unset | unchanged; 184/184 tests still pass |
+
+What was **not** run: an actual `vcpkg install`. No port was compiled, so the
+manifest is proven to *resolve*, not proven to *build*. `arm64-linux-eclipse`
+cannot resolve here at all (no cross toolchain), and both Windows triplets refuse
+on a non-Windows host by design — so three of the four triplets in the §3.1
+matrix have no local evidence beyond their syntax. See also `OQ-022` and
+`OQ-023`.
 
 ### OQ-028 — The Markdown gate had never excluded anything it claimed to · **Settled**
 

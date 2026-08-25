@@ -11,6 +11,20 @@
 include(FindPackageHandleStandardArgs)
 find_package(PkgConfig QUIET)
 
+# When the vcpkg toolchain is active, the linkage rules of §4.2 live in the
+# project triplets. A stock triplet builds every LGPL component statically,
+# which REQ-GEN-013 forbids for anything we ship, so say so loudly rather than
+# discovering it in a licence review.
+if(VCPKG_TOOLCHAIN AND NOT VCPKG_TARGET_TRIPLET MATCHES "-eclipse$")
+    message(WARNING
+        "vcpkg is active with triplet '${VCPKG_TARGET_TRIPLET}', which is not "
+        "one of the project triplets in cmake/triplets/. Those encode the §4.2 "
+        "linkage column — LGPL components dynamic, permissive ones static. A "
+        "stock triplet may link FFmpeg or TagLib statically, which REQ-GEN-013 "
+        "forbids in a shipped artifact. Pass -DVCPKG_TARGET_TRIPLET=<arch>-"
+        "<os>-eclipse for anything you intend to distribute.")
+endif()
+
 # --------------------------------------------------------------------- SQLite3
 set(ECLIPSE_HAVE_SQLITE3 OFF)
 find_package(SQLite3 QUIET)
@@ -58,11 +72,14 @@ if(UNIX AND NOT APPLE AND PkgConfig_FOUND)
 endif()
 
 # ------------------------------------------------------------------ libsamplerate
-# REQ-GEN-012: MUST be >= 0.1.9. Earlier releases were GPL and would be
-# incompatible with our MPL-2.0 core (§4.1).
+# REQ-GEN-012 pins libsamplerate at >= 0.2.2 in the §4.2 register. Two separate
+# floors are folded into that one number and both matter: releases before 0.1.9
+# were GPL and would be incompatible with our MPL-2.0 core (§4.1), and anything
+# below the registered version is a dependency the register does not describe,
+# which REQ-GEN-012 makes a build failure rather than a footnote.
 set(ECLIPSE_HAVE_SAMPLERATE OFF)
 if(PkgConfig_FOUND)
-    pkg_check_modules(SAMPLERATE QUIET IMPORTED_TARGET samplerate>=0.1.9)
+    pkg_check_modules(SAMPLERATE QUIET IMPORTED_TARGET samplerate>=0.2.2)
     if(SAMPLERATE_FOUND)
         add_library(eclipse::samplerate INTERFACE IMPORTED)
         target_link_libraries(eclipse::samplerate INTERFACE PkgConfig::SAMPLERATE)

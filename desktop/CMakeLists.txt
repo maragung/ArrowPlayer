@@ -1,6 +1,21 @@
 cmake_minimum_required(VERSION 3.28)
 
 # ---------------------------------------------------------------------------
+#  vcpkg — spec §6.2 / ADR 0005. Manifest mode; the baseline is pinned in
+#  vcpkg.json and the project triplets in cmake/triplets/ encode the §4.2
+#  linkage rules. Qt is NOT in the manifest and never will be (§6.2).
+#
+#  This is opt-in by environment rather than hardcoded in the presets: the tree
+#  must still configure on a machine whose dependencies come from the system
+#  package manager or a user-local prefix (docs/BUILDING.md). An explicitly
+#  supplied CMAKE_TOOLCHAIN_FILE always wins.
+# ---------------------------------------------------------------------------
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE AND DEFINED ENV{VCPKG_ROOT})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "vcpkg toolchain file (§6.2)")
+endif()
+
+# ---------------------------------------------------------------------------
 #  Eclipse Player — Desktop (Windows + Linux)
 #  Spec: eclipse-player.md  §5 repo layout, §7 architecture, §24 build
 # ---------------------------------------------------------------------------
@@ -121,12 +136,28 @@ message(STATUS "")
 message(STATUS "======== Eclipse Player ${ECLIPSE_VERSION} (${ECLIPSE_GIT_SHA}) ========")
 message(STATUS "  build type    : ${CMAKE_BUILD_TYPE}")
 message(STATUS "  compiler      : ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+if(VCPKG_TOOLCHAIN)
+    message(STATUS "  deps from     : vcpkg (${VCPKG_TARGET_TRIPLET})")
+else()
+    message(STATUS "  deps from     : system / pkg-config")
+endif()
 message(STATUS "  --- adapters (dependency-gated) ---")
 message(STATUS "  SQLite3       : ${ECLIPSE_HAVE_SQLITE3}")
 message(STATUS "  FFmpeg        : ${ECLIPSE_HAVE_FFMPEG}")
 message(STATUS "  TagLib        : ${ECLIPSE_HAVE_TAGLIB}")
 message(STATUS "  ALSA          : ${ECLIPSE_HAVE_ALSA}")
+message(STATUS "  libsamplerate : ${ECLIPSE_HAVE_SAMPLERATE}")
 message(STATUS "  Qt 6          : ${ECLIPSE_HAVE_QT}")
+
+# An `OFF` above is easy to misread as "this platform cannot build that
+# adapter". Usually it means pkg-config was not told where to look — which is
+# the exact confusion recorded as OQ-021 in docs/OPEN-QUESTIONS.md.
+if(NOT ECLIPSE_HAVE_FFMPEG OR NOT ECLIPSE_HAVE_TAGLIB OR NOT ECLIPSE_HAVE_SAMPLERATE
+        OR NOT ECLIPSE_HAVE_SQLITE3)
+    message(STATUS "  note          : OFF means the library was not found, not that the")
+    message(STATUS "                  adapter is unsupported here. With a user-local prefix,")
+    message(STATUS "                  export PKG_CONFIG_PATH — see docs/BUILDING.md.")
+endif()
 message(STATUS "  --- toggles ---")
 message(STATUS "  tests         : ${ECLIPSE_BUILD_TESTS}")
 message(STATUS "  werror        : ${ECLIPSE_WERROR}")
