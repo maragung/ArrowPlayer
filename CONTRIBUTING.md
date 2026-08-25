@@ -77,7 +77,7 @@ Beyond formatting, three conventions matter more than they look:
 [Conventional commits](https://www.conventionalcommits.org/), enforced by
 `commitlint` (`commitlint.config.js`) — `REQ-BLD-031`:
 
-```
+```text
 <type>(<scope>): <subject>
 
 <body — the reasoning, and the requirement IDs>
@@ -170,7 +170,9 @@ To add or change a requirement:
 If you find something in the specification that is simply wrong, or two
 requirements that contradict each other, that is a valuable finding — open an
 issue. Recorded contradictions live in
-[`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md); three are already there.
+[`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md) as `OQ-001` … `OQ-003`; that
+register also holds every narrowing and gap, each with a stable `OQ-NNN` id you
+can cite in an issue or a commit body.
 
 ## Reporting bugs and security issues
 
