@@ -58,12 +58,17 @@ configures, and adapters whose library is absent are simply not built. Configure
 prints exactly what was found:
 
 ```text
+  deps from     : system / pkg-config
   --- adapters (dependency-gated) ---
   SQLite3       : ON
   FFmpeg        : OFF
   TagLib        : OFF
   ALSA          : OFF
+  libsamplerate : OFF
   Qt 6          : OFF
+  note          : OFF means the library was not found, not that the
+                  adapter is unsupported here. With a user-local prefix,
+                  export PKG_CONFIG_PATH — see docs/BUILDING.md.
 ```
 
 This is a structural consequence of the architecture, not a convenience hack.
@@ -99,7 +104,11 @@ it is how the project is developed.
 
 ```bash
 # FFmpeg 7.1 — LGPL, decode-oriented, no network transports at all.
-# This configuration is REQ-GEN-014 and REQ-GEN-016 expressed as flags.
+# This is the DEVELOPMENT configuration. It satisfies the licence half of
+# REQ-GEN-014 (no --enable-gpl, no --enable-nonfree, shared, no programs, no
+# doc, no devices, no network) but deliberately keeps a handful of encoders,
+# muxers and filters that REQ-GEN-014 forbids in a *shipped* build, because
+# the gapless corpus has to be encoded by something. See the note below.
 ./configure --prefix="$HOME/.local" --enable-shared --disable-static \
   --disable-everything --disable-doc --disable-debug --disable-network \
   --disable-avdevice --disable-swscale --disable-postproc \
@@ -170,6 +179,67 @@ configure step on a static Qt, because LGPL-3.0 requires that users be able to
 replace it (REQ-GEN-013). This is a licence obligation, not a preference.
 
 Without Qt, everything except the UI still builds and all domain tests run.
+
+## vcpkg
+
+Everything that is not Qt comes from vcpkg in manifest mode, with the registry
+baseline pinned in `desktop/vcpkg.json` (§6.2, [ADR 0005](adr/0005-qt-acquisition.md);
+REQ-SEC-013 forbids floating versions anywhere):
+
+```bash
+git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
+"$HOME/vcpkg/bootstrap-vcpkg.sh"
+export VCPKG_ROOT="$HOME/vcpkg"
+
+cd desktop
+cmake --preset linux-release -DVCPKG_TARGET_TRIPLET=x64-linux-eclipse
+```
+
+`VCPKG_ROOT` is what switches vcpkg on. `desktop/CMakeLists.txt` picks up the
+toolchain from that variable and nothing else, so the tree keeps configuring
+against system packages or a user-local prefix when vcpkg is not installed — an
+explicit `-DCMAKE_TOOLCHAIN_FILE=...` always wins over both.
+
+### Why the triplet is not optional
+
+The `-eclipse` triplets in `desktop/cmake/triplets/` are the Linkage column of
+the §4.2 dependency register expressed as build configuration:
+
+| Ports | Linkage | Why |
+|---|---|---|
+| `ffmpeg`, `taglib`, `soundtouch`, `chromaprint`, `projectm` | dynamic | LGPL-2.1-or-later. §4.3 rule 2 requires the user be able to swap the shared library for a compatible build and still run Eclipse Player. |
+| `rtaudio` | dynamic | Permissive, but the register records it as dynamic, and the build follows the register. |
+| everything else | static | `sqlite3`, `libsamplerate`, `libzip`, `zlib`, `gtest` — public domain, BSD or zlib licensed, "Static OK" in the register. |
+
+Stock vcpkg triplets build every port with one linkage. On Linux that is
+`static`, which would statically link FFmpeg and TagLib into a shipped
+binary — exactly what REQ-GEN-013 forbids. Configure emits a warning if vcpkg is
+active with a triplet whose name does not end in `-eclipse`, because a licence
+violation should not be something you find out about in a review.
+
+Four triplets exist, matching the §3.1 target matrix: `x64-linux-eclipse`,
+`arm64-linux-eclipse`, `x64-windows-eclipse`, `arm64-windows-eclipse`.
+
+### Two manifest choices that are requirements, not taste
+
+- **`ffmpeg` is pinned to 7.1.2 by an `overrides` entry.** §4.2 registers FFmpeg
+  7.1.x and §6.3 pins "FFmpeg 7.1"; the baseline's own default is newer. An
+  explicit pin is the only way both statements stay true. Its features are
+  `avcodec`, `avformat`, `swresample`, `zlib` — no `avdevice`, no `swscale`, no
+  `gpl`, no `nonfree`, no `fdk-aac`.
+- **`libzip` is requested with `"default-features": false`.** The defaults pull
+  in bzip2 and, on Linux, OpenSSL for AES. `REQ-THM-015` says a skin archive is
+  "deflate or stored; **no** encryption, **no** other compression methods", so
+  building support for bzip2 and AES would be building a code path the format
+  forbids — and it would put OpenSSL in the dependency graph, where §4.2 has no
+  row for it.
+
+### Binary caching
+
+REQ-BLD-022 makes binary caching mandatory rather than optional; without it
+every CI job rebuilds every dependency. Locally, vcpkg caches to
+`~/.cache/vcpkg/archives` by default and needs no configuration. CI sets
+`VCPKG_BINARY_SOURCES=clear;x-gha,readwrite`.
 
 ## Optional components
 

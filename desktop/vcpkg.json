@@ -1,0 +1,81 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "eclipse-player",
+  "version-semver": "0.1.0",
+  "description": "Free, open-source, privacy-first music player — desktop dependency manifest.",
+  "homepage": "https://eclipse-player.org",
+  "license": "MPL-2.0",
+  "builtin-baseline": "9e593bb18ea69cc5095e012465dcd675a822ed0d",
+  "$no-qt": "Qt is NOT a vcpkg dependency and must never be added here. It comes from official prebuilt binaries via aqtinstall at the version pinned in qt-version.txt. Spec section 6.2 states the consequence directly: desktop/vcpkg.json MUST NOT list Qt. See docs/adr/0005-qt-acquisition.md.",
+  "$baseline": "REQ-SEC-013 forbids floating versions. The baseline above is vcpkg tag 2026.07.29; it is the pin for every port here except ffmpeg, which needs an explicit override because the baseline default is newer than the 7.1.x the register and section 6.3 both name.",
+  "dependencies": [
+    {
+      "name": "sqlite3",
+      "features": [
+        "fts5"
+      ]
+    },
+    "zlib",
+    {
+      "name": "libzip",
+      "default-features": false
+    },
+    "taglib",
+    "libsamplerate",
+    {
+      "name": "ffmpeg",
+      "default-features": false,
+      "features": [
+        "avcodec",
+        "avformat",
+        "swresample",
+        "zlib"
+      ]
+    }
+  ],
+  "default-features": [
+    "tempo",
+    "fingerprint",
+    "visualizer",
+    "tests"
+  ],
+  "features": {
+    "tempo": {
+      "description": "Pitch-preserving tempo/speed and BPM detection (REQ-AUD-090..093, section 6.6).",
+      "dependencies": [
+        "soundtouch"
+      ]
+    },
+    "fingerprint": {
+      "description": "Content-based duplicate detection (REQ-LIB-070, REQ-LIB-071). Local and offline; the AcoustID network lookup is a separate opt-in (section 9.9).",
+      "dependencies": [
+        "chromaprint"
+      ]
+    },
+    "visualizer": {
+      "description": "MilkDrop-compatible advanced visualizer (section 6.7, section 12.4).",
+      "dependencies": [
+        "projectm"
+      ]
+    },
+    "rtaudio": {
+      "description": "Last-resort Linux fallback sink (REQ-AUD-073, [v1.x]). Off by default, matching the ECLIPSE_ENABLE_RTAUDIO CMake option; it is never bit-perfect and must never be a platform default.",
+      "dependencies": [
+        "rtaudio"
+      ]
+    },
+    "tests": {
+      "description": "GoogleTest for the unit, integration and conformance suites (section 21). Test-only, never shipped.",
+      "dependencies": [
+        "gtest"
+      ]
+    }
+  },
+  "overrides": [
+    {
+      "name": "ffmpeg",
+      "version": "7.1.2",
+      "port-version": 5
+    }
+  ]
+}
