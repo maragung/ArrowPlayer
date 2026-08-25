@@ -45,8 +45,11 @@ python3 tools/check-rt-safety.py       # REQ-AUD-017
 python3 tools/validate-shared-spec.py  # shared-spec/ schemas and fixtures
 ```
 
-These four are the same scripts CI runs, and they need only Python 3.9 from the
-standard library — no virtualenv, no `pip install`.
+All four need only Python 3.9 from the standard library — no virtualenv, no
+`pip install`. Three of them (`check-layers`, `check-sql-safety`,
+`check-rt-safety`) run in `desktop-ci.yml` today; `validate-shared-spec.py`
+belongs to `spec-ci.yml` (§25.3), which is not written yet, so for now it is
+enforced by you running it, not by CI. Run it.
 
 ## Style
 
@@ -54,10 +57,22 @@ standard library — no virtualenv, no `pip install`.
 |---|---|---|
 | C++20 | `clang-format` (`.clang-format`) | `clang-tidy` (`.clang-tidy`), `cppcheck` |
 | Kotlin | `ktlint` | `detekt` |
-| Markdown | — | `markdownlint` (`.markdownlint.json`) |
+| Markdown | — | `markdownlint-cli2` (`.markdownlint.json`) |
 
 Formatting is checked, not suggested: `clang-format --dry-run --Werror` runs in
 CI. Run it before you push.
+
+The Markdown gate is `npx markdownlint-cli2` with **no arguments**. The file set
+and the exclusions both come from `.markdownlint-cli2.jsonc`; passing your own
+globs on the command line adds to that set but cannot escape the exclusions, and
+it is how you end up linting a different set than the gate does. Two details are
+worth knowing because getting them wrong is silent rather than loud:
+
+- `.markdownlintignore` is **not** read by cli2. Exclusions live in the `ignores`
+  array of `.markdownlint-cli2.jsonc`.
+- `eclipse-player.md` is excluded on purpose — it is the upstream specification,
+  and rewrapping it would churn the line numbers that commit messages, ADRs, and
+  code comments cite.
 
 Beyond formatting, three conventions matter more than they look:
 
