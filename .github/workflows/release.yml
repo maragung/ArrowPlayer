@@ -1,0 +1,430 @@
+# ---------------------------------------------------------------------------
+#  release.yml — spec §25.5 (REQ-BLD-025, REQ-BLD-026)
+#
+#  §25.5 lists ten steps. Four of them have inputs that exist in this tree
+#  today: the semver/version-file check (1), SBOM generation (half of 6), the
+#  changelog from conventional commits (7), and regenerating the licence
+#  documents for the tag (8). The other six need artifacts that no install() or
+#  CPack rule here produces, a signing identity that does not exist
+#  (REQ-SEC-016), an Android target deferred by ADR 0011, and a release
+#  checklist document nobody has written.
+#
+#  §28 is the reason for the split and OQ-053 records the tension: Phase 0's
+#  Build list says "all five CI workflows running", while Phase 9's says
+#  "signing; SBOM; installers; the release pipeline". A pipeline that signed and
+#  packaged in Phase 0 would be four phases ahead of the phase that builds
+#  signing and packaging. So this file exists now and is green when triggered,
+#  does the four steps whose inputs exist, and refuses at the publish boundary.
+#
+#  The refusal is detected, not hard-coded. The publish job checks for packaging
+#  rules, a signing identity, and a smoke-test target, names whichever are
+#  missing, and declines to publish while any of them is. When they land it
+#  publishes without this file being edited — the same shape the theme-engine
+#  gate in spec-ci.yml uses (OQ-040), and for the same reason: a boundary
+#  expressed as a comment is a boundary somebody has to remember.
+#
+#  workflow_dispatch is not a convenience. A release workflow first exercised at
+#  release time is the classic way releases fail, so every step that does not
+#  need a tag is runnable without cutting one.
+#
+#  Nothing in this file has ever executed: nothing has been pushed to origin and
+#  no tag exists. Every claim about it in docs/ says so.
+# ---------------------------------------------------------------------------
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+# Deliberately read-only. Publishing needs contents: write, and the job that
+# would publish cannot yet — granting the token write access before anything
+# uses it is privilege nobody is holding.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  # Never cancel a release in flight. A half-cancelled release is worse than a
+  # slow one.
+  cancel-in-progress: false
+
+jobs:
+  # -------------------------------------------------------------------------
+  #  Steps 1 and 2 · The preconditions, checked before anything expensive runs.
+  #
+  #  Also step 8's precondition, which is not obvious from §25.5 and was found
+  #  by running the generator rather than by reading it: gen-third-party.py
+  #  refuses to emit docs/LGPL-SOURCE-OFFER.md when the ledger records a
+  #  published release while offer.postal_address is null, because a written
+  #  offer that names no reachable recipient is not an offer (OQ-013). Step 8
+  #  therefore cannot succeed on any tag until that field is filled in. Checked
+  #  here so the failure arrives before the pipeline spends twenty minutes.
+  # -------------------------------------------------------------------------
+  preflight:
+    name: preconditions
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tagged: ${{ steps.version.outputs.tagged }}
+      previous: ${{ steps.previous.outputs.tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0   # the changelog needs history, not a shallow clone
+
+      - name: Step 1 · the tag is semver and matches the build files
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          file_version=$(tr -d '[:space:]' < desktop/version.txt)
+          echo "desktop/version.txt: $file_version"
+
+          if [ "$REF_TYPE" != "tag" ]; then
+            echo "tagged=false" >> "$GITHUB_OUTPUT"
+            echo "version=$file_version" >> "$GITHUB_OUTPUT"
+            echo "::notice::Not a tag ref — running the tag-independent steps only."
+            exit 0
+          fi
+
+          # §25.5 step 1 says vX.Y.Z. Exactly that: no prerelease suffix, no
+          # build metadata, no leading zeroes.
+          if ! printf '%s' "$REF_NAME" \
+               | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            echo "::error::Tag '$REF_NAME' is not vX.Y.Z (REQ-BLD-025 step 1)."
+            exit 1
+          fi
+          tag_version="${REF_NAME#v}"
+          if [ "$tag_version" != "$file_version" ]; then
+            echo "::error::Tag says $tag_version, desktop/version.txt says $file_version."
+            echo "::error::The version lives in the file; the tag records it. Fix the file"
+            echo "::error::and retag rather than moving the tag."
+            exit 1
+          fi
+          echo "tagged=true" >> "$GITHUB_OUTPUT"
+          echo "version=$tag_version" >> "$GITHUB_OUTPUT"
+          echo "Tag $REF_NAME matches desktop/version.txt."
+
+      - name: Step 2 · the 1.0.0 release checklist
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAGGED: ${{ steps.version.outputs.tagged }}
+        run: |
+          set -euo pipefail
+          # §25.5 step 2 is scoped to the 1.0.0 tag specifically. Below 1.0.0
+          # there is nothing to refuse on, and saying so is different from
+          # skipping a check that applies.
+          if [ "$TAGGED" != "true" ] || [ "$VERSION" != "1.0.0" ]; then
+            echo "Not the 1.0.0 tag (version $VERSION) — step 2 does not apply."
+            exit 0
+          fi
+          if [ ! -f docs/RELEASE-CHECKLIST.md ]; then
+            echo "::error::REQ-BLD-025 step 2: the 1.0.0 tag must be refused if any"
+            echo "::error::[v1.0] requirement is marked unmet in the release checklist,"
+            echo "::error::and docs/RELEASE-CHECKLIST.md does not exist. There is no"
+            echo "::error::checklist to read, so the refusal cannot be evaluated."
+            exit 1
+          fi
+          unmet=$(grep -nE '^\s*-\s*\[ \]' docs/RELEASE-CHECKLIST.md || true)
+          if [ -n "$unmet" ]; then
+            echo "::error::REQ-BLD-025 step 2: unmet items in the release checklist."
+            echo "$unmet" | sed 's/^/  /'
+            exit 1
+          fi
+          echo "Release checklist has no unticked items."
+
+      - name: Step 8's precondition · the source offer names a recipient
+        env:
+          TAGGED: ${{ steps.version.outputs.tagged }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Asked, not predicted. gen-third-party.py refuses to emit
+          # docs/LGPL-SOURCE-OFFER.md when the ledger records a published release
+          # while offer.postal_address is null, because a written offer that names
+          # no reachable recipient is not an offer (OQ-013). Step 8 must append
+          # such an entry for this tag, so on a tag that refusal is fatal — and
+          # arriving at step 8 of 10 to find out is arriving late.
+          #
+          # This probes the generator with a throwaway ledger rather than
+          # re-implementing its condition here. A copy of the condition in this
+          # file would be a copy that drifts; the first draft of this step already
+          # drifted, checking `mailbox` too, which would have failed tags the
+          # generator accepts. The probe's release row is deliberately incomplete,
+          # so the generator also complains about the row — irrelevant, because the
+          # row is thrown away. The discriminator is whether OQ-013 is named.
+          python3 - "$VERSION" > /tmp/offer-probe.json <<'PY'
+          import json, sys
+          d = json.load(open("tools/gen-third-party/releases.json"))
+          d["releases"] = [{"tag": f"v{sys.argv[1]}", "date": "1970-01-01",
+                            "components": []}]
+          json.dump(d, open(1, "w"), indent=2)
+          PY
+          probe=$(python3 tools/gen-third-party/gen-third-party.py \
+                    --document source-offer --releases /tmp/offer-probe.json \
+                    --output /dev/null 2>&1 || true)
+          if ! printf '%s' "$probe" | grep -q 'OQ-013'; then
+            echo "The offer names a recipient channel — step 8 can append this tag."
+            exit 0
+          fi
+          reason=$(printf '%s' "$probe" | grep -o 'offer\.postal_address is null.*' | head -1)
+          if [ "$TAGGED" != "true" ]; then
+            echo "::notice::$reason"
+            echo "::notice::Not a tag, so nothing is being distributed and no source"
+            echo "::notice::obligation attaches yet. On a tag this step fails."
+            exit 0
+          fi
+          echo "::error::$reason"
+          echo "::error::Fill offer.postal_address in tools/gen-third-party/releases.json"
+          echo "::error::before tagging. Failing here rather than at step 8 of 10."
+          exit 1
+
+      - name: The previous tag, for the changelog range
+        id: previous
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          prev=$(git describe --tags --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)
+          if [ -z "$prev" ]; then
+            echo "::notice::No previous tag; the changelog range starts at the root commit."
+          else
+            echo "Previous tag: $prev"
+          fi
+          echo "tag=$prev" >> "$GITHUB_OUTPUT"
+
+  # -------------------------------------------------------------------------
+  #  Step 7 · The changelog, from conventional commits.
+  #
+  #  REQ-BLD-036 splits the file: the detail sections are generated, the
+  #  Highlights section is written by a human. tools/gen-changelog.py generates
+  #  the first half and refuses to fabricate the second, so this job produces
+  #  something a human finishes rather than something that looks finished.
+  # -------------------------------------------------------------------------
+  changelog:
+    name: changelog (step 7)
+    needs: preflight
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      # The generator's own scenarios first. A broken generator fails in the
+      # direction of an empty changelog, which reads as "nothing changed".
+      - name: The generator still behaves as committed
+        run: python3 tools/gen-changelog.py --self-test
+
+      - name: Generate
+        env:
+          PREVIOUS: ${{ needs.preflight.outputs.previous }}
+        run: |
+          set -euo pipefail
+          if [ -n "$PREVIOUS" ]; then
+            python3 tools/gen-changelog.py --from "$PREVIOUS" --output changelog-section.md
+          else
+            python3 tools/gen-changelog.py --output changelog-section.md
+          fi
+          {
+            echo "### Generated changelog section"
+            echo
+            cat changelog-section.md
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: changelog-section
+          path: changelog-section.md
+          retention-days: 90
+
+  # -------------------------------------------------------------------------
+  #  Step 6 · SBOM. Half of this step exists.
+  #
+  #  "Generate SBOMs and SHA-256 checksums" — the SBOM is generated from the
+  #  §4.2 register and is real. The checksums are of artifacts, and there are no
+  #  artifacts, so that half is reported as missing rather than satisfied by
+  #  checksumming the SBOM itself.
+  # -------------------------------------------------------------------------
+  sbom:
+    name: SBOM (step 6)
+    needs: preflight
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: The generator still behaves as committed
+        run: python3 tools/gen-sbom.py --self-test
+
+      # The committed baseline carries no timestamp or serial so that --check
+      # stays meaningful. The release copy carries both, which is why it is a
+      # separate file and not a regeneration in place.
+      - name: The committed baseline is not stale
+        run: python3 tools/gen-sbom.py --check
+
+      - name: Stamp a release copy
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          set -euo pipefail
+          stamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          serial="urn:uuid:$(cat /proc/sys/kernel/random/uuid)"
+          out="eclipse-player-${VERSION}.cdx.json"
+          python3 tools/gen-sbom.py --timestamp "$stamp" --serial-number "$serial" -o "$out"
+          sha256sum "$out" > "$out.sha256"
+          {
+            echo "### SBOM"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Document | \`$out\` |"
+            echo "| Timestamp | \`$stamp\` |"
+            echo "| Serial | \`$serial\` |"
+            echo "| SHA-256 | \`$(cut -d' ' -f1 < "$out.sha256")\` |"
+            echo
+            echo "**Half of §25.5 step 6 is missing.** The step asks for SBOMs *and*"
+            echo "SHA-256 checksums. The checksum above is of the SBOM, not of a release"
+            echo "artifact — no \`install()\` or \`CPack\` rule in this tree produces one."
+            echo "Checksumming the SBOM and calling step 6 done would be the failure"
+            echo "\`OQ-042\` records. See the publish job."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sbom
+          path: |
+            eclipse-player-*.cdx.json
+            eclipse-player-*.cdx.json.sha256
+          retention-days: 90
+
+  # -------------------------------------------------------------------------
+  #  Step 8 · The licence documents for this tag.
+  #
+  #  "Regenerate docs/THIRD-PARTY.md and the LGPL source-offer entries for this
+  #  tag (REQ-GEN-020) and fail if they are stale." Both documents are generated
+  #  from data, so staleness is checkable today. Appending the tag's ledger entry
+  #  is what OQ-013 blocks; preflight has already refused the tag in that case,
+  #  so reaching this job on a tag means the offer names a recipient.
+  # -------------------------------------------------------------------------
+  third-party:
+    name: licence documents (step 8)
+    needs: preflight
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: The generator still behaves as committed
+        run: python3 tools/gen-third-party/gen-third-party.py --self-test
+
+      - name: Neither document is stale
+        run: |
+          set -euo pipefail
+          python3 tools/gen-third-party/gen-third-party.py --check
+          python3 tools/gen-third-party/gen-third-party.py --check --document source-offer
+
+      - name: What appending the tag's ledger entry still needs
+        env:
+          TAGGED: ${{ needs.preflight.outputs.tagged }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          set -euo pipefail
+          published=$(python3 -c "
+          import json
+          print(len(json.load(open('tools/gen-third-party/releases.json'))['releases']))")
+          {
+            echo "### Licence documents"
+            echo
+            echo "Both documents regenerate byte-identically from"
+            echo "\`tools/gen-third-party/register.json\`, so neither is stale."
+            echo
+            echo "The per-tag ledger holds **$published** published release(s)."
+            if [ "$TAGGED" = "true" ]; then
+              echo "Appending the entry for \`v$VERSION\` is the remaining half of step 8:"
+              echo "it asserts that a binary was distributed and that these archives"
+              echo "correspond to it. There is no binary yet — see the publish job — so"
+              echo "the entry is not written, because writing it would assert something"
+              echo "false about a release that did not happen."
+            else
+              echo "This run is not on a tag, so no entry is appended and no source"
+              echo "obligation attaches."
+            fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # -------------------------------------------------------------------------
+  #  Steps 3, 4, 5, 9, 10 · Publish. This job's whole purpose is to refuse.
+  #
+  #  It checks for each precondition separately and names the ones that are
+  #  missing, so the day packaging lands the report shrinks by one line rather
+  #  than staying a single undifferentiated "not implemented". The gate flips
+  #  itself: when every precondition is present, the refusal becomes an error
+  #  demanding the publish steps be written, which is the loudest place to
+  #  discover that the file still needs them.
+  # -------------------------------------------------------------------------
+  publish:
+    name: publish (steps 3, 4, 5, 9, 10)
+    needs: [preflight, changelog, sbom, third-party]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: What publishing still needs
+        env:
+          TAGGED: ${{ needs.preflight.outputs.tagged }}
+          HAS_SIGNING_IDENTITY: ${{ secrets.RELEASE_SIGNING_IDENTITY != '' }}
+        run: |
+          set -euo pipefail
+          missing=()
+
+          # Step 4: artifacts. The thing that creates a `package` target.
+          if ! grep -rqE '^\s*(include\(CPack\)|install\()' \
+                 --include=CMakeLists.txt --include='*.cmake' desktop/ 2>/dev/null; then
+            missing+=("packaging|no \`install()\` or \`include(CPack)\` rule under \`desktop/\`, so steps 4 and 10 have no artifact to build, smoke-test or checksum|Phase 9 (\"installers\")")
+          fi
+
+          # Step 5: signing (REQ-SEC-016).
+          if [ "$HAS_SIGNING_IDENTITY" != "true" ]; then
+            missing+=("signing|no \`RELEASE_SIGNING_IDENTITY\` secret, so step 5 cannot sign and \`REQ-SEC-016\` is unmet|Phase 9 (\"signing\")")
+          fi
+
+          # Step 3: the Android half of "the full desktop and Android pipelines".
+          if [ ! -d android ]; then
+            missing+=("android|no \`android/\` tree and no \`android-ci.yml\`, so step 3 runs one pipeline of two and step 4 cannot build the AAB or the per-ABI APKs|ADR 0011, OQ-018")
+          fi
+
+          if [ "${#missing[@]}" -eq 0 ]; then
+            echo "::error::Every publish precondition is now present, and this job still"
+            echo "::error::does not publish. §25.5 steps 3, 4, 5, 9 and 10 need writing:"
+            echo "::error::build every artifact, sign it, smoke-test it, then publish one"
+            echo "::error::unified release. Remove this guard in the same commit."
+            exit 1
+          fi
+
+          {
+            echo "### Not published, and why"
+            echo
+            echo "§25.5 steps 3, 4, 5, 9 and 10 are **Phase 9** work — §28 lists"
+            echo "\"signing; SBOM; installers; the release pipeline\" there. \`OQ-053\`"
+            echo "records the tension with Phase 0's \"all five CI workflows running\"."
+            echo "The steps whose inputs exist have run above and are blocking."
+            echo
+            echo "| Missing | Why it stops a release | Owned by |"
+            echo "|---|---|---|"
+            for entry in "${missing[@]}"; do
+              IFS='|' read -r what why owner <<< "$entry"
+              echo "| \`$what\` | $why | $owner |"
+            done
+            echo
+            echo "This job publishes nothing while that table has rows. When it empties,"
+            echo "the job **fails** rather than silently succeeding, because at that"
+            echo "point the missing thing is the publish steps themselves."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::warning::Release not published: ${#missing[@]} precondition(s) missing (OQ-053)."
+          printf '%s\n' "${missing[@]}" | cut -d'|' -f1 | sed 's/^/  missing: /'

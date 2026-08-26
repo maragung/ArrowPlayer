@@ -783,6 +783,7 @@ The suites map onto the workflows that exist under `.github/workflows/`:
 | `spec-ci.yml` | `validate-shared-spec.py` → draft-2020-12 schema + fixture validation → schema/fixture-sync → `theme-validate` over the corpus, **blocking only once that engine exists** (OQ-040) → desktop/Android verdict comparison, which reports the gap rather than comparing nothing while there are zero implementations | `REQ-BLD-023`, `REQ-TST-021`, `REQ-THM-060`, `REQ-GEN-031` |
 | `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-action-pins.py` in its own job → `check-doc-links.py` (§27 documents, internal links, **and** the OQ register), `gen-third-party.py --check` for both licence documents, and `gen-sbom.py --check` for the CycloneDX SBOM, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-SEC-013`, `REQ-GEN-012`, `REQ-GEN-020`, `REQ-GEN-021` |
 | `security.yml` | six jobs for §25.4's six steps, run in parallel rather than chained (OQ-052): CodeQL C++ with `security-extended`, stating in its summary that there is no Kotlin (ADR 0011) · grype by digest over the SBOM **and** the tree, gated by `check-cve-baseline.py`, with `--add-cpes-if-none` advisory-only and the `pkg:vcpkg` coverage gap printed every run (OQ-046) · the denylist and both licence documents against the register, then again against a real `vcpkg install --dry-run` (OQ-015, OQ-038) · SBOM regeneration, release diff, and `cyclonedx validate --fail-on-errors` (OQ-048) · 15 minutes of libFuzzer per target with the corpus cached (OQ-043) · `check-hardening.py` over the release build | `REQ-BLD-024`, `REQ-SEC-004`, `REQ-GEN-012`, `REQ-SEC-011`, `REQ-SEC-018`, `REQ-SET-010` |
+| `release.yml` | the four §25.5 steps whose inputs exist: the tag is `vX.Y.Z` and agrees with `desktop/version.txt` · the 1.0.0 checklist, scoped to that tag alone · `gen-changelog.py` over the range since the previous tag · a stamped SBOM beside the `--check` of the committed baseline · both licence documents checked for staleness. The OQ-013 precondition is probed **up front** by asking `gen-third-party.py`, not by re-implementing its rule. The `publish` job refuses while packaging, signing or the Android pipeline is missing, names which, and **fails** once all three land, because at that point the missing thing is the publish steps (OQ-053) | `REQ-BLD-025`, `REQ-BLD-026`, `REQ-BLD-036`, `REQ-GEN-020`, `REQ-GEN-021` |
 
 Two notes on that mapping:
 
@@ -831,9 +832,14 @@ Two notes on that mapping:
   and exclusions live in `.markdownlint-cli2.jsonc`, because passing a glob is
   precisely how the wrong file set once got linted ([OQ-028](OPEN-QUESTIONS.md)).
 
-`android-ci.yml` and `release.yml` are named by §25 but do not exist yet: the
-first has no app to build ([ADR 0011](adr/0011-desktop-first-sequencing.md)), and
-the second has nothing to release while the UI does not build. `security.yml` now
+`android-ci.yml` is named by §25 but does not exist yet: it has no app to build
+([ADR 0011](adr/0011-desktop-first-sequencing.md)). `release.yml` does exist and
+has nothing to release — which is the point. Its four runnable steps run on every
+`workflow_dispatch`, so the version check, the changelog, the SBOM stamp and the
+staleness checks are exercised long before a tag depends on them; a release
+workflow first run at release time is the classic way releases fail. The five
+steps it cannot do are refused by name rather than skipped
+([OQ-053](OPEN-QUESTIONS.md)). `security.yml` now
 exists and owns the nightly 15-minute-per-target budget with corpus persistence,
 CodeQL, the CVE and licence scans and the SBOM diff — none of which the 60-second
 smoke above replaces. Two parts of it are deliberately non-blocking on their first
