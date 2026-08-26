@@ -202,6 +202,33 @@ allowlist pattern is stricter and refuses it.
 
 ---
 
+### OQ-037 — the `REQ-GEN-012` completeness gate is one-directional · **Settled**
+
+`REQ-GEN-012`'s gate fails when a component in the build is absent from the §4.2
+register. `tools/gen-third-party/gen-third-party.py` implements exactly that
+direction and not the reverse, so the register is permitted to list more than the
+build links.
+
+- **Assumption in force:** over-listing is a documentation problem, not a licence
+  one, and is therefore not a build failure. Nothing can ship under a licence the
+  register omits, which is the property the requirement protects. Two rows rely on
+  this today: §4.2 lists `nlohmann/json` while the tree uses its own MPL-2.0
+  parser in `desktop/src/core/json/`, and it offers `libzip` **or**
+  `minizip-ng` while the manifest picks one.
+- **Why not make it bidirectional:** Qt is acquired with aqtinstall and is
+  deliberately absent from `desktop/vcpkg.json`, so a symmetric gate would fail
+  on the one dependency §4.3 cares most about. It would turn a legitimate
+  superset into a red build.
+- **Consequence:** a reader who takes the register as an inventory of what ships
+  is misled in the harmless direction. The generated document carries a
+  per-entry note where an entry is registered but not linked, so the status is
+  visible rather than inferred.
+- **Proposed answer:** the generator grows a non-failing lint that names any
+  desktop entry which is neither in the manifest nor flagged as externally
+  acquired — register staleness reported without blocking a build.
+
+---
+
 ## 3 · Settled ambiguities — the prose left a fork, the fixture chose
 
 These were not contradictions; the specification simply did not say, and a choice
@@ -536,6 +563,60 @@ call something equivalent.
 
 ---
 
+### OQ-036 — `REQ-GEN-019` names a source that does not hold the texts · **Gap**
+
+`REQ-GEN-019` requires the Help → Third-Party Licences screen to show each
+bundled component's **full licence text**, and requires that screen to be
+"generated from `docs/THIRD-PARTY.md` at build time — never hand-maintained in
+two places". The generated document carries SPDX ids, canonical references and
+source URLs, not verbatim texts, so the instruction cannot be followed as
+written: the texts are not in the file it names.
+
+- **Assumption in force:** the screen is generated from
+  `tools/gen-third-party/register.json` together with the licence texts vcpkg
+  materialises at `vcpkg_installed/<triplet>/share/<port>/copyright`, plus Qt's
+  `licenses/LGPL-3.0.txt` from `REQ-GEN-013`. `docs/THIRD-PARTY.md` is the human
+  rendering of the same register, not the machine input. The property the
+  requirement protects — one source of truth for what ships under what licence —
+  holds, because both outputs derive from the register.
+- **Why the texts are not embedded:** the build machine has no network, the
+  bodies run to thousands of words each, and vcpkg already writes the exact text
+  that was compiled against. A copy in Markdown would be a second thing to keep
+  in agreement with the artefact that actually ships.
+- **Consequence if it stays unfixed:** someone implements the screen by parsing
+  `docs/THIRD-PARTY.md` literally and ships a Licences screen with no licence
+  texts in it, which breaks `REQ-GEN-019` and, for Qt, `REQ-GEN-013`.
+- **Proposed answer:** the requirement should name the register, of which
+  `docs/THIRD-PARTY.md` is one rendering, and the commit that builds the screen
+  should point its generator at the register and the copyright files.
+
+---
+
+### OQ-038 — the transitive gate's parser has never seen real vcpkg output · **Gap**
+
+`gen-third-party.py --resolved-graph` is the interface OQ-025 asks for: it takes
+`vcpkg install --dry-run` output and fails on any resolved port that no register
+entry, transitive reference or build-only entry describes. Its parser was written
+against the documented line format and is exercised only against a hand-built
+fixture in `tools/gen-third-party/testdata/`, because vcpkg is not installed here.
+
+- **Assumption in force:** the documented package-line forms
+  (`name[features]:triplet@version#portversion`, and the older `-> version`) match
+  what the pinned vcpkg prints. The generator says so in its own `--self-test`
+  output and in the document, and the committed document is generated in
+  direct-only mode so that it claims nothing this machine could not check.
+- **Consequence if it stays unfixed:** the dangerous direction is silent
+  under-reporting. A line the pattern does not match is skipped, a real component
+  goes unseen, and a gate meant to catch the dependency nobody looked at passes
+  while doing nothing — which is the failure mode OQ-025 describes.
+- **Proposed answer:** the first CI lane with vcpkg available (OQ-026's caching
+  lane, or `security.yml` from OQ-015) pipes a real dry-run through the generator,
+  confirms the classification, and commits the captured output as the fixture in
+  place of the synthetic one. Until then the parser stays labelled untested
+  against real output wherever it is described.
+
+---
+
 ## 5 · Verification status — what is proven where
 
 The governing record for the scope decision behind this section is
@@ -560,6 +641,8 @@ to let them imply that nothing has been run.
 | `tools/check-doc-links.py` | **fails** — 2 of the §27 documents do not exist yet |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 | `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
+| `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires |
+| the same with `--check` | pass — `docs/THIRD-PARTY.md` byte-identical to a fresh render |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local
 `~/.local` prefix, no root required — FFmpeg 7.1.1 (LGPL-configured,
