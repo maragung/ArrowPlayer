@@ -1,0 +1,53 @@
+{
+  "$comment": [
+    "The per-release LGPL source ledger, as DATA. docs/LGPL-SOURCE-OFFER.md is",
+    "generated from this file plus register.json by gen-third-party.py and MUST NOT",
+    "be hand-edited (REQ-GEN-020).",
+    "",
+    "REQ-GEN-020 requires the published offer to link 'the precise source archive for",
+    "every LGPL component in every release, keyed by release tag'. That is what",
+    "`releases` below is: one entry per shipped tag, each enumerating every component",
+    "in the register that carries a source-offer obligation, at the exact version that",
+    "release linked against.",
+    "",
+    "It is EMPTY because no release has been published. That is not a placeholder to",
+    "be filled with plausible values: an entry here asserts that a binary was",
+    "distributed and that these archives correspond to it. §25.5 step 8 appends the",
+    "entry as part of the release pipeline and fails if the document is stale.",
+    "",
+    "The generator refuses to emit the document if `releases` is non-empty while",
+    "`offer.postal_address` is null — a written offer that names no reachable",
+    "recipient channel is not an offer (OQ-013)."
+  ],
+  "requirement": "REQ-GEN-020",
+  "release_pipeline_step": "eclipse-player.md §25.5 step 8",
+  "generated_document": "docs/LGPL-SOURCE-OFFER.md",
+
+  "offer": {
+    "$comment": [
+      "Where the offer is published and how a recipient reaches us. Every field here",
+      "is a fact about this repository as it stands; null means 'not in place', and",
+      "the generator renders that honestly rather than inventing a channel."
+    ],
+    "repository_url": "https://github.com/maragung/ArrowPlayer",
+    "releases_url": "https://github.com/maragung/ArrowPlayer/releases",
+    "maintainer_handle": "@maragung",
+    "maintainer_profile_url": "https://github.com/maragung",
+    "postal_address": null,
+    "postal_address_gap": "OQ-013",
+    "mailbox": null,
+    "pgp_key_fingerprint": null,
+    "validity_years": 3,
+    "charge": "at no charge beyond the cost of performing the distribution, which for a network transfer is nothing",
+    "primary_clause": {
+      "lgpl_2_1": "§6(d) — equivalent access to the source from the same designated place",
+      "lgpl_3_0": "§4(d)(1) plus GPL-3.0 §6(d) — a shared-library mechanism, sources from the same place"
+    },
+    "fallback_clause": {
+      "lgpl_2_1": "§6(c) — a written offer valid for at least three years",
+      "lgpl_3_0": "GPL-3.0 §6(b) — a written offer valid for at least three years"
+    }
+  },
+
+  "releases": []
+}

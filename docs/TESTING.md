@@ -497,20 +497,24 @@ The suites map onto the workflows that exist under `.github/workflows/`:
 |---|---|---|
 | `desktop-ci.yml` | architecture gates → configure/build/`ctest` on `ubuntu-22.04` (gcc-12), `ubuntu-24.04` (gcc-13, plus asan, tsan, clang-18), `windows-2022` (msvc) → FFmpeg licence assertion → clang-format, clang-tidy, cppcheck | `REQ-BLD-021`, §25.2 |
 | `spec-ci.yml` | `validate-shared-spec.py` → draft-2020-12 schema + fixture validation → schema/fixture-sync → `theme-validate` over the corpus → desktop/Android verdict comparison | `REQ-BLD-023`, `REQ-TST-021` |
-| `repo-lint.yml` | `markdownlint-cli2` (no arguments) and `commitlint` over the reviewed range | `REQ-GEN-075`, `REQ-BLD-031` |
+| `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-doc-links.py` and `gen-third-party.py --check` for both licence documents, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-GEN-012`, `REQ-GEN-020` |
 
-Two honest gaps in that mapping:
+Two notes on that mapping:
 
-- **The doc-links gate is not wired in yet.** `repo-lint.yml` carries a `TODO`
-  to add `python3 tools/check-doc-links.py` "in the same commit that adds the
-  […] missing §27 documents", because a gate introduced while red is a gate
-  someone weakens instead of satisfying. Run against the tree as this document
-  lands it reports two problems, both of them §27 documents that do not exist yet
-  — `docs/SKIN-AUTHORING.md` and `docs/LGPL-SOURCE-OFFER.md`. Adding *this*
-  document removed the `docs/TESTING.md: MISSING` line; neither remaining problem
-  originates here. The gate also has a `--self-test` over its heading-slug
-  algorithm, which is how a false failure against a correct link in `docs/API.md`
-  was found and fixed rather than worked around.
+- **The documentation gates went in green, and were held back until they were.**
+  `repo-lint.yml` carried a `TODO` to add `python3 tools/check-doc-links.py` "in
+  the same commit that adds the […] missing §27 documents", because a gate
+  introduced while red is a gate someone weakens instead of satisfying. When this
+  document landed, the gate reported two missing §27 documents —
+  `docs/SKIN-AUTHORING.md` and `docs/LGPL-SOURCE-OFFER.md`. Both now exist, the
+  gate reports 33 documents and 224 internal links resolved with one `[v1.x]`
+  note for the deferred `docs/PLUGIN-AUTHORING.md`, and the `TODO` is gone. Each
+  gate runs its own `--self-test` first: the link checker's is over its
+  heading-slug algorithm, which is how a false failure against a correct link in
+  `docs/API.md` was found and fixed rather than worked around, and the
+  generator's covers the `REQ-GEN-020` ledger rules against seven malformed
+  release rows. A checker whose own rules are untested reports whatever its bugs
+  allow.
 - **`markdownlint-cli2` is run with no arguments, deliberately** — the file set
   and exclusions live in `.markdownlint-cli2.jsonc`, because passing a glob is
   precisely how the wrong file set once got linted ([OQ-028](OPEN-QUESTIONS.md)).

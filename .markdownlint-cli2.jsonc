@@ -21,8 +21,10 @@
 
     // Generated documents — fix the generator, not the output.
     // docs/THIRD-PARTY.md: REQ-GEN-012, and section 27 marks it "Generated".
+    // docs/LGPL-SOURCE-OFFER.md: REQ-GEN-020, same generator, same register.
     // CHANGELOG.md: REQ-BLD-036, "generated but MUST be human-curated".
     "docs/THIRD-PARTY.md",
+    "docs/LGPL-SOURCE-OFFER.md",
     "CHANGELOG.md",
 
     // Not ours. desktop/third_party/ holds vendored archives, but its README is
