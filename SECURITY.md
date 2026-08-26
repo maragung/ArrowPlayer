@@ -141,7 +141,10 @@ reassuring:
   the three common scanners either skip `pkg:vcpkg` components or match them to
   nothing ([OQ-046](docs/OPEN-QUESTIONS.md)). That is written down rather than
   papered over precisely because a scan reporting zero findings over zero coverage
-  is worse than no scan.
+  is worse than no scan. The one dependency that was **not** pinned was the CI
+  actions themselves; all 22 references are now pinned to a commit SHA and held
+  there by `tools/check-action-pins.py` in `repo-lint.yml`
+  ([OQ-050](docs/OPEN-QUESTIONS.md)).
 
 Three of the items above are **specified but not yet wired**, and saying so is the
 point of a checkable list: the 15-minute fuzzing budget, CodeQL, and the CVE and

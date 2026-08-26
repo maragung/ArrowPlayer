@@ -32,7 +32,7 @@ jobs:
     name: architecture gates
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # A gate that has never failed is not evidence. All three below run over a
       # tree that contains no violations, and check-sql-safety.py has never had
@@ -89,7 +89,7 @@ jobs:
           - { name: 'windows-2022 · msvc',    os: windows-2022, preset: windows-release }
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # §3.2: Ubuntu 22.04 defaults to GCC 11, whose C++20 support is incomplete.
       # The spec requires GCC 12+, so it must be installed and selected explicitly.
@@ -110,7 +110,7 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install ninja --no-progress
 
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         if: runner.os == 'Windows'
 
       - name: Configure
@@ -198,7 +198,7 @@ jobs:
 
       - name: Upload test results on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: test-output-${{ matrix.name }}
           # Repository-root build/, per CMakePresets' binaryDir — the same
@@ -224,7 +224,7 @@ jobs:
     needs: gates
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install toolchain
         run: |
@@ -301,7 +301,7 @@ jobs:
       # run has nothing to carry.
       - name: Upload crash inputs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: fuzz-crash-inputs
           path: crash-*
@@ -316,7 +316,7 @@ jobs:
     needs: gates
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install
         run: |
