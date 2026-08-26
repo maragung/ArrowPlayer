@@ -45,6 +45,7 @@ python3 tools/check-rt-safety.py              # REQ-AUD-017
 python3 tools/validate-shared-spec.py         # shared-spec/ schemas and fixtures
 python3 tools/check-dependency-denylist.py    # REQ-SET-010 / REQ-TST-024
 python3 tools/check-doc-links.py              # REQ-GEN-075 — §27 docs and links
+python3 desktop/tests/fuzz/make-seeds.py --check   # REQ-SEC-011 — corpus is current
 npm ci && npm run lint:md                     # REQ-GEN-075
 
 # If you touched vcpkg.json, the §4.2 register, or a licence document:
@@ -63,6 +64,7 @@ contributor who assumes a check is automated stops running it:
 | `markdownlint-cli2`, `commitlint` | `repo-lint.yml` |
 | `check-dependency-denylist.py` | **nothing yet** — `security.yml` (§25.4) is not written. Run it |
 | `check-doc-links.py`, `gen-third-party.py --check` | `repo-lint.yml`, each after its own `--self-test` |
+| `make-seeds.py --check` | `desktop-ci.yml`, in the same `gates` job as the three above |
 
 There is also a fuller schema check that needs the real `jsonschema` library
 rather than the standard-library subset:

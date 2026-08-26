@@ -386,6 +386,47 @@ TEST(Normalize, RefusesToEscapeRoot) {
     EXPECT_FALSE(normalize_relative_path(".", out));
 }
 
+// REQ-THM-018 conjoins "normalised" with "free of absolute prefixes and drive
+// letters, free of NUL and control characters", so acceptance here has to mean
+// the same thing as acceptance by is_unsafe_relative_path(). It did not: found by
+// fuzz_text, which is why each class below has its own case.
+TEST(Normalize, RefusesWhatTheSecurityCheckRefuses) {
+    std::string out;
+
+    EXPECT_FALSE(normalize_relative_path("/absolute/path", out));  // was relativised
+    EXPECT_FALSE(normalize_relative_path("\\windows\\path", out));
+    EXPECT_FALSE(normalize_relative_path("C:\\Windows", out));
+    EXPECT_FALSE(normalize_relative_path("C:/Windows", out));
+    EXPECT_FALSE(normalize_relative_path(std::string_view("name\0.png", 9), out));
+    EXPECT_FALSE(normalize_relative_path("bell\x07/file", out));
+    EXPECT_FALSE(normalize_relative_path("del\x7f/file", out));
+    EXPECT_FALSE(normalize_relative_path(std::string(201, 'a'), out));  // REQ-THM-017
+
+    // Rejection empties the output, so a caller that ignores the return value
+    // cannot pick up a path from a previous successful call.
+    EXPECT_TRUE(normalize_relative_path("skins/default/theme.json", out));
+    EXPECT_EQ(out, "skins/default/theme.json");
+    EXPECT_FALSE(normalize_relative_path("/etc/passwd", out));
+    EXPECT_TRUE(out.empty());
+}
+
+// The property the fuzz target asserts, pinned as an ordinary test so it holds
+// even where libFuzzer is unavailable.
+TEST(Normalize, AcceptanceImpliesSafety) {
+    static constexpr std::string_view kPaths[] = {
+        "a/b", "a/./b", "a/b/../c", "a\\b", "a//b", "./x", "x/.", "../x",
+        "/abs", "C:/x", "..", ".", "", "a/../b", "deep/n/e/s/t/e/d/file.svg",
+    };
+    std::string out;
+    for (const std::string_view path : kPaths) {
+        if (normalize_relative_path(path, out)) {
+            EXPECT_FALSE(is_unsafe_relative_path(out)) << "accepted: " << path;
+        } else {
+            EXPECT_TRUE(out.empty()) << "rejected but left output: " << path;
+        }
+    }
+}
+
 // ===========================================================================
 //  Misc helpers
 // ===========================================================================

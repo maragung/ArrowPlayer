@@ -157,7 +157,12 @@ void encode_utf8(char32_t cp, std::string& out);
 [[nodiscard]] bool is_unsafe_relative_path(std::string_view p) noexcept;
 
 /// Normalises separators to '/' and resolves '.' and '..' textually.
-/// Returns false if the result would escape the root.
+///
+/// Returns false — leaving `out` empty — for anything REQ-THM-018 forbids in an
+/// archive entry: an escape from the root, an absolute prefix or drive letter, a
+/// NUL or control character, or a result `is_unsafe_relative_path()` rejects.
+/// A `true` return therefore means the result is safe to use, so a caller that
+/// checks only this function has not skipped the security control.
 [[nodiscard]] bool normalize_relative_path(std::string_view p, std::string& out);
 
 }  // namespace eclipse::text

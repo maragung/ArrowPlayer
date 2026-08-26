@@ -276,8 +276,10 @@ that appears between the check and the write.
 Why there is a parser here at all: the domain layer links against nothing but the
 standard library (`REQ-GEN-050`), and every JSON document this application reads is
 untrusted — a downloaded skin, an imported settings bundle. That combination makes
-the limits the feature. `tests/fuzz/fuzz_theme.cpp` is its fuzz target
-(`REQ-SEC-011`).
+the limits the feature. `tests/fuzz/fuzz_json.cpp` fuzzes it today, replaying ten
+committed seeds on every build. `fuzz_theme`, the target `REQ-SEC-011` names,
+validates a theme document against the schema rather than parsing arbitrary JSON,
+so it arrives with the theme engine in Phase 5.
 
 A parsed `Value` is **immutable after parse**. There are no mutating accessors, and
 every lookup returns `const Value*` or a copy. That is what makes a parsed document

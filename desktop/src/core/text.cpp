@@ -655,6 +655,25 @@ bool normalize_relative_path(std::string_view p, std::string& out) {
     out.clear();
     if (p.empty()) return false;
 
+    // REQ-THM-018 states one conjoined requirement: an entry path must be
+    // "relative, normalised, free of `..` segments, free of absolute prefixes and
+    // drive letters, free of NUL and control characters". Normalisation is
+    // therefore not a weaker, separate step — a path this function returns true
+    // for has to be one the security check would also accept. Rejecting the
+    // forbidden classes here means a caller that only ever calls this function
+    // cannot be handed an absolute or NUL-bearing path with a clean result.
+    //
+    // Found by fuzz_text (REQ-SEC-011): "../etc/passwd" was already refused, but
+    // "/absolute/path" was quietly relativised and a name containing a NUL was
+    // accepted verbatim — on POSIX that name truncates at the NUL, which is a
+    // path-confusion vector, not a cosmetic defect.
+    if (p.front() == '/' || p.front() == '\\') return false;
+    if (p.size() >= 2 && p[1] == ':') return false;
+    for (const char c : p) {
+        const auto uc = static_cast<unsigned char>(c);
+        if (uc == 0 || uc < 0x20 || uc == 0x7F) return false;
+    }
+
     std::vector<std::string_view> stack;
     std::size_t start = 0;
     for (std::size_t i = 0; i <= p.size(); ++i) {
@@ -674,6 +693,13 @@ bool normalize_relative_path(std::string_view p, std::string& out) {
     for (std::size_t i = 0; i < stack.size(); ++i) {
         if (i) out.push_back('/');
         out.append(stack[i]);
+    }
+    // The postcondition asserted rather than assumed, so the two functions cannot
+    // drift: whatever class is added to the security check in future — the
+    // REQ-THM-017 length cap is one already — applies to this result too.
+    if (is_unsafe_relative_path(out)) {
+        out.clear();
+        return false;
     }
     return true;
 }

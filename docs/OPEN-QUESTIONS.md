@@ -751,6 +751,85 @@ that had never once run, reporting a clean skip.
   armed rather than decorative, and it will fail the moment an adapter lands
   without its assertion.
 
+### OQ-043 — One of `REQ-SEC-011`'s seventeen fuzz targets exists · **Gap**
+
+`REQ-SEC-011` names seventeen libFuzzer targets and requires each to have a
+committed, growing corpus. `desktop/tests/fuzz/` now holds four harnesses, a
+corpus of 49 committed seeds, and a replay driver that makes the corpus an
+ordinary CTest case. Only **one** of the four — `fuzz_xinglame` — is one of the
+seventeen.
+
+The reason is structural rather than a decision about effort: a fuzz target needs
+a parser to point at, and sixteen of the seventeen read formats this tree cannot
+yet parse. ID3, Vorbis comments, APEv2 and MP4 atoms arrive with the Phase 2 tag
+layer; cue sheets, playlists and smart rules with Phase 3; EFS with Phase 4; the
+theme, layout and skin-archive readers with Phase 5; LRC with Phase 7; ICY and RSS
+with Phase 8; IPC with Phase 9; the sync wire format with Phase 10. §28 forbids
+starting a phase before the previous one's gates are green, so writing those
+harnesses now would mean writing the parsers now.
+
+- **Assumption in force:** `REQ-SEC-011` is read as a requirement on the shipped
+  1.0.0 product, not on every intermediate commit — the same reading §28's phase
+  ordering already forces for every other requirement whose subject does not exist
+  yet. What is *not* assumed is that an empty file counts: no placeholder harness
+  was created to make the count look better, because a target with no parser
+  behind it reports success for the same reason a skipped gate does (OQ-042).
+- **Three supporting targets are not counted among the seventeen.** The test they
+  had to pass is that the parser exists and untrusted bytes reach it today — a
+  shipped parser with no fuzz coverage is the gap that matters, whatever the spec's
+  list happens to name. `fuzz_json` and `fuzz_text` are underneath the others:
+  `fuzz_theme` and `fuzz_layout` both feed bytes through `core/json` before a
+  single schema keyword is consulted, and all seventeen reach `core/text` the
+  moment a tag value or file name becomes a `std::string`. `fuzz_gapless` covers
+  the three parsers in `audio/decode/gapless_info.hpp` that `fuzz_xinglame` does
+  not reach — `parse_itunsmpb`, which `REQ-AUD-042` calls a fuzz target in as many
+  words, `parse_opus_head`, and `gapless_from_granule` — all of which are written,
+  shipped in the domain library, and read bytes out of a downloaded file. All three
+  supporting targets are listed separately in `desktop/tests/fuzz/README.md` and
+  none is described as standing in for a named target.
+- **`fuzz_mp4atoms` is still absent, and `fuzz_gapless` does not make it present.**
+  `parse_itunsmpb` takes the tag *value*; `fuzz_mp4atoms` is about the atom *tree*
+  that produces it, and no container parser exists. Naming this target
+  `fuzz_mp4atoms` would have made the ledger read one row better and told a
+  reviewer that atom parsing is fuzzed, which it is not.
+- **Proposed answer:** the phase that introduces a parser introduces its fuzz
+  target in the same commit, and `desktop/tests/fuzz/README.md`'s table is the
+  ledger — every absent target names the phase that will bring it. The table is
+  the mechanism: it converts sixteen silent omissions into sixteen rows a
+  reviewer can count. This entry closes when the last row does.
+- **Each new corpus found a real defect on its first replay,** which is the
+  argument for doing this now rather than at the end. Neither needed a mutation,
+  and neither needed libFuzzer.
+  - `fuzz_text`: `normalize_relative_path()` returned `true` for
+    `/absolute/path`, quietly relativising it, and for a name containing a NUL —
+    both classes `REQ-THM-018` requires be rejected, and both already rejected by
+    `is_unsafe_relative_path()`. Two functions, one requirement, two different
+    answers. The normaliser now refuses what the security check refuses and
+    asserts that postcondition on its own output;
+    `Normalize.RefusesWhatTheSecurityCheckRefuses` and
+    `Normalize.AcceptanceImpliesSafety` pin it.
+  - `fuzz_gapless`: `gapless_from_granule()` computed `-initial_granule` on an
+    `std::int64_t` read out of an Ogg page. UBSan reported *negation of
+    -9223372036854775808 cannot be represented in type 'long int'*. The 32-bit
+    bound a line below would have rejected the value — but only after the program
+    had executed undefined behaviour to reach it, and an optimiser is entitled to
+    assume that never happens. The negation now runs in the unsigned domain, exact
+    for every input including that one;
+    `GranuleGapless.RejectsMostNegativeInitialGranuleWithoutOverflowing` pins it.
+- **What is not proven here.** No clang is installed on the development machine,
+  so `-fsanitize=fuzzer` is unavailable and `ECLIPSE_HAVE_LIBFUZZER` is false in
+  every local configuration. The four harnesses have been compiled and run by
+  GCC 14.2.0 under ASan+UBSan via the replay driver, and the CMake branch that
+  builds them without GoogleTest was exercised through the `linux-fuzz` preset —
+  but the libFuzzer binaries themselves, and `eclipse-domain-fuzz`'s
+  `-fsanitize=fuzzer-no-link` instrumentation, have never been built. Those paths
+  are **CI-only** until a clang toolchain is available here, and the 60-second
+  smoke job in `desktop-ci.yml` is the first thing that will exercise them.
+- **Consequence if unfixed:** `REQ-SEC-012` makes any fuzz finding a release
+  blocker. Sixteen formats with no target cannot produce a finding, so the
+  release gate would pass on silence rather than on evidence — which is exactly
+  the failure this entry exists to keep visible.
+
 ---
 
 ## 5 · Verification status — what is proven where
@@ -765,16 +844,18 @@ to let them imply that nothing has been run.
 
 | Check | Result |
 |---|---|
-| `cmake --preset linux-release` + `ctest` from a clean build directory | **186/186 passed** |
-| `cmake --preset linux-asan` + `ctest` (ASan + UBSan) | **186/186 passed** |
-| `cmake --preset linux-tsan` + `ctest` (ThreadSanitizer) | **186/186 passed** |
+| `cmake --preset linux-release` + `ctest` from a clean build directory | **193/193 passed** — 189 unit, 4 fuzz-corpus |
+| `cmake --preset linux-asan` + `ctest` (ASan + UBSan) | **193/193 passed** |
+| `cmake --preset linux-tsan` + `ctest` (ThreadSanitizer) | **193/193 passed** |
+| `cmake --preset linux-fuzz` + `ctest` — fuzzers without GoogleTest | **4/4 passed**; libFuzzer reported unavailable (GCC), corpus replay built and run |
+| `desktop/tests/fuzz/make-seeds.py --check` | pass — 49 committed seeds byte-identical to the generator |
 | `-Werror` with the strict warning set | clean |
 | `tools/check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` | pass |
 | `tools/validate-shared-spec.py` | pass — 5 schemas, 102 JSON documents |
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | pass — 33 documents, 224 internal links, 23 §27 deliverables present |
+| `tools/check-doc-links.py` | pass — 34 documents, 229 internal links, 23 §27 deliverables present |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 | `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
 | `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires; the `REQ-GEN-020` ledger gate fires on all 7 malformed release rows |
@@ -785,8 +866,11 @@ Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-loca
 decode-oriented, `--disable-network`), TagLib 2.0.2, alsa-lib 1.2.12,
 SQLite 3.46.1.
 
-So `README.md`'s "186 tests, all passing" is locally reproduced, not merely
-asserted by CI.
+So `README.md`'s test count is locally reproduced, not merely asserted by CI. The
+number moved from 186 to 193 in the commit that added the fuzz targets: three unit
+cases pinning the two defects the corpora found — two for
+`normalize_relative_path()`, one for `gapless_from_granule()` — plus the four
+corpus-replay cases themselves.
 
 **Correction of record.** An earlier version of this section, and the table in
 `shared-spec/README.md`, listed full draft-2020-12 validation as CI-only on the
@@ -903,7 +987,7 @@ What was actually run against `desktop/vcpkg.json`, on this machine, with vcpkg
 |---|---|
 | `vcpkg install --dry-run --triplet x64-linux-eclipse` | resolves; `ffmpeg` pins to 7.1.2#5, no OpenSSL, no bzip2 in the graph |
 | triplet evaluation for 14 ports | linkage matches the §4.2 column exactly — LGPL dynamic, permissive static |
-| `cmake --preset linux-release` with `VCPKG_ROOT` unset | unchanged; 186/186 tests still pass |
+| `cmake --preset linux-release` with `VCPKG_ROOT` unset | unchanged; the suite still passes in full (186/186 on the day of that run; 193/193 now) |
 
 What was **not** run: an actual `vcpkg install`. No port was compiled, so the
 manifest is proven to *resolve*, not proven to *build*. `arm64-linux-eclipse`
