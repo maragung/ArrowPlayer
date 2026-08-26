@@ -72,6 +72,15 @@ rule makes unnecessary.
 - **Recommendation:** keep runtime truncation as the safety property and demote
   step 10 to a **warning** at install time. A hard refusal punishes an author for
   a pattern the runtime handles correctly, and the warning still tells them.
+- **What adopting it costs, precisely:** the fixture's `verdict` becomes
+  `accept-with-warning` and `stepTenVerdict` is deleted. That is the whole change
+  — one line of corpus and both engines follow, because `verdict` is the only
+  field `.github/scripts/compare_verdicts.py` holds an implementation to
+  (OQ-029). Recorded here so the decision is cheap to execute rather than a
+  research task later.
+- **Until then the conflict is machine-visible, not just prose.** The fixture is
+  in the index's `openConflicts`, and a verdict disagreement on it is reported as
+  this conflict by name instead of as an engine bug.
 
 ### OQ-003 — `REQ-THM-027` vs `REQ-THM-031` · **Settled, narrowly**
 
@@ -208,6 +217,66 @@ chooses the other way.
 Changing any row is a `v2` schema change under `shared-spec/README.md`'s
 versioning rules, because it changes what an existing conformance case expects.
 
+### OQ-029 — What "identical results" means in `REQ-GEN-031` · **Settled**
+
+`REQ-GEN-031` requires the desktop and Android theme validators to "produce
+identical results" over `shared-spec/conformance/`, and `REQ-TST-021` makes a
+disagreement a build failure. Neither says whether "result" means the verdict
+alone or the verdict together with the pipeline step that produced it, and the
+two readings fail differently, so `.github/scripts/compare_verdicts.py` had to
+choose one.
+
+- **Assumption in force:** the **verdict** is the result and is compared
+  strictly — any difference fails the build. The `pipelineStep` is compared as
+  well, but a difference there is a **warning**, not a failure.
+- **Why the strict reading of `pipelineStep` was rejected:** a fixture can be
+  judged at more than one step, and `REQ-THM-040` stops at the first failure, so
+  two conforming engines can attribute the same verdict to different steps.
+  `malicious/layout-efs-output-bomb.eclayout` is the case already in the corpus:
+  it is schema-valid at step 6 and contested at step 10, and its own `reason`
+  says "Step 10 is the judge, not step 6". Failing on step attribution would make
+  the gate demand an implementation detail the specification never fixed, and the
+  usual way such a gate gets satisfied is by weakening it later.
+- **Why it is not simply dropped either:** a step divergence normally *does* mean
+  one engine ordered its pipeline wrongly, which is a real defect that happens to
+  be invisible in the verdict. It is printed as a GitHub warning annotation so a
+  human sees it, without a red build that cannot be made green honestly.
+- **The corpus is the third party in every comparison.** Two engines can agree
+  and both be wrong, so each report is also checked against the verdict
+  `index.json` requires. Agreement with each other is necessary; agreement with
+  the corpus is the point.
+- **Coverage is checked before agreement.** A report that omits a case would
+  "agree" with everything, which is the cheapest way for this gate to become
+  decorative — so a report missing any tracked case fails, as does a report
+  carrying a case `index.json` does not list.
+- **Reports also carry a `corpusFingerprint`** (sha256 of `index.json`). Two
+  reports produced against different revisions of the corpus would compare as
+  agreeing while proving nothing, and that failure is invisible without it.
+- **A disagreement on an `openConflicts` fixture still fails.** `REQ-TST-021`
+  exempts nothing, and two shipped engines that disagree are exactly what
+  `REQ-GEN-031` forbids whatever the reason. What changes is the *message*: the
+  comparator names the conflict, notes that the reported value is one of the
+  fixture's recorded alternate readings, and says the fix is to resolve the open
+  question rather than patch an engine. Without that, a maintainer spends a day
+  debugging an engine over a decision nobody has made.
+
+**A corpus defect this gate exposed, fixed here.** Writing the comparator meant
+deciding which of `verdict`, `schemaVerdict`, `enforcedVerdict` and
+`stepTenVerdict` an implementation is actually held to. Three bespoke keys across
+122 cases, with no stated rule, is how a gate ends up guessing. Two things were
+wrong and are corrected in `index.json`:
+
+- Its `$comment` now states the invariant the comparator depends on: `verdict` is
+  what an engine MUST report in its **default configuration**, for every case
+  without exception, and the other `*Verdict` keys are alternate readings that are
+  deliberately not the default.
+- The note on `malicious/layout-efs-output-bomb.eclayout` claimed "the stricter
+  one is recorded here", while the fields record the lenient reading as `verdict`
+  and the strict one as `stepTenVerdict`. The note described the opposite of the
+  data. It now describes the fields, and says which reading becomes `verdict` is
+  OQ-002's to settle. **No verdict was changed** — changing one would have
+  resolved an open specification conflict by fiat, which §0.1 rule 2 forbids.
+
 ---
 
 ## 4 · Process and infrastructure gaps
@@ -298,6 +367,11 @@ to let them imply that nothing has been run.
 | `-Werror` with the strict warning set | clean |
 | `tools/check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` | pass |
 | `tools/validate-shared-spec.py` | pass — 5 schemas, 102 JSON documents |
+| `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
+| the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
+| `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
+| `tools/check-doc-links.py` | **fails** — 7 of the §27 documents do not exist yet |
+| `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local
 `~/.local` prefix, no root required — FFmpeg 7.1.1 (LGPL-configured,
@@ -306,6 +380,23 @@ SQLite 3.46.1.
 
 So `README.md`'s "184 tests, all passing" is locally reproduced, not merely
 asserted by CI.
+
+**Correction of record.** An earlier version of this section, and the table in
+`shared-spec/README.md`, listed full draft-2020-12 validation as CI-only on the
+grounds that `jsonschema` was unavailable here. It is available: the distribution
+ships it as a system package (`jsonschema` 4.19.2, with `referencing` 0.36.2), so
+no virtualenv and no `pip install` is needed and the constraint that produced the
+claim never applied to this check. `.github/scripts/spec_full_validate.py` runs
+locally and passes, and the row has moved above. The pinned install in
+`.github/requirements-spec.txt` stays, because CI must not depend on whatever a
+runner image happens to carry — and the version gap is useful in itself: 4.19.2
+locally against 4.26.0 in CI means the schemas are asserted by two library
+versions rather than one.
+
+`tools/check-doc-links.py` is listed as failing rather than omitted. Seven §27
+documents are genuinely missing; the gate says so, and it is not wired into a
+workflow until they exist, because a gate added while red is a gate somebody will
+be tempted to weaken.
 
 ### OQ-017 — Qt is absent; Phase 0 exit gates 1 and 7 are CI-only · **Gap**
 

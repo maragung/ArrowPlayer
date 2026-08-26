@@ -141,13 +141,28 @@ not implement is a **hard error**, never a silent pass. What it enforces:
 
 What it deliberately does **not** check, and where that happens instead:
 
-| Not checked locally | Where it runs |
+| Not checked by this script | Where it runs |
 |---|---|
-| Full draft-2020-12 semantics, `format` assertions | `.github/workflows/spec-ci.yml` |
+| Full draft-2020-12 semantics, `format` assertions | `.github/scripts/spec_full_validate.py` |
 | SVG sanitisation, ZIP limits, image probing | desktop `tools/theme-validate` + its tests |
 | WCAG contrast computation | desktop tests against `contrast/pairs.json` |
 | EFS and smart-playlist **evaluation** | desktop conformance tests |
 | Android verdicts (the other half of `REQ-GEN-031`) | not yet — see below |
+
+The first row moved out of "CI-only" once it turned out `jsonschema` is already
+present on the development machine as a distribution package. The full validator
+therefore runs locally too:
+
+```bash
+python3 .github/scripts/spec_full_validate.py --check-schemas --check-fixtures
+```
+
+That does not make the stdlib script redundant — it is the one that runs in a bare
+container, and its keyword allowlist catches a schema using a keyword no
+hand-written validator implements, which the real library would happily accept and
+silently pass. Run both. They deliberately disagree in one direction only: if the
+subset accepts something the full validator rejects, the subset has a bug, and
+that is a finding rather than a nuisance.
 
 ## Status: half of `REQ-GEN-031` is unproven
 
