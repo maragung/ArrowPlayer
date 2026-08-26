@@ -78,6 +78,12 @@ function(eclipse_add_fuzz_target name)
     target_include_directories(${name}_replay PRIVATE "${CMAKE_SOURCE_DIR}/src")
     eclipse_set_warnings(${name}_replay)
     eclipse_set_sanitizers(${name}_replay)
+    # REQ-SEC-018. Under linux-release these four are ordinary release binaries,
+    # and tools/check-hardening.py found them unhardened the first time it ran:
+    # PIE and a stack protector by the distro compiler's own defaults, but only
+    # partial RELRO, because -z now is nobody's default. Under the sanitizer and
+    # fuzz presets the call deliberately no-ops — see eclipse_set_hardening.
+    eclipse_set_hardening(${name}_replay)
     # The corpus path is passed as a directory, not a file list: the driver walks
     # it at run time, so a seed added by REQ-SEC-012's regression rule becomes a
     # test case without re-running CMake.
@@ -95,6 +101,10 @@ function(eclipse_add_fuzz_target name)
         target_link_options(${name} PRIVATE -fsanitize=fuzzer)
         eclipse_set_warnings(${name})
         eclipse_set_sanitizers(${name})
+        # No-ops today, since REQ-SEC-012 has this preset build with ASan. Called
+        # anyway so the rule stays "every executable the build produces gets the
+        # call", which is one fewer thing to remember than "except these".
+        eclipse_set_hardening(${name})
     endif()
 endfunction()
 

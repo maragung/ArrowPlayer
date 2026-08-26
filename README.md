@@ -117,9 +117,18 @@ Rules are enforced by scripts, not review:
 python3 tools/check-layers.py      # layer direction        (REQ-GEN-051)
 python3 tools/check-sql-safety.py  # no interpolated SQL    (REQ-SEC-009)
 python3 tools/check-rt-safety.py   # RT-SAFE claims are true (REQ-AUD-017)
+python3 tools/check-hardening.py   # hardening in the binary (REQ-SEC-018)
 ```
 
-Each has a negative test proving it catches real violations.
+The last of those reads the ELF or PE headers of the linked binaries, because
+`REQ-SEC-018` asks for the flags to be verified in the artifact rather than in
+the build files — and the function that sets them had been called by nothing for
+several commits, so the build files would have answered yes.
+
+Four of the scripts under `tools/` carry a `--self-test` that plants the defect
+they exist to catch and requires it to be caught; the three source-level gates
+above do not have one yet, which is [OQ-045](docs/OPEN-QUESTIONS.md). An earlier
+version of this line claimed all of them did.
 
 ## Design references
 

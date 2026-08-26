@@ -33,6 +33,10 @@ function(eclipse_add_test name)
         "${CMAKE_SOURCE_DIR}/src")
     eclipse_set_warnings(${name})
     eclipse_set_sanitizers(${name})
+    # REQ-SEC-018. A test executable is a produced binary, and until main.cpp
+    # exists it is the only one tools/check-hardening.py can inspect — so the
+    # gate has something real to check rather than waiting for Phase 0's shell.
+    eclipse_set_hardening(${name})
     gtest_discover_tests(${name}
         DISCOVERY_TIMEOUT 60
         PROPERTIES LABELS "unit")

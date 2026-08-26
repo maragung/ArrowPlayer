@@ -46,6 +46,8 @@ python3 tools/validate-shared-spec.py         # shared-spec/ schemas and fixture
 python3 tools/check-dependency-denylist.py    # REQ-SET-010 / REQ-TST-024
 python3 tools/check-doc-links.py              # REQ-GEN-075 — §27 docs and links
 python3 desktop/tests/fuzz/make-seeds.py --check   # REQ-SEC-011 — corpus is current
+python3 tools/check-hardening.py --self-test        # REQ-SEC-018 — the reader works
+python3 tools/check-hardening.py build/linux-release  # …and the binaries are hardened
 npm ci && npm run lint:md                     # REQ-GEN-075
 
 # If you touched vcpkg.json, the §4.2 register, or a licence document:
@@ -60,6 +62,7 @@ contributor who assumes a check is automated stops running it:
 | Check | Enforced by |
 |---|---|
 | `check-layers`, `check-sql-safety`, `check-rt-safety` | `desktop-ci.yml` |
+| `check-hardening.py` | `desktop-ci.yml` — self-test in `gates`, then the linked ELF; PE non-blocking until it has passed once (OQ-044) |
 | `validate-shared-spec.py` | `spec-ci.yml` |
 | `markdownlint-cli2`, `commitlint` | `repo-lint.yml` |
 | `check-dependency-denylist.py` | **nothing yet** — `security.yml` (§25.4) is not written. Run it |

@@ -77,7 +77,7 @@ Real output on the current tree:
   platform isolation       ok
 layer rules: all checks passed
 
-sql safety: 17 file(s) scanned, no interpolated SQL found
+sql safety: 22 file(s) scanned, no interpolated SQL found
 
 rt safety: 4 file(s), 7 RT-SAFE annotation(s), no violations
 ```
@@ -99,12 +99,73 @@ What each gate does **not** catch is as important as what it does:
   reports 7 annotations because the DSP maths carries them ahead of the RT graph
   that will call it.
 - `check-sql-safety.py` greps for string concatenation adjacent to SQL keywords.
-  There is no SQL in the tree yet, so "17 file(s) scanned, no interpolated SQL
+  There is no SQL in the tree yet, so "22 file(s) scanned, no interpolated SQL
   found" means the gate is armed and idle, not that a query was proven safe.
 - `check-doc-links.py` checks that every §27 document exists and that internal
   links and `#fragment` anchors resolve (GitHub's slug algorithm). It does
   **not** fetch external `http(s)` URLs — a gate must pass offline. It is
   currently red for a real reason; see [Continuous integration](#continuous-integration).
+
+### The hardening gate — `REQ-SEC-018`
+
+A fifth script sits apart from those four because it needs something linked
+rather than something written:
+
+```bash
+python3 tools/check-hardening.py --self-test          # the reader itself
+python3 tools/check-hardening.py build/linux-release  # the produced binaries
+```
+
+`REQ-SEC-018` lists the flags a release build must enable and then adds the
+clause that turns a preference into a gate: CI must verify them *in the produced
+binaries, not merely in the build files*. That sentence describes a bug this tree
+actually had. `eclipse_set_hardening()` was defined in
+`desktop/cmake/EclipseWarnings.cmake` and called from nowhere for several
+commits: every flag was in the build files and in no binary. Grepping the CMake
+would have reported success.
+
+So the script reads ELF and PE headers instead of the compiler command line. On
+Linux it requires PIE (`ET_DYN` **and** `DF_1_PIE`, since a shared library is
+also `ET_DYN`), a `PT_GNU_RELRO` segment, `BIND_NOW` in either flag word or as
+`DT_BIND_NOW`, a `PT_GNU_STACK` that is present and not executable, and
+`__stack_chk_fail`. On the first run over `build/linux-release` it failed four
+binaries — the fuzz corpus replay drivers, which had PIE and a stack protector
+from the distro compiler's defaults but only partial RELRO, because `-z now` is
+nobody's default. They now get the call.
+
+What it does **not** claim:
+
+- **`_FORTIFY_SOURCE` cannot be judged per binary.** The definition only emits a
+  `__*_chk` call where the compiler cannot prove the size at the call site, so a
+  binary that makes no fortifiable call shows no evidence either way — failing it
+  would report a fact about the source. It is advisory per binary and mandatory
+  across the set: at least one binary must show fortified entry points, which is
+  what proves the definition reached the compiler. `/GS` on Windows has the same
+  shape, and the security cookie is the artifact it is read from.
+- **The PE half has never seen a real MSVC binary** — only the synthetic ones in
+  `--self-test`. It runs on the Windows matrix entry as non-blocking until it has
+  passed once ([OQ-044](OPEN-QUESTIONS.md)).
+- **Sanitizer and fuzzer builds are out of scope, not exempt.** The gate
+  recognises them by their runtime symbols and refuses to report success for a
+  directory containing nothing else, so pointing it at `build/linux-asan` exits
+  non-zero rather than passing vacuously.
+- **A static archive is not checked**, because PIE, RELRO, `BIND_NOW` and stack
+  permissions are decided by the linker and an archive has not been linked. The
+  executables that link them are checked, which is where the properties become
+  real.
+
+Real output on the current tree:
+
+```text
+  ok   build/linux-release/tests/fuzz/fuzz_gapless_replay   elf  all checks pass
+       · fortified: __fprintf_chk
+  ok   build/linux-release/tests/test_core                  elf  all checks pass
+       · fortified: __snprintf_chk
+  ok   build/linux-release/tests/test_dsp                   elf  fortify=unobservable
+  …
+  fortify: observed in at least one binary — the flag reached the compiler
+hardening: 7 binary/binaries verified, REQ-SEC-018 satisfied in the produced artifacts
+```
 
 ### Configure, build, and the 193 tests
 
