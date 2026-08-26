@@ -411,6 +411,47 @@ outside the enum, an 84-character header, and a trailing full stop — and three
 well-formed ones pass, including a `revert` carrying `Reverts <sha>` in place of a
 requirement id.
 
+### OQ-031 — `REQ-GEN-050(1)` is enforced only for the domain layer · **Gap**
+
+Rule 1 of `REQ-GEN-050` is the general statement — layer *N* may depend on layers
+*< N* and must not depend on layers *> N*. `tools/check-layers.py` enforces the
+domain slice of it thoroughly (rule 2's forbidden-include list) and the platform
+and adapter-confinement rules completely, but there is no check that, say, a file
+in `src/core/` does not include `app/session.hpp`. Today nothing can violate it,
+because layers 4 and 5 have no files. That is the reason it has not gone red, not
+a reason it is enforced.
+
+- **Proposed answer:** add a directory-to-layer map and a downward-only include
+  assertion to `check-layers.py` in the same commit that creates
+  `desktop/src/app/` — the first commit where the check has something to check,
+  and the first where the mapping can be written from real directories rather
+  than guessed at.
+- **Why not now:** the map would have to invent layer assignments for
+  directories that do not exist. A gate whose rule table is speculative is a gate
+  that gets edited to match whatever the code does, which is the opposite of
+  enforcement.
+- **Interim:** `docs/ARCHITECTURE.md` states the rule's enforcement state as
+  *partial* in its own table rather than claiming five-for-five.
+
+### OQ-032 — `REQ-GEN-054`'s doc-comment check does not exist · **Gap**
+
+`REQ-GEN-054` requires two things beyond the one-public-header convention:
+`docs/API.md` documents every public surface, and **a CI check verifies that every
+public symbol has a doc-comment**. The second does not exist.
+
+- **Assumption in force:** the convention holds by review, which is precisely the
+  substitute `REQ-GEN-050` rejects for layering and there is no reason to think it
+  is more reliable here.
+- **Proposed answer:** the check belongs with `docs/API.md` itself — a script that
+  walks the public headers named in that document, extracts declarations at
+  namespace scope, and requires a `///` comment above each. It is not written in
+  the same commit as the document because the document can be true today, while
+  the check needs a declaration parser good enough not to produce false failures
+  on templates and operator overloads; a noisy gate gets suppressed.
+- **Consequence if it stays unfixed:** `docs/API.md` drifts. Every function added
+  after it was written is a silent omission, and the failure mode is a document
+  that looks complete.
+
 ---
 
 ## 5 · Verification status — what is proven where
