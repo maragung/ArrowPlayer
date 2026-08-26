@@ -234,6 +234,69 @@ Real output on the current tree:
 hardening: 7 binary/binaries verified, REQ-SEC-018 satisfied in the produced artifacts
 ```
 
+### The CVE gate — `REQ-SEC-004`
+
+This one sits apart from the four above for the opposite reason to the hardening
+gate: it needs something *scanned* rather than something built, so it cannot run
+from a clean checkout alone.
+
+```bash
+python3 tools/check-cve-baseline.py --self-test        # the rules themselves
+grype sbom:docs/sbom/eclipse-player.cdx.json -o json > sbom-scan.json
+grype dir:. --exclude './node_modules/**' -o json     > tree-scan.json
+python3 tools/check-cve-baseline.py sbom-scan.json tree-scan.json
+```
+
+`REQ-SEC-004` fails the build on any **new** high-severity finding, and *new* was
+undefined against anything — the reason [OQ-049](OPEN-QUESTIONS.md) existed. The
+two obvious readings both fail: *since the last run* makes the verdict depend on
+scheduler history, so re-running a commit can change it, and *since the last
+release* is what the SBOM diff already uses but degenerates to "any" while no
+release exists. The definition in force is the third: **new means absent from
+`security/cve-baseline.json`**, a committed file holding one entry per accepted
+finding with the component, the exact version, the reason it does not apply to
+this build, and the date.
+
+Two scans, not one, because they catalogue disjoint sets — measured in
+[OQ-046](OPEN-QUESTIONS.md), where `grype dir:desktop` found exactly one component
+(the project itself) while the SBOM held 23, and the tree scan is where the single
+real finding this repository has ever had actually surfaced. Advisory output is
+kept out: `--add-cpes-if-none` synthesises CPEs and returned 49 matches over a
+document that yields 0 without it, 20 of them against components with no version
+at all, so it is printed in the job summary and can never fail the job.
+
+What keeps the baseline from becoming a suppression list:
+
+- **An entry matching nothing in the scan fails the build.** Upgrading a
+  dependency past a CVE therefore forces the stale entry out, instead of leaving
+  it to accumulate into a file nobody reads.
+- **An entry binds to an exact version**, so a bump invalidates every acceptance
+  made against the old one. The assessment was of that build, not of the name.
+- **`reason` must say something.** Empty, `TODO`, `n/a`, or fewer than six words
+  is rejected.
+- **Critical gates as well as High.** Reading "high severity" so that the findings
+  above it fall outside the gate would be a downgrade dressed as literalism.
+
+The file ships **empty**, which is a measurement rather than an omission: in the
+gating configuration, grype 0.117.0 against database v6.1.9 returns 0 matches at
+any severity from both the SBOM and the whole tree. That makes a green run
+worthless on its own — the [OQ-042](OPEN-QUESTIONS.md) shape — so the gate was
+watched failing against real scanner output. A real vulnerable component,
+`pkg:npm/lodash@4.17.15`, was appended to a copy of the committed SBOM and scanned
+by the same binary against the same database: 6 matches, 3 High and 3 Medium. The
+gate reported the three Highs as unaccepted and ignored the three Mediums; with
+them baselined it passed; and with those entries still in place against the
+*un*injected document it failed once per stale entry. Red, green, and red for the
+opposite reason.
+
+Its `--self-test` covers 21 cases: 17 planted defects, each of which must be
+rejected for the stated reason, and 4 valid inputs that must be accepted —
+including a Medium and a Negligible finding, which must *not* gate, and an
+acceptance expiring today, which is still valid. Three of the 17 are unreadable
+scans: a JSON array, a document with no `matches`, and `matches` as an object.
+Those are errors rather than empty results, because a scan the gate cannot read
+would otherwise report clean.
+
 ### Configure, build, and the 193 tests
 
 Every external library is optional at configure time, so the tree configures and
