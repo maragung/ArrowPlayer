@@ -27,6 +27,45 @@
     "texts are assembled at package time and fed to the Help -> Third-Party Licences",
     "screen (REQ-GEN-019)."
   ],
+  "sbom": {
+    "$comment": [
+      "The two facts a CycloneDX generator needs and no other consumer does.",
+      "REQ-GEN-021 wants an SBOM 'enumerating all components with SPDX licence",
+      "identifiers'; REQ-SEC-014 wants one per release artifact. Both are facts",
+      "about the dependencies, so they live here with the rest of the register",
+      "rather than in a second file that would drift away from it.",
+      "",
+      "`component` is the canonical machine name — the vcpkg port name wherever",
+      "there is one, so the manifest, the resolved graph and the SBOM all spell a",
+      "component identically and a diff between them is meaningful. The display",
+      "name in `name` is for the §4.2 table and is not usable as an identifier.",
+      "gen-sbom.py FAILS if `component` is not one of the entry's own `vcpkg`",
+      "ports: it is the purl name (`pkg:vcpkg/<component>`) and the key the",
+      "resolved graph is looked up by, so a drift here would produce a purl for",
+      "a port that does not exist and a version lookup that always misses.",
+      "",
+      "`scope` is CycloneDX's own enum, chosen deliberately per entry:",
+      "  required  linked into the shipped artifact",
+      "  optional  built only behind a feature that is off by default",
+      "  excluded  in the register but not reachable at runtime",
+      "`scope_reason` is MANDATORY for optional and excluded and forbidden for",
+      "required: taking a component out of the runtime set is the one decision here",
+      "that changes what the SBOM claims was shipped, so it has to be justified in",
+      "the register rather than inferred by the generator from prose.",
+      "",
+      "tools/gen-sbom.py fails if a desktop entry has no `sbom` block, so adding a",
+      "dependency cannot quietly skip the SBOM."
+    ],
+    "requirements": ["REQ-GEN-021", "REQ-SEC-014"],
+    "generator": "tools/gen-sbom.py",
+    "generated_document": "docs/sbom/eclipse-player.cdx.json",
+    "spec_version": "1.6",
+    "known_gaps": {
+      "no_cpe": "OQ-046",
+      "inexact_versions": "OQ-047",
+      "schema_validation": "OQ-048"
+    }
+  },
   "patent_notes": {
     "$comment": "REQ-GEN-017 requires docs/THIRD-PARTY.md to record these.",
     "requirement": "REQ-GEN-017",
@@ -59,6 +98,10 @@
           "obligation": "Provide relinking ability + licence text + source offer. Static linking is FORBIDDEN (§4.3).",
           "source_url": "https://download.qt.io/archive/qt/6.8/6.8.2/single/qt-everywhere-src-6.8.2.tar.xz",
           "vcpkg": [],
+          "sbom": {
+            "component": "qt6",
+            "scope": "required"
+          },
           "acquisition": "Official prebuilt shared libraries via aqtinstall at the version pinned in desktop/qt-version.txt. NOT a vcpkg dependency (ADR 0005 / REQ-BLD-001); desktop/vcpkg.json MUST NOT list Qt.",
           "notes": [
             "Exact version 6.8.2 (desktop/qt-version.txt); the register names the 6.8 LTS series.",
@@ -77,6 +120,10 @@
           "obligation": "Built without `--enable-gpl` and without `--enable-nonfree` (§4.4). Publish source offer.",
           "source_url": "https://ffmpeg.org/releases/ffmpeg-7.1.2.tar.xz",
           "vcpkg": ["ffmpeg"],
+          "sbom": {
+            "component": "ffmpeg",
+            "scope": "required"
+          },
           "acquisition": "vcpkg, pinned by override to 7.1.2#5 in desktop/vcpkg.json (features avcodec, avformat, swresample, zlib; default features off).",
           "configure_flags": [
             "--disable-gpl",
@@ -106,6 +153,10 @@
           "obligation": "Source offer if the LGPL arm is chosen.",
           "source_url": "https://github.com/taglib/taglib",
           "vcpkg": ["taglib"],
+          "sbom": {
+            "component": "taglib",
+            "scope": "required"
+          },
           "acquisition": "vcpkg (pinned baseline).",
           "notes": [
             "Dual-licensed. Eclipse takes the LGPL-2.1-or-later arm, so the source-offer obligation applies (recorded in the companion source-offer document)."
@@ -121,6 +172,10 @@
           "obligation": "Source offer.",
           "source_url": "https://www.surina.net/soundtouch/",
           "vcpkg": ["soundtouch"],
+          "sbom": {
+            "component": "soundtouch",
+            "scope": "required"
+          },
           "acquisition": "vcpkg, behind the `tempo` feature (on by default) mirroring the ECLIPSE tempo/BPM options (REQ-AUD-090..093).",
           "notes": []
         },
@@ -134,6 +189,10 @@
           "obligation": "Attribution.",
           "source_url": "https://github.com/libsndfile/libsamplerate",
           "vcpkg": ["libsamplerate"],
+          "sbom": {
+            "component": "libsamplerate",
+            "scope": "required"
+          },
           "acquisition": "vcpkg (pinned baseline).",
           "notes": [
             "The ≥ 0.2.2 floor folds in two separate limits: releases before 0.1.9 were GPL and MUST NOT be used (they are incompatible with the MPL-2.0 core, §4.1), and anything below the registered version is a dependency the register does not describe, which REQ-GEN-012 makes a build failure. EclipseDependencies.cmake enforces `samplerate>=0.2.2`."
@@ -149,6 +208,10 @@
           "obligation": "Source offer.",
           "source_url": "https://github.com/acoustid/chromaprint",
           "vcpkg": ["chromaprint"],
+          "sbom": {
+            "component": "chromaprint",
+            "scope": "required"
+          },
           "acquisition": "vcpkg, behind the `fingerprint` feature (on by default). Local and offline; the AcoustID network lookup is a separate opt-in (§9.9).",
           "notes": []
         },
@@ -162,6 +225,10 @@
           "obligation": "Source offer.",
           "source_url": "https://github.com/projectM-visualizer/projectm",
           "vcpkg": ["projectm"],
+          "sbom": {
+            "component": "projectm",
+            "scope": "required"
+          },
           "acquisition": "vcpkg, behind the `visualizer` feature (on by default). Pulls transitive ports (see the transitive section) — glm, projectm-eval, and the OpenGL/EGL registries.",
           "notes": [
             "ADR 0009 records the choice of projectM for MilkDrop-compatible visualisation."
@@ -177,6 +244,10 @@
           "obligation": "None.",
           "source_url": "https://www.sqlite.org/",
           "vcpkg": ["sqlite3"],
+          "sbom": {
+            "component": "sqlite3",
+            "scope": "required"
+          },
           "acquisition": "vcpkg, with the `fts5` feature for full-text search.",
           "notes": [
             "SQLite is dedicated to the public domain; SPDX records this as the `blessing` identifier (the 'SQLite Blessing'). No obligation, no attribution required."
@@ -192,6 +263,11 @@
           "obligation": "Attribution.",
           "source_url": "https://github.com/nlohmann/json",
           "vcpkg": [],
+          "sbom": {
+            "component": "nlohmann-json",
+            "scope": "excluded",
+            "scope_reason": "Carried by the §4.2 register but absent from the build: desktop/src/core/json/ is a bespoke hardened parser (ADR 0008). Nothing links it, so it is a component of no artifact."
+          },
           "acquisition": "Listed in the §4.2 register. NOT currently in the build: the desktop tree uses a bespoke, hardened in-house parser (`eclipse::json`, MPL-2.0, desktop/src/core/json/) rather than nlohmann/json, so it is registered but not linked today.",
           "notes": [
             "Kept in the register because §4.2 lists it and REQ-GEN-012 forbids silently dropping a registered dependency; the honest status is 'registered, not linked in the current build'."
@@ -207,6 +283,10 @@
           "obligation": "Attribution.",
           "source_url": "https://libzip.org/",
           "vcpkg": ["libzip"],
+          "sbom": {
+            "component": "libzip",
+            "scope": "required"
+          },
           "acquisition": "vcpkg with `default-features: false`. The default features pull in bzip2 and OpenSSL; both are refused — REQ-THM-015 allows a skin archive only 'deflate or stored, no encryption, no other compression methods', and OpenSSL has no row in §4.2 (see OQ-025).",
           "notes": [
             "The register offers `libzip` or `minizip-ng`; Eclipse uses libzip (BSD-3-Clause). minizip-ng would be the zlib-licensed alternative."
@@ -222,6 +302,10 @@
           "obligation": "Attribution.",
           "source_url": "https://zlib.net/",
           "vcpkg": ["zlib"],
+          "sbom": {
+            "component": "zlib",
+            "scope": "required"
+          },
           "acquisition": "vcpkg (pinned baseline).",
           "notes": []
         },
@@ -235,6 +319,11 @@
           "obligation": "Not shipped.",
           "source_url": "https://github.com/google/googletest",
           "vcpkg": ["gtest"],
+          "sbom": {
+            "component": "gtest",
+            "scope": "excluded",
+            "scope_reason": "Test-only, per the §4.2 linkage column. Never linked into a shipped artifact."
+          },
           "acquisition": "vcpkg behind the `tests` feature, and pinned as a vendored tarball desktop/third_party/googletest-1.15.2.tar.gz with its SHA-256 asserted at build time. Test-only; never present in a shipped artifact.",
           "notes": [
             "Because it is test-only and not shipped, it carries no runtime attribution or source-offer obligation."
@@ -250,6 +339,11 @@
           "obligation": "Attribution.",
           "source_url": "https://github.com/thestk/rtaudio",
           "vcpkg": ["rtaudio"],
+          "sbom": {
+            "component": "rtaudio",
+            "scope": "optional",
+            "scope_reason": "Behind the `rtaudio` vcpkg feature, which is OFF by default and is a [v1.x] last-resort fallback sink (REQ-AUD-073)."
+          },
           "acquisition": "vcpkg behind the `rtaudio` feature, which is OFF by default (matches the ECLIPSE_ENABLE_RTAUDIO CMake option). Optional last-resort Linux fallback sink only (REQ-AUD-073, [v1.x], §8.7.7); never bit-perfect, never a platform default.",
           "notes": [
             "The RtAudio licence is MIT with an added request that modifications be sent upstream; there is no distinct SPDX identifier, so it is recorded as `MIT` with this note."

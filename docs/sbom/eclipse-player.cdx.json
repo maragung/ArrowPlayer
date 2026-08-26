@@ -1,0 +1,1262 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "tools/gen-sbom.py",
+          "version": "0.1.0"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "eclipse-player",
+      "name": "eclipse-player",
+      "version": "0.1.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MPL-2.0",
+            "url": "https://spdx.org/licenses/MPL-2.0.html"
+          }
+        }
+      ],
+      "purl": "pkg:generic/eclipse-player@0.1.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/maragung/ArrowPlayer"
+        }
+      ]
+    },
+    "properties": [
+      {
+        "name": "eclipse:register",
+        "value": "tools/gen-third-party/register.json"
+      },
+      {
+        "name": "eclipse:spec-section",
+        "value": "4.2"
+      },
+      {
+        "name": "eclipse:requirements",
+        "value": "REQ-GEN-021, REQ-SEC-014, REQ-GEN-012"
+      },
+      {
+        "name": "eclipse:component-set",
+        "value": "direct-only"
+      },
+      {
+        "name": "eclipse:vcpkg-builtin-baseline",
+        "value": "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+      },
+      {
+        "name": "eclipse:vcpkg-triplet",
+        "value": "x64-linux-eclipse"
+      },
+      {
+        "name": "eclipse:qt-version",
+        "value": "6.8.2 (not a vcpkg port; aqtinstall per ADR 0005)"
+      },
+      {
+        "name": "eclipse:android-entries-omitted",
+        "value": "6 — the Android tree is deferred (ADR 0011), so there is no Android artifact for this document to describe"
+      },
+      {
+        "name": "eclipse:components-without-exact-version",
+        "value": "10 of 13 (taglib, soundtouch, libsamplerate, chromaprint, projectm, sqlite3, nlohmann-json, libzip, zlib, rtaudio) — OQ-047"
+      },
+      {
+        "name": "eclipse:cpe-absent",
+        "value": "no component carries a cpe: the register records no CPE names and this tool will not invent them. osv-scanner maps neither the vcpkg nor the generic purl type to any ecosystem, trivy skips both as unknown before matching, and grype resolves no CPE unless --add-cpes-if-none is passed, so a purl-only CVE scan over this document is not evidence of no known vulnerabilities (OQ-046)"
+      },
+      {
+        "name": "eclipse:validation",
+        "value": "this generator checks structure only. The document has been validated against the canonical bom-1.6.schema.json in a one-off local run; the committed validator implements a draft-2020-12 subset and the CycloneDX schemas are draft-07, so CI validates with cyclonedx-cli --input-version v1_6, which embeds its schemas (OQ-048)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "chromaprint",
+      "name": "chromaprint",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later",
+            "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/chromaprint?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/acoustid/chromaprint"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "Chromaprint"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "1.5.x"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Dynamic"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Source offer."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "chromaprint"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "ffmpeg",
+      "name": "ffmpeg",
+      "version": "7.1.2",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later",
+            "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/ffmpeg@7.1.2?port_version=5&repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://ffmpeg.org/releases/ffmpeg-7.1.2.tar.xz"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "FFmpeg (libavformat, libavcodec, libavutil, libswresample)"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "7.1.2 (vcpkg port-version 5)"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "exact"
+        },
+        {
+          "name": "eclipse:version-annotation",
+          "value": "vcpkg port-version 5"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Dynamic"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Built without `--enable-gpl` and without `--enable-nonfree` (§4.4). Publish source offer."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "ffmpeg"
+        },
+        {
+          "name": "eclipse:vcpkg-port-version",
+          "value": "5"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "gtest",
+      "name": "gtest",
+      "version": "1.15.2",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause",
+            "url": "https://spdx.org/licenses/BSD-3-Clause.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/gtest@1.15.2?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/google/googletest"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/BSD-3-Clause.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "GoogleTest"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "1.15.2"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "exact"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Test-only"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Not shipped."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "gtest"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "described by the §4.2 register but not reachable at runtime"
+        },
+        {
+          "name": "eclipse:scope-reason",
+          "value": "Test-only, per the §4.2 linkage column. Never linked into a shipped artifact."
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "libsamplerate",
+      "name": "libsamplerate",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause",
+            "url": "https://spdx.org/licenses/BSD-2-Clause.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/libsamplerate?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/libsndfile/libsamplerate"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/BSD-2-Clause.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "libsamplerate"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "≥ 0.2.2"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Static OK"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Attribution."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "libsamplerate"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "libzip",
+      "name": "libzip",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause",
+            "url": "https://spdx.org/licenses/BSD-3-Clause.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/libzip?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://libzip.org/"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/BSD-3-Clause.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "libzip"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "current"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Static OK"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Attribution."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "libzip"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "nlohmann-json",
+      "name": "nlohmann-json",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          }
+        }
+      ],
+      "purl": "pkg:generic/nlohmann-json",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/nlohmann/json"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/MIT.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "nlohmann/json"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "3.11.x"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Static OK"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Attribution."
+        },
+        {
+          "name": "eclipse:acquisition",
+          "value": "Listed in the §4.2 register. NOT currently in the build: the desktop tree uses a bespoke, hardened in-house parser (`eclipse::json`, MPL-2.0, desktop/src/core/json/) rather than nlohmann/json, so it is registered but not linked today."
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "described by the §4.2 register but not reachable at runtime"
+        },
+        {
+          "name": "eclipse:scope-reason",
+          "value": "Carried by the §4.2 register but absent from the build: desktop/src/core/json/ is a bespoke hardened parser (ADR 0008). Nothing links it, so it is a component of no artifact."
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "projectm",
+      "name": "projectm",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later",
+            "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/projectm?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/projectM-visualizer/projectm"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "projectM"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "4.x"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Dynamic"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Source offer."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "projectm"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "qt6",
+      "name": "qt6",
+      "version": "6.8.2",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-3.0-only",
+            "url": "https://spdx.org/licenses/LGPL-3.0-only.html"
+          }
+        }
+      ],
+      "purl": "pkg:generic/qt6@6.8.2?download_url=https%3A%2F%2Fdownload.qt.io%2Farchive%2Fqt%2F6.8%2F6.8.2%2Fsingle%2Fqt-everywhere-src-6.8.2.tar.xz",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://download.qt.io/archive/qt/6.8/6.8.2/single/qt-everywhere-src-6.8.2.tar.xz"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/LGPL-3.0-only.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "Qt 6"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "6.8.2"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "exact"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Dynamic, always"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Provide relinking ability + licence text + source offer. Static linking is FORBIDDEN (§4.3)."
+        },
+        {
+          "name": "eclipse:acquisition",
+          "value": "Official prebuilt shared libraries via aqtinstall at the version pinned in desktop/qt-version.txt. NOT a vcpkg dependency (ADR 0005 / REQ-BLD-001); desktop/vcpkg.json MUST NOT list Qt."
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "rtaudio",
+      "name": "rtaudio",
+      "scope": "optional",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/rtaudio?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/thestk/rtaudio"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/MIT.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "RtAudio"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "6.x"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Dynamic"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Attribution."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "rtaudio"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "built only behind a vcpkg feature that is off by default"
+        },
+        {
+          "name": "eclipse:scope-reason",
+          "value": "Behind the `rtaudio` vcpkg feature, which is OFF by default and is a [v1.x] last-resort fallback sink (REQ-AUD-073)."
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "soundtouch",
+      "name": "soundtouch",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later",
+            "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/soundtouch?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.surina.net/soundtouch/"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "SoundTouch"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "2.3.x"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Dynamic"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Source offer."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "soundtouch"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "sqlite3",
+      "name": "sqlite3",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "blessing",
+            "url": "https://spdx.org/licenses/blessing.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/sqlite3?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.sqlite.org/"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/blessing.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "SQLite"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "3.4x"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Static OK"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "None."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "sqlite3"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "taglib",
+      "name": "taglib",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "LGPL-2.1-or-later OR MPL-1.1"
+        }
+      ],
+      "purl": "pkg:vcpkg/taglib?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/taglib/taglib"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "TagLib"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "2.x"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Dynamic"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Source offer if the LGPL arm is chosen."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "taglib"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "zlib",
+      "name": "zlib",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Zlib",
+            "url": "https://spdx.org/licenses/Zlib.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/zlib?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://zlib.net/"
+        },
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/Zlib.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:register-name",
+          "value": "zlib"
+        },
+        {
+          "name": "eclipse:register-version",
+          "value": "1.3.x"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "series"
+        },
+        {
+          "name": "eclipse:linkage",
+          "value": "Static OK"
+        },
+        {
+          "name": "eclipse:obligation",
+          "value": "Attribution."
+        },
+        {
+          "name": "eclipse:vcpkg-port",
+          "value": "zlib"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "egl-registry",
+      "name": "egl-registry",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "Apache-2.0 OR MIT"
+        }
+      ],
+      "purl": "pkg:vcpkg/egl-registry?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "register transitive_reference — recorded in OQ-025 from one observed graph, not resolved by this run"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "Apache-2.0 / MIT (Khronos registry)"
+        },
+        {
+          "name": "eclipse:pulled-in-by",
+          "value": "projectm"
+        },
+        {
+          "name": "eclipse:scope-derivation",
+          "value": "inherited from projectm; the register records no separate scope for a transitive port"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "glm",
+      "name": "glm",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/glm?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/MIT.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "register transitive_reference — recorded in OQ-025 from one observed graph, not resolved by this run"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "MIT"
+        },
+        {
+          "name": "eclipse:pulled-in-by",
+          "value": "projectm"
+        },
+        {
+          "name": "eclipse:scope-derivation",
+          "value": "inherited from projectm; the register records no separate scope for a transitive port"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "opengl",
+      "name": "opengl",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "Apache-2.0 OR MIT"
+        }
+      ],
+      "purl": "pkg:vcpkg/opengl?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "register transitive_reference — recorded in OQ-025 from one observed graph, not resolved by this run"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "Apache-2.0 / MIT (Khronos registry)"
+        },
+        {
+          "name": "eclipse:pulled-in-by",
+          "value": "projectm"
+        },
+        {
+          "name": "eclipse:scope-derivation",
+          "value": "inherited from projectm; the register records no separate scope for a transitive port"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "opengl-registry",
+      "name": "opengl-registry",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "Apache-2.0 OR MIT"
+        }
+      ],
+      "purl": "pkg:vcpkg/opengl-registry?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "register transitive_reference — recorded in OQ-025 from one observed graph, not resolved by this run"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "Apache-2.0 / MIT (Khronos registry)"
+        },
+        {
+          "name": "eclipse:pulled-in-by",
+          "value": "projectm"
+        },
+        {
+          "name": "eclipse:scope-derivation",
+          "value": "inherited from projectm; the register records no separate scope for a transitive port"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "projectm-eval",
+      "name": "projectm-eval",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later",
+            "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/projectm-eval?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/LGPL-2.1-or-later.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "register transitive_reference — recorded in OQ-025 from one observed graph, not resolved by this run"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "LGPL-2.1-or-later"
+        },
+        {
+          "name": "eclipse:pulled-in-by",
+          "value": "projectm"
+        },
+        {
+          "name": "eclipse:scope-derivation",
+          "value": "inherited from projectm; the register records no separate scope for a transitive port"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "utfcpp",
+      "name": "utfcpp",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSL-1.0",
+            "url": "https://spdx.org/licenses/BSL-1.0.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/utfcpp?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d&triplet=x64-linux-eclipse",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/BSL-1.0.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "register transitive_reference — recorded in OQ-025 from one observed graph, not resolved by this run"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "Boost-1.0"
+        },
+        {
+          "name": "eclipse:pulled-in-by",
+          "value": "taglib"
+        },
+        {
+          "name": "eclipse:scope-derivation",
+          "value": "inherited from taglib; the register records no separate scope for a transitive port"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "linked into the shipped artifact"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkgconf",
+      "name": "pkgconf",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC",
+            "url": "https://spdx.org/licenses/ISC.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/pkgconf?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/ISC.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "vcpkg build-system helper; host tooling, never linked into an artifact"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "ISC (build-time pkg-config)"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "described by the §4.2 register but not reachable at runtime"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "vcpkg-cmake",
+      "name": "vcpkg-cmake",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/vcpkg-cmake?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/MIT.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "vcpkg build-system helper; host tooling, never linked into an artifact"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "MIT (vcpkg build helper)"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "described by the §4.2 register but not reachable at runtime"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "vcpkg-cmake-config",
+      "name": "vcpkg-cmake-config",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/vcpkg-cmake-config?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/MIT.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "vcpkg build-system helper; host tooling, never linked into an artifact"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "MIT (vcpkg build helper)"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "described by the §4.2 register but not reachable at runtime"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "vcpkg-cmake-get-vars",
+      "name": "vcpkg-cmake-get-vars",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          }
+        }
+      ],
+      "purl": "pkg:vcpkg/vcpkg-cmake-get-vars?repository_revision=9e593bb18ea69cc5095e012465dcd675a822ed0d",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://spdx.org/licenses/MIT.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eclipse:provenance",
+          "value": "vcpkg build-system helper; host tooling, never linked into an artifact"
+        },
+        {
+          "name": "eclipse:licence-display",
+          "value": "MIT (vcpkg build helper)"
+        },
+        {
+          "name": "eclipse:version-precision",
+          "value": "unknown"
+        },
+        {
+          "name": "eclipse:scope-meaning",
+          "value": "described by the §4.2 register but not reachable at runtime"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "eclipse-player",
+      "dependsOn": [
+        "chromaprint",
+        "ffmpeg",
+        "libsamplerate",
+        "libzip",
+        "projectm",
+        "qt6",
+        "rtaudio",
+        "soundtouch",
+        "sqlite3",
+        "taglib",
+        "zlib"
+      ]
+    },
+    {
+      "ref": "projectm",
+      "dependsOn": [
+        "egl-registry",
+        "glm",
+        "opengl",
+        "opengl-registry",
+        "projectm-eval"
+      ]
+    },
+    {
+      "ref": "taglib",
+      "dependsOn": [
+        "utfcpp"
+      ]
+    }
+  ]
+}

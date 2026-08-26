@@ -1386,10 +1386,20 @@ def render_source_offer(register: dict, ledger: dict, pins: dict) -> str:
                 "why the freshness gate below runs on every push instead.",
             ],
             [
-                "No artifact signing, checksums, or SBOM",
-                "`REQ-SEC-016`, `REQ-SEC-017`, `REQ-GEN-021`",
+                "No artifact signing and no checksums",
+                "`REQ-SEC-016`, `REQ-SEC-017`",
                 "A recipient cannot yet verify that a downloaded binary is the one "
-                "these sources correspond to.",
+                "these sources correspond to. The SBOM half of this row is now "
+                "closed — see the row below.",
+            ],
+            [
+                "The SBOM exists but has never been attached to a release",
+                "`REQ-GEN-021`, `REQ-SEC-014`",
+                "`docs/sbom/eclipse-player.cdx.json` is generated from this same "
+                "register by `tools/gen-sbom.py`, which `repo-lint.yml` runs "
+                "`--check` on for every push and pull request. `REQ-SEC-014` asks "
+                "for one *per release artifact*, which needs §25.5 step 6 and "
+                "therefore a release that has not happened yet.",
             ],
             [
                 "The Android components (projectM, Chromaprint NDK) are in no build",

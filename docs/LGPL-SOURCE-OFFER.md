@@ -172,7 +172,8 @@ vcpkg install --triplet x64-linux-eclipse --x-install-root=vcpkg_installed
 | No website, so this page is not mirrored anywhere | `REQ-GEN-020` | The repository is the only publication point (OQ-041). The compliance substance — source beside the binary — does not depend on the mirror; the stated MUST does. |
 | No postal address, monitored mailbox, or published PGP key | `REQ-GEN-020`, OQ-013 | The written-offer route rests on a platform account (OQ-013). A 1.0.0 release blocker. |
 | No `release.yml`, so §25.5 step 8 is not automated | `REQ-BLD-025` | Nothing yet appends a ledger row or fails a stale document at tag time. Until it exists, the ledger would be updated by hand — which is why the freshness gate below runs on every push instead. |
-| No artifact signing, checksums, or SBOM | `REQ-SEC-016`, `REQ-SEC-017`, `REQ-GEN-021` | A recipient cannot yet verify that a downloaded binary is the one these sources correspond to. |
+| No artifact signing and no checksums | `REQ-SEC-016`, `REQ-SEC-017` | A recipient cannot yet verify that a downloaded binary is the one these sources correspond to. The SBOM half of this row is now closed — see the row below. |
+| The SBOM exists but has never been attached to a release | `REQ-GEN-021`, `REQ-SEC-014` | `docs/sbom/eclipse-player.cdx.json` is generated from this same register by `tools/gen-sbom.py`, which `repo-lint.yml` runs `--check` on for every push and pull request. `REQ-SEC-014` asks for one *per release artifact*, which needs §25.5 step 6 and therefore a release that has not happened yet. |
 | The Android components (projectM, Chromaprint NDK) are in no build | ADR 0011 | They stay in the register and out of the ledger: they have never been distributed, so no obligation has attached ([ADR 0011](adr/0011-desktop-first-sequencing.md)). |
 
 ## How this document is generated

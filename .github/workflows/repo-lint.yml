@@ -2,7 +2,8 @@ name: repo-lint
 
 # Repository-hygiene gates: Markdown style, commit-message form, and the §27
 # documentation checks — every listed document present, every internal link
-# resolving, and the two generated licence documents in step with their register.
+# resolving, and the three generated documents (both licence documents and the
+# CycloneDX SBOM) in step with the one register they all come from.
 #
 # Why this is a sixth workflow when §5 lists five. The five in §5 map to the
 # specification's own concerns — the two platforms, the shared spec, security,
@@ -110,15 +111,18 @@ jobs:
           python-version: '3.12'
 
       # Each gate's own corpus first. A linter whose rules are themselves
-      # untested reports whatever its bugs allow, and both of these implement an
-      # algorithm they could get subtly wrong: GitHub's heading-to-anchor slug,
-      # and the REQ-GEN-020 ledger rules. Run before the gates so a failure here
-      # is unambiguous — the checker is broken, not the repository.
+      # untested reports whatever its bugs allow, and all three of these
+      # implement an algorithm they could get subtly wrong: GitHub's
+      # heading-to-anchor slug, the REQ-GEN-020 ledger rules, and the purl and
+      # CycloneDX shapes the SBOM has to be right about. Run before the gates so
+      # a failure here is unambiguous — the checker is broken, not the
+      # repository.
       - name: Gate self-tests
         run: |
           set -euo pipefail
           python3 tools/check-doc-links.py --self-test
           python3 tools/gen-third-party/gen-third-party.py --self-test
+          python3 tools/gen-sbom.py --self-test
 
       # §27's two mechanical halves: every listed document exists, and every
       # internal link resolves. External URLs are deliberately not fetched — a
@@ -126,13 +130,19 @@ jobs:
       - name: Documents exist and internal links resolve (REQ-GEN-075)
         run: python3 tools/check-doc-links.py
 
-      # Both licence documents are generated from one register, so a hand-edit to
-      # either — or a dependency added to vcpkg.json without a register entry —
+      # All three generated documents come off one register, so a hand-edit to any
+      # of them — or a dependency added to vcpkg.json without a register entry —
       # shows up as a diff here. §25.5 step 8 requires exactly this staleness
       # check at release time; running it on every push is what keeps that step
       # from being the first place anyone notices.
-      - name: Licence documents are not stale (REQ-GEN-012, REQ-GEN-020)
+      #
+      # The SBOM is in this list because docs/LGPL-SOURCE-OFFER.md says it is.
+      # That sentence is generated from the register too, and a generated
+      # document asserting a check that no workflow runs is the OQ-042 failure
+      # over again.
+      - name: Generated documents are not stale (REQ-GEN-012, REQ-GEN-020, REQ-GEN-021)
         run: |
           set -euo pipefail
           python3 tools/gen-third-party/gen-third-party.py --check --document third-party
           python3 tools/gen-third-party/gen-third-party.py --check --document source-offer
+          python3 tools/gen-sbom.py --check
