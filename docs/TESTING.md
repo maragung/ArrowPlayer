@@ -31,23 +31,25 @@ this document is consistent with it and links to it rather than restating it.
 
 ## How to run every suite
 
-The suite inventory today is small and honest: it is the domain layer (layer 3),
-under GoogleTest, plus four fuzz harnesses replaying their committed corpus, plus
-the gate scripts. Everything above layer 3 — the adapters, the RT engine, the Qt
-UI — is not written yet ([ADR 0011](adr/0011-desktop-first-sequencing.md)), so the
-integration, UI, soak, and chaos suites the specification mandates have nothing to
-exercise and are not built. What runs, runs completely.
+The suite inventory today is small and honest: it is the domain layer (layer 3)
+and the application layer (layer 4), under GoogleTest, plus four fuzz harnesses
+replaying their committed corpus, plus the gate scripts. Everything else — the
+adapters, the RT engine, the Qt UI — is not written yet
+([ADR 0011](adr/0011-desktop-first-sequencing.md)), so the integration, UI, soak,
+and chaos suites the specification mandates have nothing to exercise and are not
+built. What runs, runs completely.
 
 | CTest binary | Source | Cases | Domain area |
 |---|---|---|---|
 | `test_core` | `unit/test_text.cpp`, `unit/test_error.cpp`, `unit/test_json.cpp` | 81 | UTF-8/sort-key/path text (43), `Result<T>` error model (13), hardened JSON parser (25) |
 | `test_dsp` | `unit/test_equalizer.cpp` | 56 | biquad coefficients (26) + graphic/parametric EQ (30) |
 | `test_gapless` | `unit/test_gapless.cpp` | 52 | MP3 Xing/LAME, `iTunSMPB`, `OpusHead`, granule, native trim (49 + 3 randomised) |
+| `test_app` | `unit/test_app.cpp` | 17 | build identity read back from the generated version header (3), ordered startup and reverse teardown (12), exit-code mapping (2) |
 | `fuzz_corpus.fuzz_json` | `fuzz/fuzz_json.cpp` + corpus | 1 | 10 seeds through the hardened JSON parser |
 | `fuzz_corpus.fuzz_text` | `fuzz/fuzz_text.cpp` + corpus | 1 | 6 seeds through UTF-8 decode, sanitise, sort keys, path safety |
 | `fuzz_corpus.fuzz_xinglame` | `fuzz/fuzz_xinglame.cpp` + corpus | 1 | 12 seeds through the MPEG frame header and the Xing/Info + LAME tag |
 | `fuzz_corpus.fuzz_gapless` | `fuzz/fuzz_gapless.cpp` + corpus | 1 | 21 seeds through `iTunSMPB`, `OpusHead` and the Ogg granule derivation |
-| **Total** | | **193** | |
+| **Total** | | **210** | |
 
 The GoogleTest counts are `--gtest_list_tests` output. Each fuzz corpus is one
 CTest case that replays every seed in its directory — 49 seeds across the four —
@@ -226,6 +228,7 @@ What it does **not** claim:
 Real output on the current tree:
 
 ```text
+  ok   build/linux-release/eclipse-player                   elf  all checks pass
   ok   build/linux-release/tests/fuzz/fuzz_gapless_replay   elf  all checks pass
        · fortified: __fprintf_chk
   ok   build/linux-release/tests/test_core                  elf  all checks pass
@@ -233,7 +236,7 @@ Real output on the current tree:
   ok   build/linux-release/tests/test_dsp                   elf  fortify=unobservable
   …
   fortify: observed in at least one binary — the flag reached the compiler
-hardening: 7 binary/binaries verified, REQ-SEC-018 satisfied in the produced artifacts
+hardening: 9 binary/binaries verified, REQ-SEC-018 satisfied in the produced artifacts
 ```
 
 ### The CVE gate — `REQ-SEC-004`
@@ -299,7 +302,7 @@ scans: a JSON array, a document with no `matches`, and `matches` as an object.
 Those are errors rather than empty results, because a scan the gate cannot read
 would otherwise report clean.
 
-### Configure, build, and the 193 tests
+### Configure, build, and the 210 tests
 
 Every external library is optional at configure time, so the tree configures and
 the domain tests build with nothing but a C++20 compiler — see
@@ -331,22 +334,22 @@ are absent (see [What is not tested here](#what-is-not-tested-here)):
 `ctest --preset linux-release`:
 
 ```text
-100% tests passed, 0 tests failed out of 193
+100% tests passed, 0 tests failed out of 210
 
 Label Time Summary:
 fuzz-corpus    =   0.05 sec*proc (4 tests)
-unit           =   0.79 sec*proc (189 tests)
+unit           =   0.52 sec*proc (206 tests)
 
-Total Test time (real) =   0.29 sec
+Total Test time (real) =   0.64 sec
 ```
 
-That is the "193 tests, all passing" figure that `README.md` and
+That is the "210 tests, all passing" figure that `README.md` and
 [`AUDIO-ENGINE.md`](AUDIO-ENGINE.md#what-exists-today) quote: a local run,
 reproduced here, not a number asserted by CI alone.
 
 ### The sanitizer presets
 
-The same 193 tests run instrumented, fuzz corpus included — which is the point of
+The same 210 tests run instrumented, fuzz corpus included — which is the point of
 replaying it as a CTest case rather than only in the fuzzing job: `REQ-SEC-012`
 wants the targets exercised under ASan+UBSan, and `linux-asan` does exactly that
 without needing a fuzzing engine. Both presets use GCC's sanitizers, so no Clang
@@ -361,8 +364,8 @@ cmake --preset linux-tsan && cmake --build --preset linux-tsan && ctest --preset
 Both are green here:
 
 ```text
-linux-asan (ASan + UBSan):    100% tests passed, 0 tests failed out of 193
-linux-tsan (ThreadSanitizer): 100% tests passed, 0 tests failed out of 193
+linux-asan (ASan + UBSan):    100% tests passed, 0 tests failed out of 210
+linux-tsan (ThreadSanitizer): 100% tests passed, 0 tests failed out of 210
 ```
 
 TSan passing is worth reading precisely. `linux-tsan` exists for the RT-safety
@@ -513,7 +516,7 @@ suite pass.
 
 `REQ-NFR-008` additionally requires the suites to run under **ASan + LSan** with
 zero leaks, and the audio soak under Valgrind or ASan nightly. Both preset runs
-are green today (193/193), but against domain code only: the concurrency the
+are green today (210/210), but against domain code only: the concurrency the
 TSan preset is *for* — the mock sink at 5 ms periods driving the callback while
 another thread changes volume, EQ, and seeks — is §8.11 test 9, and it is not
 written because the callback is not written.
@@ -861,8 +864,8 @@ gaps. The authoritative register is
 [`OPEN-QUESTIONS.md` §5](OPEN-QUESTIONS.md#5--verification-status--what-is-proven-where);
 this is the short form, and it defers to that section wherever they touch.
 
-- **Only the domain layer is tested.** 189 unit tests over six modules, plus four
-  fuzz-corpus replays. The
+- **Only layers 3 and 4 are tested.** 206 unit tests over seven modules, plus
+  four fuzz-corpus replays. The
   integration tests (`REQ-TST-014`), UI/QTest and screenshot tests
   (`REQ-TST-017`, `REQ-TST-018`), property-based tests (`REQ-TST-013`), soak
   (`REQ-TST-025`), and chaos (`REQ-TST-026`) suites are specified but not
@@ -894,6 +897,6 @@ this is the short form, and it defers to that section wherever they touch.
   ([ADR 0011](adr/0011-desktop-first-sequencing.md),
   [OQ-018](OPEN-QUESTIONS.md)).
 
-A test that does not exist is reported as absent, never as passing. The 193 that
+A test that does not exist is reported as absent, never as passing. The 210 that
 do exist pass under three toolchains' worth of instrumentation, and that is the
 whole of what is proven on this machine today.

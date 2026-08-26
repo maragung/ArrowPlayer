@@ -27,6 +27,22 @@ stable yet.
 
 ### Added
 
+- **The application layer and the player executable** — `desktop/src/app/`
+  holds the build identity (`AppInfo`, read once from the git-generated
+  version header so the binary and the About dialog cannot disagree), an
+  ordered `Lifecycle` that unwinds in reverse and does **not** call the
+  teardown of the step that failed to start, and `Application`, which maps
+  an error to an exit code: 69 `EX_UNAVAILABLE` when the environment is
+  missing, 70 `EX_SOFTWARE` when the program is broken. `src/main.cpp` is
+  the composition root — the one translation unit allowed to see both
+  layer 4 and layer 5. Built without Qt it prints its identity and exits
+  **69**, because Phase 0's exit gate 1 is "window opens" and a binary with
+  no window returning 0 is how a green smoke test comes to mean nothing.
+  Two of the four things §5 lists for this directory are deferred with
+  their reasons, not stubbed: the DI container has no layer-2 ports to
+  register yet, and §28 gives the CLI to Phase 4 (OQ-054).
+  17 new tests; the suite is 210.
+
 - **`.github/ISSUE_TEMPLATE/` and `PULL_REQUEST_TEMPLATE.md`** — the last two
   §27 paths that had no content. The PR template is §1.3's Definition of Done in
   full, ten items, plus a section for anything assumed, because §0.1 rule 1 puts

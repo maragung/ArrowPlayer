@@ -32,6 +32,7 @@ TEST(Error, EveryCodeHasAStableStableName) {
     // A log or bug report must never contain "UNKNOWN" for a code we defined.
     const ErrorCode codes[] = {
         ErrorCode::Ok, ErrorCode::InvalidArgument, ErrorCode::Cancelled,
+        ErrorCode::InvalidState,
         ErrorCode::FileNotFound, ErrorCode::PathTraversal,
         ErrorCode::UnsupportedFormat, ErrorCode::CorruptStream,
         ErrorCode::DeviceInUse, ErrorCode::ExclusiveModeUnavailable,

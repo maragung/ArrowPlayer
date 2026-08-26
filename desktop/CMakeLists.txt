@@ -113,6 +113,28 @@ target_link_libraries(eclipse-adapters INTERFACE eclipse-domain)
 
 
 # ---------------------------------------------------------------------------
+#  Layer 4 — APPLICATION.  §7.1: use cases, lifecycle, command dispatch.  Pure
+#  C++20 like the domain layer, and for the same reason: everything here must be
+#  unit-testable without Qt, because Qt is absent on any machine that has not
+#  installed it and CI is not a debugger.
+#
+#  It must never name layer 5. §7.2 rule 1 makes that an error the layer gate
+#  reports (tools/check-layers.py); src/main.cpp is the composition root and the
+#  only translation unit that may see both.
+# ---------------------------------------------------------------------------
+set(ECLIPSE_APP_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_info.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/application.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/lifecycle.cpp"
+)
+add_library(eclipse-app STATIC ${ECLIPSE_APP_SOURCES})
+target_link_libraries(eclipse-app PUBLIC eclipse-domain)
+eclipse_set_warnings(eclipse-app)
+eclipse_set_sanitizers(eclipse-app)
+eclipse_set_hardening(eclipse-app)      # REQ-SEC-018
+target_compile_features(eclipse-app PUBLIC cxx_std_20)
+
+# ---------------------------------------------------------------------------
 #  Tools
 # ---------------------------------------------------------------------------
 
@@ -121,6 +143,28 @@ target_link_libraries(eclipse-adapters INTERFACE eclipse-domain)
 # ---------------------------------------------------------------------------
 if(ECLIPSE_BUILD_UI AND ECLIPSE_HAVE_QT)
     add_subdirectory(ui)
+endif()
+
+# ---------------------------------------------------------------------------
+#  The player executable  (§28 Phase 0: "CMake + presets producing a Qt hello
+#  window"; exit gate 1 is "window opens", exit gate 7 "version shown in About")
+#
+#  Declared after the ui/ subdirectory on purpose: `TARGET eclipse-ui` is only
+#  answerable once that directory has been processed, and the alternative —
+#  re-deriving "will the UI be built?" from ECLIPSE_BUILD_UI and ECLIPSE_HAVE_QT
+#  here — is a second copy of a condition, which is a copy that drifts.
+#
+#  Without the UI this still builds and still links, and main.cpp reports that no
+#  window can open rather than exiting 0 in silence.
+# ---------------------------------------------------------------------------
+add_executable(eclipse-player "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+target_link_libraries(eclipse-player PRIVATE eclipse-app)
+eclipse_set_warnings(eclipse-player)
+eclipse_set_sanitizers(eclipse-player)
+eclipse_set_hardening(eclipse-player)   # REQ-SEC-018
+if(TARGET eclipse-ui)
+    target_link_libraries(eclipse-player PRIVATE eclipse-ui)
+    target_compile_definitions(eclipse-player PRIVATE ECLIPSE_WITH_UI=1)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -170,6 +214,11 @@ if(NOT ECLIPSE_HAVE_FFMPEG OR NOT ECLIPSE_HAVE_TAGLIB OR NOT ECLIPSE_HAVE_SAMPLE
 endif()
 message(STATUS "  --- toggles ---")
 message(STATUS "  tests         : ${ECLIPSE_BUILD_TESTS}")
+if(TARGET eclipse-ui)
+message(STATUS "  window        : yes (eclipse-ui linked)")
+else()
+message(STATUS "  window        : NO — eclipse-player will open no window")
+endif()
 message(STATUS "  werror        : ${ECLIPSE_WERROR}")
 message(STATUS "  asan+ubsan    : ${ECLIPSE_SANITIZE_ADDRESS}")
 message(STATUS "  tsan          : ${ECLIPSE_SANITIZE_THREAD}")

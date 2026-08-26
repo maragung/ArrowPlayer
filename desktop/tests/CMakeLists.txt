@@ -33,9 +33,11 @@ function(eclipse_add_test name)
         "${CMAKE_SOURCE_DIR}/src")
     eclipse_set_warnings(${name})
     eclipse_set_sanitizers(${name})
-    # REQ-SEC-018. A test executable is a produced binary, and until main.cpp
-    # exists it is the only one tools/check-hardening.py can inspect — so the
-    # gate has something real to check rather than waiting for Phase 0's shell.
+    # REQ-SEC-018. A test executable is a produced binary, so the hardening gate
+    # has something to inspect here too. It was the *only* such binary until
+    # src/main.cpp landed; eclipse-player is now the one that ships, and both are
+    # checked, because a flag applied to the shipped binary and not to the tests
+    # is a flag whose effect on the code under test is untested.
     eclipse_set_hardening(${name})
     gtest_discover_tests(${name}
         DISCOVERY_TIMEOUT 60
@@ -48,6 +50,7 @@ endfunction()
 eclipse_add_test(test_core    SOURCES unit/test_text.cpp unit/test_error.cpp unit/test_json.cpp)
 eclipse_add_test(test_dsp     SOURCES unit/test_equalizer.cpp)
 eclipse_add_test(test_gapless SOURCES unit/test_gapless.cpp)
+eclipse_add_test(test_app     SOURCES unit/test_app.cpp     LIBS eclipse-app)
 
 # ---------------------------------------------------------------------------
 #  Fuzz targets and their corpus (§21.6, REQ-SEC-011, REQ-SEC-012)

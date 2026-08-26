@@ -1546,6 +1546,39 @@ ADR 0011, and a release checklist document that has not been written.
   the release pipeline, or Phase 9 lands packaging and signing and the `publish`
   job's steps are written against them.
 
+### OQ-054 — `app/` ships two of the four things §5 lists in it · **Gap**
+
+§5's repository layout annotates `desktop/src/app/` as *"application object,
+lifecycle, DI container, CLI"*. The first two landed with the application layer.
+The **DI container** and the **CLI** did not.
+
+- **Why no container yet:** a dependency-injection container exists to hand out
+  implementations of interfaces. §7.1's layer 2 lists ten of them — `IDecoder`,
+  `IAudioSink`, `ITagReader`, `ITagWriter`, `ILibraryIndex`, `IHttpClient`,
+  `IClock`, `IFileSystem`, `IMediaSession`, `IPluginHost` — and Phase 0 defines
+  **none**. A container written now would be designed against nothing: its
+  registration signature, its lifetime policy and its thread-affinity rules would
+  all be guesses about objects that do not exist, and the first real port would
+  either fit by luck or force the rewrite of every call site added in the
+  meantime.
+- **Why no CLI yet:** §28 assigns "single-instance IPC, CLI, safe mode, portable
+  mode" to **Phase 4**, not Phase 0. An argument parser that accepted `--play` or
+  `--enqueue` and ignored them would be worse than their absence, because it
+  teaches a vocabulary the program does not have — and scripts written against it
+  would break on the release that made the flags real.
+- **Note on where the obligation comes from:** neither item has a `REQ-` id. §5 is
+  a layout diagram, and the CLI's requirement ids live in Phase 4's area. It is
+  recorded here anyway: §0.1 rule 2 forbids narrowing a requirement silently and
+  does not make the ban conditional on the requirement having been numbered.
+- **Consequence:** `desktop/src/app/` is smaller than §5's line for it, and
+  `eclipse-player` ignores `argc`/`argv` entirely rather than half-reading them.
+  Nothing in the tree depends on the two absent parts, so nothing is stubbed to
+  paper over them, and `src/app/application.hpp` cites this entry at the point
+  where a reader would otherwise wonder where the container went.
+- **Closes when:** Phase 1 defines the first layer-2 ports and a container has
+  real registrations to hold, and Phase 4 lands the CLI alongside the
+  single-instance check that shares its entry path.
+
 ---
 
 ## 5 · Verification status — what is proven where
@@ -1560,9 +1593,9 @@ to let them imply that nothing has been run.
 
 | Check | Result |
 |---|---|
-| `cmake --preset linux-release` + `ctest` from a clean build directory | **193/193 passed** — 189 unit, 4 fuzz-corpus |
-| `cmake --preset linux-asan` + `ctest` (ASan + UBSan) | **193/193 passed** |
-| `cmake --preset linux-tsan` + `ctest` (ThreadSanitizer) | **193/193 passed** |
+| `cmake --preset linux-release` + `ctest` from a clean build directory | **210/210 passed** — 206 unit, 4 fuzz-corpus |
+| `cmake --preset linux-asan` + `ctest` (ASan + UBSan) | **210/210 passed** |
+| `cmake --preset linux-tsan` + `ctest` (ThreadSanitizer) | **210/210 passed** |
 | `cmake --preset linux-fuzz` + `ctest` — fuzzers without GoogleTest | **4/4 passed**; libFuzzer reported unavailable (GCC), corpus replay built and run |
 | `desktop/tests/fuzz/make-seeds.py --check` | pass — 49 committed seeds byte-identical to the generator |
 | `-Werror` with the strict warning set | clean |
@@ -1737,7 +1770,7 @@ What was actually run against `desktop/vcpkg.json`, on this machine, with vcpkg
 |---|---|
 | `vcpkg install --dry-run --triplet x64-linux-eclipse` | resolves; `ffmpeg` pins to 7.1.2#5, no OpenSSL, no bzip2 in the graph |
 | triplet evaluation for 14 ports | linkage matches the §4.2 column exactly — LGPL dynamic, permissive static |
-| `cmake --preset linux-release` with `VCPKG_ROOT` unset | unchanged; the suite still passes in full (186/186 on the day of that run; 193/193 now) |
+| `cmake --preset linux-release` with `VCPKG_ROOT` unset | unchanged; the suite still passes in full (186/186 on the day of that run; 210/210 now) |
 
 What was **not** run: an actual `vcpkg install`. No port was compiled, so the
 manifest is proven to *resolve*, not proven to *build*. `arm64-linux-eclipse`
