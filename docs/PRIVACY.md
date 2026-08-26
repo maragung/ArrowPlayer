@@ -175,11 +175,15 @@ None of this requires trusting the text. In rough order of effort:
    check: `REQ-TST-023` makes it an automated test in CI (§23.9), so a regression
    fails the build rather than waiting for someone to notice.
 
-2. **Check the dependency graph yourself.** `security.yml` scans the resolved
-   graph against an analytics/attribution/ads/crash-SDK denylist and fails the
-   build on a hit (`REQ-SET-010`, §25.6). You can reproduce it: every release
-   ships a **CycloneDX SBOM** (`REQ-SEC-014`) listing every component with its
-   SPDX licence. Look for an analytics SDK; there is not one to find.
+2. **Check the dependency graph yourself.** Run
+   `python3 tools/check-dependency-denylist.py`, which scans every dependency
+   this repository declares against an analytics/attribution/ads/crash-SDK
+   denylist (`REQ-SET-010`, §25.6). Nothing runs it for you yet — see *Current
+   status* below. The committed
+   [`docs/sbom/eclipse-player.cdx.json`](sbom/eclipse-player.cdx.json) lists
+   every component with its SPDX licence (`REQ-SEC-014`); §25.5 step 6 will
+   attach one to each release once there is a release. Look for an analytics SDK
+   in either; there is not one to find.
 
 3. **Read the source.** It is MPL-2.0. The interesting places are small and
    findable: `desktop/src/net/` is the only code that opens a socket, and every
