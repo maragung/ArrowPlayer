@@ -830,6 +830,64 @@ harnesses now would mean writing the parsers now.
   release gate would pass on silence rather than on evidence — which is exactly
   the failure this entry exists to keep visible.
 
+### OQ-044 — `REQ-SEC-018`'s Windows half has never been checked against a real binary · **Gap**
+
+`tools/check-hardening.py` reads PE headers as well as ELF: `DllCharacteristics`
+for `DYNAMICBASE`, `NXCOMPAT`, `HIGHENTROPYVA` and `GUARD:CF`, the load-config
+directory's `SecurityCookie` for `/GS`, and the extended-DLL-characteristics debug
+entry for `/CETCOMPAT`. Every one of those paths is exercised only against
+synthetic binaries built inside `--self-test`. No MSVC-produced PE has ever been
+read by it, here or in CI, because nothing has been pushed.
+
+- **Assumption in force:** that `eclipse_set_hardening()`'s MSVC branch produces
+  binaries carrying those bits — plausible, since `/DYNAMICBASE`, `/NXCOMPAT` and
+  `/HIGHENTROPYVA` are MSVC defaults for x64 and the other three are passed
+  explicitly, but assumed rather than observed.
+- **Why the step is non-blocking, and why that is not the usual excuse.** A gate
+  whose first run is red gets weakened rather than satisfied, and the most likely
+  cause of a red first run here is a defect in my PE reader — not in the build.
+  Failing the Windows matrix entry over that would put pressure on the wrong file.
+  So the step runs with `continue-on-error: true` on the Windows entry only.
+- **The condition for removing it is specific, not "when convenient":** one green
+  run of that step on `windows-2022 · msvc`. At that point `continue-on-error`
+  comes off in the same commit that records the run, and this entry closes. If the
+  first run is red, the finding goes here before anything is changed, so it is
+  visible whether the fault was in the reader or in the flags.
+- **Consequence if unfixed:** `REQ-SEC-018` names six Windows mitigations. Until
+  that step blocks, they are verified on one platform out of two, and the spec
+  requires both.
+
+### OQ-045 — Three gate scripts have no negative test · **Gap**
+
+`tools/check-doc-links.py`, `check-dependency-denylist.py`,
+`gen-third-party/gen-third-party.py` and now `check-hardening.py` each carry a
+`--self-test` that plants the defect the script exists to catch and requires it to
+be caught. `check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` and
+`validate-shared-spec.py` do not.
+
+All four currently report "no violations" over a tree that contains none, and that
+sentence is indistinguishable from what a script with an inverted condition, an
+unanchored pattern or an empty file list would print. `check-sql-safety.py` is the
+clearest case: there is no SQL anywhere in the tree, so its pass has never once
+depended on its matching logic being correct.
+
+- **Correction of record.** `README.md` said of the three source-level gates
+  "Each has a negative test proving it catches real violations." None of them had
+  one. The sentence has been replaced with what is true, and this entry exists so
+  the gap is countable rather than a claim that quietly stopped being made.
+- **Assumption in force:** that the four scripts work, on the evidence that they
+  were written against real rules and that `check-layers.py` did fail while the
+  layer list was being developed. That is weaker evidence than a self-test, which
+  is the point of the entry.
+- **Proposed answer:** each grows a `--self-test` that runs its real checking
+  function over synthetic in-memory inputs — a domain file including an adapter
+  header, a query built with `+`, a `/// RT-SAFE:` function calling `new`, a
+  fixture whose claimed verdict is wrong — asserting both directions, with no
+  committed fixtures to keep the planted defects out of the tree the gates scan.
+- **Consequence if unfixed:** four of the green checks in the table below carry no
+  evidence that they can go red, and `REQ-TST-024` treats a gate as part of the
+  test suite.
+
 ---
 
 ## 5 · Verification status — what is proven where
@@ -851,11 +909,15 @@ to let them imply that nothing has been run.
 | `desktop/tests/fuzz/make-seeds.py --check` | pass — 49 committed seeds byte-identical to the generator |
 | `-Werror` with the strict warning set | clean |
 | `tools/check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` | pass |
+| `tools/check-hardening.py --self-test` | pass — 31 assertions over synthetic ELF and PE binaries, 22 of them planted defects that must be caught |
+| `tools/check-hardening.py build/linux-release` | pass — 7 binaries: PIE, RELRO, `BIND_NOW`, non-exec stack, `__stack_chk_fail`, fortified entry points in 5 of 7 |
+| the same, before `eclipse_set_hardening` was wired in | **failed 4 of 7** — the fuzz replay drivers had only partial RELRO; that is why the gate exists |
+| the same, pointed at `build/linux-asan` | exits 2 — every binary out of scope, so it refuses to report success |
 | `tools/validate-shared-spec.py` | pass — 5 schemas, 102 JSON documents |
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | pass — 34 documents, 229 internal links, 23 §27 deliverables present |
+| `tools/check-doc-links.py` | pass — 34 documents, 231 internal links, 23 §27 deliverables present |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 | `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
 | `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires; the `REQ-GEN-020` ledger gate fires on all 7 malformed release rows |

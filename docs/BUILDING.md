@@ -263,7 +263,11 @@ discipline does not reliably enforce.
 python3 tools/check-layers.py      # layer dependency direction (REQ-GEN-051)
 python3 tools/check-sql-safety.py  # no interpolated SQL      (REQ-SEC-009)
 python3 tools/check-rt-safety.py   # RT-SAFE claims are true  (REQ-AUD-017)
+python3 tools/check-hardening.py build/linux-release  # REQ-SEC-018, in the binary
 ```
+
+The last one needs a build to have happened; the other three read source. It
+also has a `--self-test` that runs without one.
 
 ## Building without network access
 

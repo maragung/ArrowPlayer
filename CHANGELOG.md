@@ -60,6 +60,20 @@ stable yet.
   conjoins with "normalised", and `gapless_from_granule()` executed
   signed-negation undefined behaviour on the most negative granule position.
   Both are fixed and pinned by unit tests.
+- **Hardening verified in the binaries, not the build files** (`REQ-SEC-018`) —
+  `tools/check-hardening.py`, a standard-library ELF and PE header reader that
+  requires PIE, RELRO, `BIND_NOW`, a non-executable stack and a stack protector in
+  everything the release build links, and the four Windows `DllCharacteristics`
+  bits plus `/GS` and `/CETCOMPAT` on PE. It exists because `REQ-SEC-018` says CI
+  must check the produced binaries rather than the build files, and this tree was
+  the case in point: `eclipse_set_hardening()` had been defined and called by
+  nothing for several commits, so every flag was in the CMake and in no binary.
+  Wiring it in exposed a second gap on the first run — the four fuzz replay
+  drivers had only partial RELRO, `-z now` being nobody's default. The script
+  carries a `--self-test` of 31 assertions over synthetic binaries, 22 of them
+  planted defects that must be caught; `_FORTIFY_SOURCE` and `/GS` are advisory
+  per binary and mandatory across a build, because a binary that makes no
+  fortifiable call is evidence about the source rather than about hardening.
 - **Repository policy files.** `.gitattributes`, `.markdownlint.json`,
   `commitlint.config.js` with the §0.2 scope enum and a custom rule requiring a
   REQ id in the body of every behavioural commit, `CONTRIBUTING.md`,
@@ -67,7 +81,7 @@ stable yet.
 - **Documentation.** `docs/BUILDING.md` including a root-free user-local
   dependency build, `docs/PARITY.md` (the §29.2 matrix with an added Status
   column), `docs/PRIVACY.md`, `docs/ROADMAP.md` (the 56 `[v1.x]` requirements,
-  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (37
+  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (39
   registered assumptions, narrowings and gaps with stable `OQ-NNN` ids).
 - **ADRs** 0001 (MPL-2.0 core, LGPL-only dependencies), 0002 (`IAudioSink` with
   native backends rather than RtAudio), 0003 (no executable code in skins), 0005
@@ -82,6 +96,12 @@ stable yet.
   cases plus the four corpus replays. The `linux-fuzz` preset builds and its
   4 replays pass. All four gate scripts pass. This is a local reproduction, not
   a CI-only assertion.
+- **Every Linux clause of `REQ-SEC-018` is observable in a real binary.** In
+  `build/linux-release/tests/test_core`: `DYN` with `FLAGS_1: NOW PIE`,
+  `PT_GNU_RELRO`, `FLAGS: BIND_NOW`, `GNU_STACK … RW`, `__stack_chk_fail` and
+  `__snprintf_chk`. `tools/check-hardening.py` verifies all 7 binaries the build
+  produces and, pointed at `build/linux-asan`, exits 2 rather than passing
+  vacuously on binaries the requirement does not govern.
 - **FFmpeg 7.1.1, TagLib 2.0.2, alsa-lib 1.2.12 and SQLite 3.46.1** are detected
   by the configure step, so the adapters they gate can be built and tested
   locally as they are written. The FFmpeg build is LGPL-configured with
@@ -96,6 +116,17 @@ and tested, and this section is what keeps that promise honest:
   and no RT thread yet. The DSP and gapless code is unit-tested against known
   coefficients and known headers, not against playback.
 - **No user interface.** No `main.cpp`, no window, no Qt UI.
+- **`REQ-SEC-018` is verified on one platform of two.** The PE half of
+  `check-hardening.py` has only ever read the synthetic binaries in its own
+  self-test; no MSVC-produced PE has been through it, here or in CI. Its Windows
+  step runs non-blocking until it has passed once, with the condition for
+  removing that recorded in `OQ-044` rather than left to judgement.
+- **Four gate scripts have no negative test.** `check-layers.py`,
+  `check-sql-safety.py`, `check-rt-safety.py` and `validate-shared-spec.py` report
+  "no violations" over a tree that contains none, which is what a script with an
+  inverted condition would also print. `README.md` claimed all three source-level
+  gates had a negative test; none did, and the claim has been replaced with the
+  fact. Tracked as `OQ-045`.
 - **Sixteen of `REQ-SEC-011`'s seventeen fuzz targets do not exist.** Only
   `fuzz_xinglame` is one of the named seventeen; the other three harnesses are
   supporting targets and are not counted as standing in for any of them. The

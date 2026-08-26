@@ -95,6 +95,7 @@ target_include_directories(eclipse-domain PUBLIC
     include src "${CMAKE_BINARY_DIR}/generated")
 eclipse_set_warnings(eclipse-domain)
 eclipse_set_sanitizers(eclipse-domain)
+eclipse_set_hardening(eclipse-domain)   # REQ-SEC-018
 target_compile_features(eclipse-domain PUBLIC cxx_std_20)
 find_package(Threads REQUIRED)
 target_link_libraries(eclipse-domain PUBLIC Threads::Threads)

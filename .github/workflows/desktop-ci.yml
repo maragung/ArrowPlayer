@@ -50,6 +50,13 @@ jobs:
       - name: Fuzz corpus seeds are not stale (REQ-SEC-011)
         run: python3 desktop/tests/fuzz/make-seeds.py --check
 
+      # The reader that the hardening gate depends on, checked against synthetic
+      # ELF and PE binaries before it is trusted to judge real ones. It runs here
+      # rather than beside the gate itself so a broken reader fails in seconds,
+      # in the cheap job, instead of after a full matrix build.
+      - name: Hardening reader self-test (REQ-SEC-018)
+        run: python3 tools/check-hardening.py --self-test
+
   # -------------------------------------------------------------------------
   #  Build and test
   # -------------------------------------------------------------------------
@@ -153,6 +160,28 @@ jobs:
             echo "::notice::FFmpeg development packages are unavailable on this runner;" \
                  "no FFmpeg is linked and REQ-GEN-015 has nothing to assert."
           fi
+
+      # REQ-SEC-018's operative clause: "CI MUST verify the flags are present in
+      # the produced binaries, not merely in the build files." So this reads the
+      # ELF headers of what was just linked. It is not run for the asan and tsan
+      # presets because eclipse_set_hardening deliberately no-ops there — the
+      # sanitizer runtimes are what make those suites meaningful — and the tool
+      # recognises such binaries and refuses to pass a directory containing only
+      # them, rather than reporting a vacuous success.
+      - name: Hardening flags in the produced binaries (REQ-SEC-018)
+        if: runner.os == 'Linux' && matrix.preset == 'linux-release'
+        run: python3 tools/check-hardening.py build/${{ matrix.preset }}
+
+      # The same check for PE, kept non-blocking on its first outing and only
+      # its first: the PE reader has never seen a binary MSVC actually produced,
+      # only the synthetic ones in --self-test, and a gate whose debut is red is
+      # a gate somebody weakens instead of satisfies. The condition for removing
+      # continue-on-error is one green run on this matrix entry, recorded in
+      # OQ-044 — not "when convenient".
+      - name: Hardening flags in the produced binaries (REQ-SEC-018, PE)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        run: python3 tools/check-hardening.py build/${{ matrix.preset }}
 
       - name: Upload test results on failure
         if: failure()
