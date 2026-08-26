@@ -145,16 +145,22 @@ jobs:
       # Each gate's own corpus first. A linter whose rules are themselves
       # untested reports whatever its bugs allow, and all three of these
       # implement an algorithm they could get subtly wrong: GitHub's
-      # heading-to-anchor slug, the REQ-GEN-020 ledger rules, and the purl and
-      # CycloneDX shapes the SBOM has to be right about. Run before the gates so
-      # a failure here is unambiguous — the checker is broken, not the
-      # repository.
+      # heading-to-anchor slug, the REQ-GEN-020 ledger rules, the purl and
+      # CycloneDX shapes the SBOM has to be right about, and the conventional-commit
+      # grammar the changelog is derived from. Run before the gates so a failure
+      # here is unambiguous — the checker is broken, not the repository.
+      #
+      # gen-changelog.py has no --check counterpart to run afterwards: its output
+      # is a section a human finishes, not a file in the tree, so there is nothing
+      # for the repository to be stale against. The self-test is the whole gate,
+      # and release.yml runs it again before generating (§25.5 step 7).
       - name: Gate self-tests
         run: |
           set -euo pipefail
           python3 tools/check-doc-links.py --self-test
           python3 tools/gen-third-party/gen-third-party.py --self-test
           python3 tools/gen-sbom.py --self-test
+          python3 tools/gen-changelog.py --self-test
 
       # §27's two mechanical halves: every listed document exists, and every
       # internal link resolves. External URLs are deliberately not fetched — a

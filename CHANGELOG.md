@@ -27,6 +27,17 @@ stable yet.
 
 ### Added
 
+- **A changelog generator, `tools/gen-changelog.py`** — §25.5 step 7 and
+  `REQ-BLD-036`. Reads conventional commits over a range and renders the six
+  Keep a Changelog sections, mapping `feat`→Added, `fix`→Fixed, `perf`→Changed,
+  `revert`→Removed, any `sec` scope→Security, and a `DEPRECATED:` footer→
+  Deprecated. It refuses to write the Highlights section, which `REQ-BLD-036`
+  assigns to a human. Types it excludes are **counted** rather than dropped
+  silently, and commits it cannot parse are listed as problems, so the output
+  accounts for every commit in the range. Wrapping holds at 82 columns without
+  splitting inside a code span — a real defect the width test caught only once
+  a deliberately long case was planted.
+
 - **`spec-ci.yml`'s theme-engine gate now knows whether the engine exists**
   (`REQ-THM-060`, `REQ-GEN-031`). The `native` job built the CMake target
   `theme-validate` and ran `desktop/build/linux-release/tools/theme-validate`.
