@@ -1075,7 +1075,7 @@ JSON Schema validation.
 
 ---
 
-### OQ-049 — `REQ-SEC-004`'s "new" is undefined, and the gate is red today · **Open**
+### OQ-049 — `REQ-SEC-004`'s "new" is undefined, and the gate is red today · **Settled**
 
 `REQ-SEC-004` says the CVE scan fails the build "on any **new** high severity"
 finding. The word *new* is load-bearing and the specification never defines it
@@ -1097,20 +1097,44 @@ severity" is red on its first run and every run after it.
   components. Five name a fix version — 8.0, 8.1 and 8.1.2 — against a pin the
   register and §6.3 both set at 7.1.x, so at least the question "should the pin
   move" is real and separate from "is this build affected".
-- **Proposed answer.** A committed baseline: `security/cve-baseline.json`, one
-  entry per accepted finding with the CVE id, the component, the reason it does
-  not apply or is accepted, and the date. The gate then means *fail on any
-  high-severity finding absent from the baseline*, which is a definition that does
-  not depend on run history and cannot silently drift, because adding an entry is
-  a reviewed diff that has to say why. An entry whose component or version no
-  longer matches anything is itself an error, so the file cannot rot into a
-  blanket suppression. The 21 ffmpeg matches are **not** pre-populated by this
-  entry: each needs the configuration assessment above, and writing 21
-  justifications nobody has performed would be exactly the fiction this register
-  exists to prevent.
-- **What is not proven.** The 21 is one database build (grype v6.1.9, 2026-08-26)
-  on one machine; the count moves with the data. No baseline file exists, and no
-  finding has been assessed against this build's configuration.
+- **Answer, and it is now built.** `security/cve-baseline.json` holds one entry
+  per accepted finding — CVE id, component, the **exact** version it was accepted
+  against, why it does not apply to this build, and the date, with an optional
+  `expires`. `tools/check-cve-baseline.py` reads `grype -o json` and means *fail
+  on any High or Critical finding absent from that file*. The definition depends
+  only on the tree and the scan, never on run history, so re-running a commit
+  cannot change the verdict; and accepting a finding is a reviewed diff that has
+  to state a reason.
+- **Three rules keep the baseline from rotting into a suppression list.** An entry
+  matching nothing in the scan is an **error**, so upgrading past a CVE forces the
+  stale entry out rather than leaving it to accumulate. An entry binds to an exact
+  version, so a bump invalidates acceptances made against the old one — the
+  assessment was of that build, not of the name. And `reason` must say something:
+  empty, `TODO`, `n/a`, or fewer than six words is rejected, because "accepted
+  because it says accepted" is the fiction this register exists to prevent.
+- **Critical gates as well as High.** `REQ-SEC-004` says "high severity". Reading
+  it so that the findings *above* High fall outside the gate would be a downgrade
+  dressed as literalism.
+- **The file ships empty, and that is a measurement rather than an omission.** In
+  the gating configuration — no synthesised CPEs — grype 0.117.0 against database
+  v6.1.9 returns **0 matches at any severity** from both the SBOM and the whole
+  repository tree, so there is no finding to accept. The 21 High-or-Critical
+  ffmpeg matches above come from `--add-cpes-if-none`, which OQ-046 measured at 49
+  matches with 20 of them versionless; that output is advisory, never piped into
+  this gate, and printed in the job summary instead.
+- **The empty baseline is why the gate had to be watched failing.** A green run
+  over a zero-match scan is the OQ-042 shape exactly. So a real vulnerable
+  component — `pkg:npm/lodash@4.17.15` — was appended to a copy of the committed
+  SBOM and scanned by the same binary against the same database: 6 matches, 3 High
+  and 3 Medium. The gate reported the three Highs as unaccepted and ignored the
+  three Mediums; with the three baselined it passed; and with those three entries
+  still in place against the *un*injected SBOM it failed again, once per stale
+  entry. Red, green, and red for the opposite reason, all from real scanner output.
+- **What is still not proven.** The 21 is one database build (v6.1.9, 2026-08-26)
+  on one machine and moves with the data; nothing here has run in CI, because no
+  workflow in this repository has ever executed; and no ffmpeg finding has been
+  assessed against this build's decode-only configuration — that assessment is
+  what an entry in the baseline would have to contain, and it has not been done.
 
 ---
 
@@ -1305,6 +1329,8 @@ to let them imply that nothing has been run.
 | `grype dir:desktop` | **1 component catalogued** — `pkg:vcpkg/eclipse-player@0.1.0`, the project itself, no dependencies. The native path covers less than the SBOM, correcting this register's own earlier proposal |
 | `grype dir:.` (`node_modules/`, `build/` excluded) | 23 components, **1 High** — `GHSA-cxww-7g56-2vh6` against `actions/download-artifact@v4` in `spec-ci.yml`. Not a C/C++ dependency; recorded as OQ-050 |
 | the same, after every action was SHA-pinned | **0 matches**, six actions still catalogued at orderable versions. Two one-step control workflows differing only in the trailing `# v4.4.0` comment show syft recording either `@v4.4.0` or the bare SHA as the version — which is why the gate requires the comment |
+| `tools/check-cve-baseline.py --self-test` | pass — 21 cases: 17 planted defects each rejected for the right reason (unbaselined High, Critical, stale entry, version drift, placeholder and too-short reason, expired acceptance, missing and mistyped field, malformed and impossible date, duplicate, and three unreadable scans) and 4 valid inputs accepted, including Medium and Negligible **not** gating |
+| the CVE gate against real grype output | pass — the committed baseline is empty because the gating configuration finds nothing: **0 matches at any severity** from both `sbom:docs/sbom/eclipse-player.cdx.json` and `dir:.`, grype 0.117.0 / DB v6.1.9. Proven non-vacuous by injecting `pkg:npm/lodash@4.17.15` into a copy of the SBOM: 6 matches, the 3 High unaccepted → red, baselined → green, then stale against the uninjected document → red again, once per entry |
 | `tools/check-action-pins.py --self-test` | pass — 12 planted defects caught (mutable tag, branch, short and upper-case SHA, missing version comment, prose-polluted comment, undigested `docker://`), 12 valid lines accepted, 8 confirmed parsed as real references |
 | the same over the real tree, one pin reverted to `@v4`, then one version comment deleted | **fails both times**, naming file, line and reason; passes over 22 references when restored |
 | seven realistic Dependabot subjects against `commitlint.config.js` | all pass, including a 98-column one; three controls still fail and name the right rule — a 105-column bump subject, a 90-column ordinary subject, and an out-of-enum `deps-nope` scope (OQ-051) |

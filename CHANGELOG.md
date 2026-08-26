@@ -132,6 +132,25 @@ stable yet.
   stays a limit — a 105-column bump subject still fails, naming which allowance
   it exceeded — and the existing 34-commit history re-lints with 0 problems.
 
+- **`REQ-SEC-004`'s "new" now has a definition, and a gate that enforces it.**
+  The requirement fails the build on any *new* high-severity finding and never
+  said new against what. *Since the last run* would make the verdict depend on
+  scheduler history; *since the last release* degenerates to "any" while no
+  release exists. So new means **absent from `security/cve-baseline.json`**: one
+  entry per accepted finding, naming the component, the exact version, why it
+  does not apply to this build, and the date.
+  `tools/check-cve-baseline.py` reads `grype -o json` and enforces it. An entry
+  matching nothing in the scan is an error, so upgrading past a CVE forces the
+  stale entry out instead of letting the file rot into a suppression list; an
+  entry binds to an exact version, so a bump invalidates acceptances made
+  against the old one; and a placeholder reason is rejected. Critical gates
+  alongside High. The file ships empty because the gating scan finds nothing —
+  0 matches at any severity over both the SBOM and the tree — so it was proven
+  non-vacuous against real scanner output instead: a known-vulnerable component
+  injected into a copy of the SBOM produced 3 High findings, which the gate
+  rejected, then accepted once baselined, then rejected again as stale when the
+  injection was removed.
+
 - **The register of open questions is now checked, not counted by hand.**
   `tools/check-doc-links.py` parses `docs/OPEN-QUESTIONS.md` and fails on a
   duplicate id, a hole in the sequence, a heading whose status is not in the
