@@ -138,6 +138,12 @@ satisfied by not running it.
 - **Recommendation:** amend REQ-GEN-012 to name `docs/THIRD-PARTY.md` as the
   comparison target explicitly, since that is already the document §25.5 step 8
   requires the release to regenerate and fail on if stale.
+- **The npm half of this problem does not exist.** `package-lock.json` is the
+  resolved graph and it is committed, so the denylist gate reads the transitive
+  set directly with no separate resolution step. Only the vcpkg side needs
+  `vcpkg install --dry-run` to see past the manifest, which is why
+  `check-dependency-denylist.py` takes `--resolved-graph` and prints, in its own
+  output, that transitive ports are not covered without it.
 - **Not deferred:** the two transitive components that *would* have been a
   problem were removed rather than registered. `libzip`'s default features pull
   in bzip2 and OpenSSL; `desktop/vcpkg.json` requests it with
@@ -316,6 +322,16 @@ check in `security.yml`. `security.yml` does not exist yet.
   network dependencies at all, which is true but proves nothing about the future.
   `docs/PRIVACY.md` says so in its own words.
 - **Blocking:** `security.yml` is Phase 0 scaffolding and is next in sequence.
+- **Half of this is now done.** `tools/check-dependency-denylist.py` exists,
+  passes over the real tree, and is pinned by a committed 72-name corpus
+  (`--self-test`) so its matcher cannot rot. What is still missing is the wiring:
+  nothing runs it automatically. `CONTRIBUTING.md` lists it under "enforced by:
+  nothing yet — run it", which is the honest state and not a substitute for the
+  workflow. This entry closes when `security.yml` runs it, not before.
+- **It scans 198 dependencies, not 27.** `package-lock.json` is included, so the
+  171 transitive npm packages behind three direct devDependencies are checked
+  too. A telemetry SDK arriving as somebody else's dependency is exactly how this
+  requirement gets violated without anyone editing a manifest.
 
 ### OQ-026 — CI installs dependencies with `apt`, so `REQ-BLD-022` has nothing to cache · **Gap**
 
@@ -334,11 +350,37 @@ has nothing to cache.
   never exercised, so it can rot without anything going red — which is exactly
   the failure `REQ-SEC-013` (no floating versions) is trying to prevent.
 
-### OQ-016 — Two commits predate `commitlint.config.js` and do not satisfy it · **Settled**
+### OQ-030 — A sixth workflow file, outside the §5 layout · **Settled**
 
-`bf91096` ("Initial commit") is not a conventional commit, and `873e5be` predates
-the config. CI lints the commits **in the range under review**, not all of
-history, so this is not a permanent red gate.
+§5 lists five workflows and `REQ-GEN-030` requires the repository to match that
+layout. `.github/workflows/repo-lint.yml` is a sixth, so the deviation is recorded
+here rather than left for someone to find.
+
+- **Assumption in force:** `REQ-GEN-030` requires every listed file to exist; it
+  does not forbid a file it does not list. Nothing in §5 is missing because of
+  this, and no listed workflow has been merged into another.
+- **Why not a job in `desktop-ci.yml`:** its `paths` filter is `['desktop/**',
+  'shared-spec/**', 'tools/**', '.github/workflows/desktop-ci.yml']`. Markdown
+  style and commit-message form would then be unchecked on documentation-only
+  pull requests — the exact changes those gates govern. Widening the filter
+  instead would run the Windows and Ubuntu build matrix on every typo fix.
+- **Why not `spec-ci.yml`:** it is scoped to `shared-spec/` and has the same
+  problem in the other direction.
+- **What it carries:** `markdownlint-cli2` and `commitlint`, both pinned exactly
+  in `package.json` and installed with `npm ci` from the committed lockfile.
+  `tools/check-doc-links.py` joins it in the commit that adds the seven missing
+  §27 documents; it is left out for now because it fails for a real reason, and a
+  gate introduced red is a gate somebody weakens instead of satisfying.
+- **The pinning is the point, not incidental.** `npx <tool>` resolves whatever the
+  registry serves that day, which is how the Markdown gate came to run a version
+  nobody chose (OQ-028). `REQ-SEC-013` is about tooling not moving under the
+  project, and it applies to a linter as much as to a library.
+
+### OQ-016 — One commit predates `commitlint.config.js` and fails it · **Settled**
+
+`bf91096` ("Initial commit") is not a conventional commit. `commitlint` lints the
+commits **in the range under review**, not all of history, so this is not a
+permanent red gate.
 
 - **Assumption in force:** history is not rewritten to satisfy a rule added later.
   Rewriting `main` would invalidate every commit hash quoted in an ADR.
@@ -346,6 +388,28 @@ history, so this is not a permanent red gate.
   cheap. Commit `e151ebe` originally had an 81-character subject, over the
   72-character limit the config sets; it was amended down to 64 rather than the
   limit being raised to accommodate it.
+
+**Two corrections of record.** This entry previously said *two* commits fail, and
+that CI lints the range under review. Both were wrong, and both were checkable at
+the time:
+
+- `873e5be` was named as the second failure because it predates the config. It
+  passes. Running `@commitlint/cli` 21.2.2 over the whole history gives exactly
+  one failure — `bf91096`, on `subject-empty` and `type-empty` — and eleven
+  passes. "Predates the config" is not the same claim as "fails the config", and
+  writing the first while asserting the second is how a count nobody rechecks
+  becomes part of the record.
+- CI did not lint commit messages at all. There was no `commitlint` invocation in
+  any workflow, so the statement described an intention. It is now true:
+  `.github/workflows/repo-lint.yml` runs it over the pull-request range. The
+  same audit found `markdownlint` unenforced by CI as well — the gate repaired in
+  OQ-028 was being run by hand and by nothing else.
+
+**Verified, both directions.** Five malformed messages are rejected with the rule
+that catches each — a missing `Refs:` id on a `feat`, a scope outside §0.2, a type
+outside the enum, an 84-character header, and a trailing full stop — and three
+well-formed ones pass, including a `revert` carrying `Reverts <sha>` in place of a
+requirement id.
 
 ---
 
