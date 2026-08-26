@@ -27,6 +27,27 @@ stable yet.
 
 ### Added
 
+- **`spec-ci.yml`'s theme-engine gate now knows whether the engine exists**
+  (`REQ-THM-060`, `REQ-GEN-031`). The `native` job built the CMake target
+  `theme-validate` and ran `desktop/build/linux-release/tools/theme-validate`.
+  Neither existed: `tools/theme-validate/` is empty, and the presets put binaries
+  in the repository-root `build/`, so the path was wrong too. §28 places that CLI
+  in Phase 5, so it cannot be written yet. The job now decides from the tree —
+  on `tools/theme-validate/CMakeLists.txt`, because git cannot track an empty
+  directory — and while the engine is absent it warns, writes a summary naming
+  the 122 uncovered corpus cases, and uploads **no** verdict file, because a stub
+  report would let the `agreement` job compare nothing and call it agreement. The
+  day the CLI lands, every build and run step becomes blocking with no edit here.
+  Sources under `tools/theme-validate/` with no `CMakeLists.txt` fail the job:
+  half-landed is not absent. Tracked as `OQ-040`.
+- The run step no longer predicts where the binary will be. It searches
+  `build/linux-release` and refuses to guess when it finds none or more than one,
+  naming the likely cause — the CMake project root is `desktop/` while §27 puts
+  `tools/` outside it, so the target needs an explicit binary directory.
+- `agreement` runs `compare_verdicts.py --self-test` in **both** states. That
+  self-test is the only thing holding the comparator honest across Phases 0 to 4,
+  when it has no real verdicts to read.
+
 - **`security.yml`, the §25.4 security workflow** (`REQ-BLD-024`). Six jobs for
   the sentence's six steps, scheduled daily at 04:41 plus every pull request.
   CodeQL analyses C++ with `security-extended` and prints a two-row coverage table
