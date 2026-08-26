@@ -413,7 +413,9 @@ def main() -> int:
     if not args.resolved_graph:
         print(
             "  NOT checked here: transitive ports. Pass --resolved-graph with the\n"
-            "  output of `vcpkg install --dry-run` to include them; security.yml does."
+            "  output of `vcpkg install --dry-run` to include them. §25.4 assigns\n"
+            "  that to security.yml, which is not written yet, so nothing runs it\n"
+            "  for you (OQ-015)."
         )
     return 0
 

@@ -133,8 +133,23 @@ reassuring:
   keys and asset references, each with its expected rejection recorded. If you
   find a hostile input class that is missing, that is a welcome report even
   without a working exploit.
-- **Pinned dependencies with SBOMs and CVE scanning** (`REQ-SEC-013`,
-  `REQ-SEC-014`).
+- **Pinned dependencies with an SBOM** (`REQ-SEC-013`, `REQ-SEC-014`):
+  [`docs/sbom/eclipse-player.cdx.json`](docs/sbom/eclipse-player.cdx.json), a
+  CycloneDX 1.6 document generated from the §4.2 register and re-checked for
+  staleness by `repo-lint.yml` on every push and pull request. The **CVE scanning**
+  half of `REQ-SEC-014` is not running yet, and would not find much if it were:
+  the three common scanners either skip `pkg:vcpkg` components or match them to
+  nothing ([OQ-046](docs/OPEN-QUESTIONS.md)). That is written down rather than
+  papered over precisely because a scan reporting zero findings over zero coverage
+  is worse than no scan.
+
+Three of the items above are **specified but not yet wired**, and saying so is the
+point of a checkable list: the 15-minute fuzzing budget, CodeQL, and the CVE and
+licence audits all belong to `security.yml` (§25.4), which does not exist in this
+repository yet. The 60-second fuzzing smoke, the sanitizer suites, the parser
+hardening, the hostile-input corpus and every mechanical gate except
+`check-dependency-denylist.py` do run today. `docs/OPEN-QUESTIONS.md` §5 is the
+authoritative record of which is which.
 
 None of this means there are no vulnerabilities. It means we would rather find
 them mechanically, and that a report which defeats one of these gates is

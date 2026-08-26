@@ -474,8 +474,9 @@ committed, growing corpus:
 
 `REQ-SEC-012` requires every target to build with ASan + UBSan and makes any
 crash, hang, or sanitizer finding a **release blocker** whose input must be added
-to the regression corpus. `security.yml` runs the extended 15-minute-per-target
-budget nightly with corpus persistence; §28's Phase 9 gate 4 restates it as "all
+to the regression corpus. The extended 15-minute-per-target budget with corpus
+persistence belongs to `security.yml`, which is **not written yet** (see the
+Continuous integration section below); §28's Phase 9 gate 4 restates it as "all
 fuzz targets clean at 15 minutes each". The corpus-minimisation discipline is the
 counterpart to that growth: a crash input is added, then the corpus is minimised
 (`-merge`) so it stays a small set of behaviour-distinct inputs rather than an
