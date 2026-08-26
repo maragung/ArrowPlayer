@@ -39,6 +39,17 @@ Before opening a pull request:
 
 ```bash
 # From the repository root.
+
+# 1 · Every gate proves it can fail before it is trusted: each --self-test plants
+#     the defect that gate exists to catch, over synthetic input, and requires it
+#     to be caught. Closes OQ-045.
+for gate in check-layers check-sql-safety check-rt-safety validate-shared-spec \
+            check-doc-links check-dependency-denylist check-hardening; do
+  python3 "tools/$gate.py" --self-test || echo "SELF-TEST FAILED: $gate"
+done
+python3 tools/gen-third-party/gen-third-party.py --self-test
+
+# 2 · Then the gates themselves.
 python3 tools/check-layers.py                 # REQ-GEN-050 / REQ-GEN-051
 python3 tools/check-sql-safety.py             # REQ-SEC-009
 python3 tools/check-rt-safety.py              # REQ-AUD-017
@@ -46,8 +57,7 @@ python3 tools/validate-shared-spec.py         # shared-spec/ schemas and fixture
 python3 tools/check-dependency-denylist.py    # REQ-SET-010 / REQ-TST-024
 python3 tools/check-doc-links.py              # REQ-GEN-075 — §27 docs and links
 python3 desktop/tests/fuzz/make-seeds.py --check   # REQ-SEC-011 — corpus is current
-python3 tools/check-hardening.py --self-test        # REQ-SEC-018 — the reader works
-python3 tools/check-hardening.py build/linux-release  # …and the binaries are hardened
+python3 tools/check-hardening.py build/linux-release  # REQ-SEC-018 — a real binary
 npm ci && npm run lint:md                     # REQ-GEN-075
 
 # If you touched vcpkg.json, the §4.2 register, or a licence document:
@@ -61,9 +71,9 @@ contributor who assumes a check is automated stops running it:
 
 | Check | Enforced by |
 |---|---|
-| `check-layers`, `check-sql-safety`, `check-rt-safety` | `desktop-ci.yml` |
+| `check-layers`, `check-sql-safety`, `check-rt-safety` | `desktop-ci.yml` — all three `--self-test`s run first, in one step, then the gates |
 | `check-hardening.py` | `desktop-ci.yml` — self-test in `gates`, then the linked ELF; PE non-blocking until it has passed once (OQ-044) |
-| `validate-shared-spec.py` | `spec-ci.yml` |
+| `validate-shared-spec.py` | `spec-ci.yml` — after its `--self-test`, which plants fourteen defects in a copy of `shared-spec/` |
 | `markdownlint-cli2`, `commitlint` | `repo-lint.yml` |
 | `check-dependency-denylist.py` | **nothing yet** — `security.yml` (§25.4) is not written. Run it |
 | `check-doc-links.py`, `gen-third-party.py --check` | `repo-lint.yml`, each after its own `--self-test` |

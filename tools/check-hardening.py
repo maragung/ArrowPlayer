@@ -592,7 +592,8 @@ def self_test() -> int:
 
         Counted separately and reported, because "31 assertions pass" says
         nothing about whether any of them could ever fail — which is the exact
-        criticism OQ-045 records against the gates that have no self-test.
+        criticism OQ-045 recorded against the four gates that then had no
+        self-test at all.
         """
         nonlocal ran, negatives
         ran += 1

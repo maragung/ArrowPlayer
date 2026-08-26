@@ -82,6 +82,53 @@ sql safety: 22 file(s) scanned, no interpolated SQL found
 rt safety: 4 file(s), 7 RT-SAFE annotation(s), no violations
 ```
 
+#### Each gate proves it can fail
+
+Those three lines are also exactly what a gate with an inverted condition, an
+unanchored pattern or an empty file list would print, and for most of Phase 0
+that was the only evidence any of them worked. So each carries a `--self-test`
+that runs its real checking function over synthetic input — no committed
+fixtures, because a planted violation inside this repository would be found by
+the gate itself:
+
+```bash
+python3 tools/check-layers.py --self-test
+python3 tools/check-sql-safety.py --self-test
+python3 tools/check-rt-safety.py --self-test
+python3 tools/validate-shared-spec.py --self-test
+```
+
+```text
+layers self-test: 29 synthetic tree(s) over all four checks, 16 of them planted
+violations that must be caught
+sql-safety self-test: 10 injection site(s) caught, 8 safe construct(s) left alone,
+1 documented blind spot still blind
+rt-safety self-test: 11 false RT-SAFE claim(s) caught, 7 legitimate construct(s)
+left alone, span finder bounds both bodies of a two-function source
+shared-spec self-test: 14 planted defect(s), each caught with the right complaint,
+over an unmutated control that passes
+```
+
+Both directions are asserted, because a gate that flags everything is as useless
+as one that flags nothing: the negatives include a header named `Queue.h` (which
+must not read as Qt), `" limit=" + n` in prose (not SQL), placement `new` in an
+RT-SAFE body (not an allocation), `androidx/` (not `android/`), and ALSA inside
+`audio/sink/`, where it belongs.
+
+The four differ in how they get their synthetic input, which follows from how
+each one reads the tree:
+
+- `check-layers.py` materialises whole throwaway trees under `/tmp`, since its
+  rules are about which *directory* a file sits in. Its four checks take their
+  roots as arguments for this reason.
+- `check-sql-safety.py` and `check-rt-safety.py` split a `scan_lines(name,
+  lines)` core out of `scan(path)`, and the self-test drives it with strings.
+- `validate-shared-spec.py` copies `shared-spec/` to a temporary directory,
+  plants one defect in the copy, and runs *itself* against it as a subprocess —
+  end-to-end, because what is in doubt there is the wiring rather than the
+  arithmetic. A control run over the unmutated copy must pass, or the fourteen
+  red runs would prove only that copying breaks the tree.
+
 What each gate does **not** catch is as important as what it does:
 
 - `check-layers.py` verifies rule 2 (domain purity) and rule 3 (adapter
@@ -100,7 +147,13 @@ What each gate does **not** catch is as important as what it does:
   that will call it.
 - `check-sql-safety.py` greps for string concatenation adjacent to SQL keywords.
   There is no SQL in the tree yet, so "22 file(s) scanned, no interpolated SQL
-  found" means the gate is armed and idle, not that a query was proven safe.
+  found" means the gate is armed and idle, not that a query was proven safe —
+  the ten injection sites in its `--self-test` are the only evidence its matcher
+  works, and they are synthetic. Keyword matching is deliberately
+  case-sensitive, so `"select * from t where id = " + id` in lowercase evades
+  it; that trade-off buys silence on prose like `" limit=" + n`, and the
+  self-test pins it as a known blind spot rather than leaving it to be
+  rediscovered as a surprise.
 - `check-doc-links.py` checks that every §27 document exists and that internal
   links and `#fragment` anchors resolve (GitHub's slug algorithm). It does
   **not** fetch external `http(s)` URLs — a gate must pass offline. It is
