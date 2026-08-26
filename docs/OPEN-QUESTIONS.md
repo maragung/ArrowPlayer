@@ -707,7 +707,7 @@ to let them imply that nothing has been run.
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | **fails** — 2 of the §27 documents do not exist yet |
+| `tools/check-doc-links.py` | **fails** — 1 of the §27 documents does not exist yet |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 | `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
 | `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires |
