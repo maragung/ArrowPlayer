@@ -1,0 +1,206 @@
+name: spec-ci
+
+# Spec §25.3 (REQ-BLD-023). Four assertions, and the third and fourth are the
+# ones that make shared-spec/ load-bearing rather than decorative:
+#
+#   1. every JSON Schema is itself a valid schema
+#   2. every bundled theme, skin and fixture validates against its schema
+#   3. a schema change is accompanied by a fixture change
+#   4. the desktop and Android conformance results agree (REQ-GEN-031)
+#
+# On (4): android/ does not exist yet — see docs/adr/0011-desktop-first-sequencing.md
+# and OQ-018. The agreement job is written and runs; with one implementation
+# present it reports that it compared one verdict set against none, and says so
+# in those words. It is NOT skipped and NOT reported as passing, because a green
+# check mark next to "both platforms agree" would be a lie until there are two.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'shared-spec/**'
+      - 'tools/validate-shared-spec.py'
+      - 'tools/jsonschema_mini.py'
+      - 'tools/theme-validate/**'
+      # theme-validate reuses desktop/src/core/json — a change there can change
+      # a verdict, so the corpus has to be re-run even though no fixture moved.
+      - 'desktop/src/core/**'
+      # The gate itself. Without these two lines, editing a validator is the one
+      # change that does not re-run the validators.
+      - '.github/scripts/**'
+      - '.github/requirements-spec.txt'
+      - '.github/workflows/spec-ci.yml'
+  pull_request:
+    paths:
+      - 'shared-spec/**'
+      - 'tools/validate-shared-spec.py'
+      - 'tools/jsonschema_mini.py'
+      - 'tools/theme-validate/**'
+      # theme-validate reuses desktop/src/core/json — a change there can change
+      # a verdict, so the corpus has to be re-run even though no fixture moved.
+      - 'desktop/src/core/**'
+      # The gate itself. Without these two lines, editing a validator is the one
+      # change that does not re-run the validators.
+      - '.github/scripts/**'
+      - '.github/requirements-spec.txt'
+      - '.github/workflows/spec-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: spec-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # -------------------------------------------------------------------------
+  #  1 + 2 · Schema validity and fixture conformance, with a real draft-2020-12
+  #  validator.
+  #
+  #  tools/validate-shared-spec.py runs everywhere with nothing but the standard
+  #  library, which is what makes it usable in a contributor's shell. Its
+  #  validator is a documented subset. This job is where the full specification
+  #  gets applied, so the subset is a convenience rather than the ceiling.
+  # -------------------------------------------------------------------------
+  schemas:
+    name: schemas and fixtures
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Pinned exactly, not by range: REQ-SEC-013 applies to CI tooling too, and
+      # a validator that changes under us would turn a fixture corpus into a
+      # moving target.
+      - name: Install jsonschema
+        run: |
+          python -m pip install --require-hashes --no-deps -r .github/requirements-spec.txt
+
+      - name: Stdlib validator — structure, keywords, verdicts
+        run: python3 tools/validate-shared-spec.py
+
+      # REQ-THM-010: the theme schema is draft-2020-12. Asserting each schema
+      # against the meta-schema is what "every JSON Schema is itself valid" means.
+      - name: Every schema is a valid draft-2020-12 schema
+        run: python3 .github/scripts/spec_full_validate.py --check-schemas
+
+      - name: Every fixture matches the verdict it claims
+        run: python3 .github/scripts/spec_full_validate.py --check-fixtures
+
+  # -------------------------------------------------------------------------
+  #  3 · Schema/fixture sync (REQ-BLD-023, §25.6).
+  #
+  #  A schema change with no fixture change means either the change is untested
+  #  or the corpus now lies about what is accepted. Both are the same failure.
+  # -------------------------------------------------------------------------
+  sync:
+    name: schema/fixture sync
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: A schema change requires a fixture change
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          changed=$(git diff --name-only "$BASE" "$HEAD" -- shared-spec/)
+          schemas=$(echo "$changed" | grep -E '^shared-spec/schemas/.*\.json$' || true)
+          fixtures=$(echo "$changed" | grep -E '^shared-spec/conformance/' || true)
+
+          if [ -z "$schemas" ]; then
+            echo "No schema changed; nothing to require."
+            exit 0
+          fi
+
+          echo "Schemas changed:"; echo "$schemas" | sed 's/^/  /'
+          if [ -z "$fixtures" ]; then
+            echo
+            echo "::error::REQ-BLD-023: a schema changed with no fixture change."
+            echo "A schema change is a change to what the format accepts. Add or"
+            echo "update fixtures in shared-spec/conformance/ that exercise it —"
+            echo "including the rejection cases, which are the half that proves"
+            echo "the schema is actually restrictive."
+            exit 1
+          fi
+          echo "Fixtures changed:"; echo "$fixtures" | sed 's/^/  /'
+
+  # -------------------------------------------------------------------------
+  #  2 (native) · The C++ validator over the same corpus.
+  #
+  #  The Python validator checks the schemas. tools/theme-validate is what the
+  #  application will actually use, and REQ-GEN-031 is about implementations
+  #  agreeing — so the shipped engine has to be held to the corpus too, not just
+  #  a reference implementation of it.
+  # -------------------------------------------------------------------------
+  native:
+    name: theme-validate (desktop engine)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build g++-13 pkg-config zlib1g-dev
+
+      - name: Configure
+        env: { CC: gcc-13, CXX: g++-13 }
+        run: cmake --preset linux-release
+        working-directory: desktop
+
+      - name: Build theme-validate
+        run: cmake --build --preset linux-release --target theme-validate --parallel
+        working-directory: desktop
+
+      - name: Run the corpus through the desktop engine
+        run: |
+          ./desktop/build/linux-release/tools/theme-validate \
+            --corpus shared-spec/conformance/theme-validation-cases \
+            --report desktop-verdicts.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verdicts-desktop
+          path: desktop-verdicts.json
+          retention-days: 30
+
+  # -------------------------------------------------------------------------
+  #  4 · Cross-platform verdict agreement (REQ-TST-021, REQ-GEN-031).
+  #
+  #  This is the job §25.3 exists for. It is deliberately NOT conditional on
+  #  android/ existing: the honest output while there is one implementation is
+  #  "compared 1 verdict set, need 2", printed as a warning annotation, with the
+  #  gap tracked as OQ-018. When android-ci.yml lands it uploads
+  #  verdicts-android and this job starts comparing for real without being
+  #  rewritten.
+  # -------------------------------------------------------------------------
+  agreement:
+    name: desktop and Android agree
+    needs: native
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: verdicts-*
+          path: verdicts
+          merge-multiple: false
+
+      # Run the comparator's own scenarios first. If the comparator is broken,
+      # its verdict on the verdicts means nothing, and a broken comparator fails
+      # in the direction of passing.
+      - name: The comparator still behaves as committed
+        run: python3 .github/scripts/compare_verdicts.py --self-test
+
+      - name: Compare verdict sets
+        run: python3 .github/scripts/compare_verdicts.py verdicts/

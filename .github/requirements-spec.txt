@@ -1,0 +1,34 @@
+# Pinned exactly, with hashes, for spec-ci.yml's full draft-2020-12 validation.
+#
+# REQ-SEC-013 forbids floating versions, and it does not carve out CI tooling: a
+# validator that changes under us turns a fixture corpus into a moving target,
+# and "the schema was valid last week" is not a property anyone can act on.
+# --require-hashes makes the pin cryptographic rather than nominal.
+#
+# Refreshing these is a deliberate act: bump the version, refetch the hash from
+# PyPI, and let spec-ci re-run the whole corpus against the new validator. If a
+# fixture verdict changes, that is the news, and it belongs in a commit message.
+#
+# Nothing here ships. This is the validator CI checks the schemas WITH; the
+# validator the application uses is tools/theme-validate, built from our own
+# hardened parser (desktop/src/core/json/), and the two are held to the same
+# corpus on purpose — see .github/workflows/spec-ci.yml.
+#
+# Platform note: rpds-py is the one wheel here that is not pure Python, so its
+# hash is for cp312 manylinux x86_64 — matching setup-python 3.12 on
+# ubuntu-24.04. A runner change needs the matching wheel hash added.
+
+jsonschema==4.26.0 \
+    --hash=sha256:d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce
+
+attrs==26.1.0 \
+    --hash=sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309
+
+jsonschema-specifications==2025.9.1 \
+    --hash=sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe
+
+referencing==0.37.0 \
+    --hash=sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231
+
+rpds-py==2026.6.3 \
+    --hash=sha256:ecabd69db66de867690f9797f2f8fa27ba501bbc24540cbdbdc649cd15888ba6
