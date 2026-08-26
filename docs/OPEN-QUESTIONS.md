@@ -1173,14 +1173,74 @@ started this is moot by version and not only by argument.
   tree makes the gate fail, naming the file, line and mutable ref; deleting a
   single version comment while keeping the SHA also fails, naming the SBOM
   consequence. Both mutations were run against the real tree, not a fixture.
-- **What is still not proven.** Nothing has been pushed to `origin`, so this gate
-  has never run on a runner. `dependabot.yml` does not exist yet, so a SHA pin now
-  goes stale silently: unlike a floating tag, it will never pick up a security fix
-  on its own, which is the trade this pin deliberately accepts and Dependabot is
-  what pays it back. Whether Dependabot's `github-actions` ecosystem keeps SHA
-  pins current for this repository is unknown until that file exists and has run
-  once. The SHAs were resolved from this machine; a reader re-verifying them
+- **The other half of the trade is now written.** A pin never picks up a security
+  fix on its own, and unlike a floating tag it goes stale silently, so pinning
+  alone swaps one failure mode for a quieter one. `.github/dependabot.yml` covers
+  the actions, the two Node gates and the hash-locked `jsonschema` stack — and,
+  deliberately, says in its own comments what it does not cover: Dependabot has no
+  vcpkg ecosystem, so §4.2's C and C++ dependencies stay hand-updated. Making it
+  work with this repository's own commit gate needed a measured change to
+  `commitlint.config.js`; that is OQ-051.
+- **What is still not proven.** Nothing has been pushed to `origin`, so neither
+  this gate nor Dependabot has ever run here. Whether Dependabot's
+  `github-actions` ecosystem keeps SHA pins current for this repository is
+  unknown until it has run once — the claim that it updates both the SHA and the
+  trailing comment is read off its documentation and its own commit grammar, not
+  observed. The SHAs were resolved from this machine; a reader re-verifying them
   should use the `git ls-remote` command the gate prints on failure.
+
+### OQ-051 — Dependabot cannot satisfy the 72-column header limit · **Settled**
+
+`commitlint.config.js` capped the commit header at 72 columns so `git log
+--oneline` stays readable in an 80-column terminal, and `repo-lint.yml` enforces
+it over every commit in the reviewed range. Dependabot's commits go through that
+same gate, and its subject is generated from package names it does not choose.
+Measured against this repository's own dependencies, before any change:
+
+| Subject Dependabot would write | Columns |
+|---|---|
+| `ci(deps): bump the actions group with 6 updates` | 47 |
+| `ci(deps): bump actions/download-artifact from 4.3.0 to 4.4.0` | 60 |
+| `ci(deps): bump actions/checkout from 4.4.0 to 4.5.0 in the actions group` | 72 |
+| `ci(deps-dev): bump markdownlint-cli2 from 0.23.2 to 0.24.0 in the node-tooling group` | **84** |
+| `ci(deps-dev): bump @commitlint/config-conventional from 21.2.2 to 21.3.0 in the node-tooling group` | **98** |
+
+Two rules failed, not one. Alongside the length, `scope-enum` rejected
+`deps-dev`: dependabot-core picks the scope with
+`dependencies.any?(&:production?) ? "deps" : "deps-dev"` and offers no setting
+that changes it, and every Node dependency here is a devDependency. So the enum
+had to admit `deps-dev` or every Node update would arrive red.
+
+Adding `deps-dev` is bookkeeping. The length is a real conflict: a gate that
+cannot be satisfied is a gate somebody turns off.
+
+- **Three ways out, and why the third.** Raising the limit for every commit gives
+  up a rule that is doing real work on the 34 commits already in this history.
+  Putting the bot in commitlint's `ignores` exempts a whole class of commit from
+  *every* rule — type, scope, body, requirement reference — to fix one, and
+  `ignores` is handed only the message, so the exemption could not even be
+  narrowed to the real author. What landed instead scopes the exception to the
+  **message shape**: a subject in Dependabot's own bump grammar gets 100 columns,
+  everything else keeps 72, and all other rules apply unchanged to both.
+- **Bounded, not open.** 100 is the same limit already used for body lines, and it
+  is a limit rather than an exemption: a 105-column bump subject still fails, and
+  the failure message says which of the two allowances it exceeded.
+- **A human writing that shape gets the same allowance, and that is fine.** The
+  grammar is `bump <name> from <a> to <b>` optionally `in the <group> group`, or
+  `bump the <group> group with <n> updates`. Anything matching it is a dependency
+  bump; there is no interesting message that shape excludes.
+- **Measured after the change, not assumed.** All seven realistic Dependabot
+  subjects pass, including the 98-column one. Three controls still fail, each
+  naming the right rule: a 105-column bump subject, a 90-column ordinary subject
+  (72, as before), and `ci(deps-nope):` (scope-enum). The whole existing history
+  — 34 commits — re-lints with 0 problems.
+- **What is not proven.** No Dependabot commit has actually been produced here;
+  the seven subjects above are constructed from dependabot-core's own message
+  builder and this repository's real dependency names, which is close but is not
+  the same as observing one. If its grammar changes, the regex in
+  `commitlint.config.js` stops matching and the effect is a *stricter* gate — the
+  bump falls back to 72 and fails, which is the safe direction for a mistake to
+  fall.
 
 ---
 
@@ -1216,7 +1276,7 @@ to let them imply that nothing has been run.
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | pass — 34 documents, 237 internal links, 23 §27 deliverables present |
+| `tools/check-doc-links.py` | pass — 34 documents, 238 internal links, 23 §27 deliverables present |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 | `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
 | `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires; the `REQ-GEN-020` ledger gate fires on all 7 malformed release rows |
@@ -1234,6 +1294,9 @@ to let them imply that nothing has been run.
 | the same, after every action was SHA-pinned | **0 matches**, six actions still catalogued at orderable versions. Two one-step control workflows differing only in the trailing `# v4.4.0` comment show syft recording either `@v4.4.0` or the bare SHA as the version — which is why the gate requires the comment |
 | `tools/check-action-pins.py --self-test` | pass — 12 planted defects caught (mutable tag, branch, short and upper-case SHA, missing version comment, prose-polluted comment, undigested `docker://`), 12 valid lines accepted, 8 confirmed parsed as real references |
 | the same over the real tree, one pin reverted to `@v4`, then one version comment deleted | **fails both times**, naming file, line and reason; passes over 22 references when restored |
+| seven realistic Dependabot subjects against `commitlint.config.js` | all pass, including a 98-column one; three controls still fail and name the right rule — a 105-column bump subject, a 90-column ordinary subject, and an out-of-enum `deps-nope` scope (OQ-051) |
+| `commitlint` over the whole history after that change | 34 commits, **0 problems** — the relaxation did not loosen anything the existing history relied on |
+| `.github/dependabot.yml` | parses; three ecosystems, each grouped into one pull request. Its pip entry was checked against dependabot-core rather than assumed: `requirements_file?` accepts `requirements-spec.txt` because the name matches `/requirements/`, and the requirement replacer rewrites `--hash=` entries. **Never run** — nothing is pushed |
 | `gen-sbom.py --self-test` and `--check` in `repo-lint.yml` | wired — self-test in the `Gate self-tests` step, `--check` beside the two licence documents, in a workflow with no `paths` filter. **Caveat that applies to every workflow here:** nothing has been pushed to `origin`, so no workflow in this repository has ever executed. Every result in this table is a local run |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local

@@ -711,7 +711,7 @@ Two notes on that mapping:
   introduced while red is a gate someone weakens instead of satisfying. When this
   document landed, the gate reported two missing §27 documents —
   `docs/SKIN-AUTHORING.md` and `docs/LGPL-SOURCE-OFFER.md`. Both now exist, the
-  gate reports 34 documents and 237 internal links resolved with one `[v1.x]`
+  gate reports 34 documents and 238 internal links resolved with one `[v1.x]`
   note for the deferred `docs/PLUGIN-AUTHORING.md`, and the `TODO` is gone. Each
   gate runs its own `--self-test` first: the link checker's is over its
   heading-slug algorithm, which is how a false failure against a correct link in

@@ -17,6 +17,11 @@
 # Platform note: rpds-py is the one wheel here that is not pure Python, so its
 # hash is for cp312 manylinux x86_64 — matching setup-python 3.12 on
 # ubuntu-24.04. A runner change needs the matching wheel hash added.
+#
+# Expect Dependabot to widen that. Its requirement replacer asks the index for
+# every hash of the new version, so a bump will probably arrive with the full
+# wheel set rather than the one line above. That is more correct, not less — but
+# it is a diff to read rather than approve on sight. See .github/dependabot.yml.
 
 jsonschema==4.26.0 \
     --hash=sha256:d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce

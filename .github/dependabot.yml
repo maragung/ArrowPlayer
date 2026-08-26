@@ -1,0 +1,117 @@
+# Dependency updates — §25's repository layout (REQ-GEN-030), REQ-SEC-013.
+#
+# This file is the other half of the action pins. REQ-SEC-013 forbids floating
+# versions, so every action is pinned to a commit SHA and every Node and Python
+# tool to an exact version with a hash. That trade has a cost: a pin never picks
+# up a security fix on its own, and unlike a floating tag it goes stale silently.
+# Dependabot is what pays it back. Pinning without this file swaps one failure
+# mode for a quieter one (OQ-050).
+#
+# What it does NOT cover, stated because a partial gate that reads as total is
+# the failure this repository keeps finding in itself: Dependabot has no vcpkg
+# ecosystem. The C and C++ dependencies of §4.2 — FFmpeg, TagLib, SQLite,
+# libarchive and the rest, which are the bulk of the attack surface and the whole
+# subject of the licence policy — are pinned by `builtin-baseline` in
+# `desktop/vcpkg.json` and are updated **by hand**. Nothing below watches them.
+# §25.4's CVE scan is what is meant to notice; see OQ-046 for how little it
+# currently sees, and OQ-049 for the baseline that scan needs before it can fail
+# a build honestly.
+#
+# Commit messages. `prefix` plus `include: scope` produces `ci(deps): …` or
+# `ci(deps-dev): …`; dependabot-core chooses between the two scopes with
+# `dependencies.any?(&:production?)`, which is not configurable, so both are in
+# `commitlint.config.js`'s scope-enum. Its header limit has a bounded exception
+# for these subjects for the same reason — measured, they reach 98 columns
+# against this repository's own dependency names.
+
+version: 2
+
+updates:
+  # The actions themselves. Dependabot understands a SHA pin with a trailing
+  # version comment and updates both halves, which is exactly the form
+  # `tools/check-action-pins.py` requires — so an update that dropped the
+  # comment would fail that gate rather than land quietly.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+      # Not on the hour. Every repository that asks for "weekly" and leaves the
+      # default lands on the same minute.
+      time: "05:17"
+      timezone: Etc/UTC
+    # One pull request for all of them. Six actions across four workflows would
+    # otherwise arrive as six pull requests, each needing the same review of the
+    # same question, and a reviewer who is skimming is a reviewer who is not
+    # checking the SHA.
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci
+      include: scope
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - ci
+
+  # The two repository gates: markdownlint-cli2 and commitlint. Both are
+  # devDependencies, so their scope will be `deps-dev`.
+  #
+  # `ci` rather than `build` as the prefix: nothing here is built from
+  # package.json — it exists only to run the Markdown and commit-message gates,
+  # as its own `description` field says. A `build:` commit would point at a build
+  # that does not involve these packages.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "05:23"
+      timezone: Etc/UTC
+    groups:
+      node-tooling:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci
+      prefix-development: ci
+      include: scope
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - ci
+
+  # `.github/requirements-spec.txt` — the pinned, hash-locked `jsonschema` stack
+  # that spec-ci.yml validates the schemas with.
+  #
+  # Two things were checked in dependabot-core rather than assumed. Its pip
+  # fetcher accepts this filename: `requirements_file?` returns true for any
+  # `.txt` whose name matches /requirements/, and `requirements-spec.txt` does,
+  # so the non-standard name is not a silent no-op. And its requirement replacer
+  # rewrites `--hash=` entries when the declaration has them, so a bump will not
+  # leave `--require-hashes` pointing at the old artifact.
+  #
+  # One consequence to expect: the replacer asks the index for *all* hashes of
+  # the new version, so the single platform-specific `rpds-py` wheel hash will
+  # likely come back expanded to the full set. That is more correct than what is
+  # committed, not less — but it is a diff to read rather than rubber-stamp.
+  - package-ecosystem: pip
+    directory: /.github
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "05:29"
+      timezone: Etc/UTC
+    groups:
+      schema-validator:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci
+      include: scope
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - ci

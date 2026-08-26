@@ -106,8 +106,31 @@ stable yet.
   pair differing only in the trailing comment shows syft recording either
   `@v4.4.0` or the bare SHA as the component version — so a `safe_load` gate
   would pass a pin no CVE database can order. Post-pin `grype dir:.` reports 0
-  matches. `dependabot.yml` still does not exist, which is the cost this pin
-  accepts and is recorded with it.
+  matches.
+
+- **`dependabot.yml`, and the commit gate made able to accept it**
+  (`REQ-SEC-013`, `REQ-GEN-030`, `OQ-050`, `OQ-051`). Pinning every dependency
+  buys determinism and gives up automatic security fixes; unlike a floating tag,
+  a pin goes stale silently. Dependabot is what pays that back, so the pin and
+  this file belong together. Three ecosystems — the actions, the two Node gates,
+  and the hash-locked `jsonschema` stack in `.github/` — each grouped into one
+  pull request. Two of its behaviours were read out of dependabot-core rather
+  than assumed: its pip fetcher accepts the non-standard filename
+  `requirements-spec.txt` because `requirements_file?` matches `/requirements/`,
+  and its requirement replacer rewrites `--hash=` entries, so a bump will not
+  leave `--require-hashes` pointing at the old artifact. What it does **not**
+  cover is in its own comments: there is no vcpkg ecosystem, so §4.2's C and C++
+  dependencies — the bulk of the attack surface — stay hand-updated.
+  Landing it needed a measured change to `commitlint.config.js`. Two rules
+  rejected Dependabot's own commits: `scope-enum` had no `deps-dev`, which
+  dependabot-core picks by whether the dependency is a production one and offers
+  no way to configure, and the 72-column header limit cannot hold a subject that
+  measures 98 columns against this repository's package names. Rather than raise
+  the limit for every commit or exempt the bot from every rule, the exception is
+  scoped to the message shape: a subject in Dependabot's bump grammar is allowed
+  100 columns, everything else keeps 72, and all other rules apply unchanged. It
+  stays a limit — a 105-column bump subject still fails, naming which allowance
+  it exceeded — and the existing 34-commit history re-lints with 0 problems.
 
 - **One dependency register, three generated documents.** `§4.2` lives as data
   in `tools/gen-third-party/register.json`; nothing derived from it is authored
@@ -147,7 +170,7 @@ stable yet.
 - **Documentation.** `docs/BUILDING.md` including a root-free user-local
   dependency build, `docs/PARITY.md` (the §29.2 matrix with an added Status
   column), `docs/PRIVACY.md`, `docs/ROADMAP.md` (the 56 `[v1.x]` requirements,
-  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (48
+  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (51
   registered assumptions, narrowings and gaps with stable `OQ-NNN` ids).
 - **ADRs** 0001 (MPL-2.0 core, LGPL-only dependencies), 0002 (`IAudioSink` with
   native backends rather than RtAudio), 0003 (no executable code in skins), 0005

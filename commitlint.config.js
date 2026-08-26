@@ -10,7 +10,16 @@
 //     that part of the Definition of Done. Enforcing it in CI is the difference
 //     between a rule and a wish.
 
-/** Requirement areas from §0.2, plus `deps` for dependency bumps. */
+/**
+ * Requirement areas from §0.2, plus the two scopes Dependabot writes.
+ *
+ * `deps` and `deps-dev` are not a stylistic choice: dependabot-core picks
+ * between them with `dependencies.any?(&:production?) ? "deps" : "deps-dev"`,
+ * and there is no setting that changes it. Every Node dependency here is a
+ * devDependency, so `deps-dev` is what its commits will actually carry — and a
+ * scope-enum that omitted it would turn every Dependabot pull request red for a
+ * reason nobody could act on.
+ */
 const AREAS = [
   'gen', // General / cross-cutting
   'aud', // Audio engine
@@ -31,8 +40,22 @@ const AREAS = [
   'nfr', // Non-functional
   'bld', // Build & release
   'spec', // shared-spec/ contract files
-  'deps', // dependency version bumps (dependabot)
+  'deps', // production dependency bumps (Dependabot, or by hand)
+  'deps-dev', // development dependency bumps (Dependabot's own scope)
 ];
+
+/**
+ * Dependabot's commit subjects, in the two grammars it emits — `bump <name>
+ * from <a> to <b>` (optionally `in the <group> group`) and `bump the <group>
+ * group with <n> updates`. Used to relax the header limit for those and nothing
+ * else; see `header-max-length-dependency-aware` below.
+ */
+const DEPENDENCY_BUMP_SUBJECT =
+  /^bump (?:the .+ group\b.*|\S.* from \S+ to \S+(?: in the .+ group)?)$/;
+
+/** The normal limit, and the bounded exception for the subjects above. */
+const HEADER_LIMIT = 72;
+const HEADER_LIMIT_BUMP = 100;
 
 /**
  * Types that change observable behaviour. A `docs:` or `chore:` commit is
@@ -55,6 +78,45 @@ module.exports = {
          * A revert is allowed to inherit the id from the commit it reverts, so
          * the check accepts a `Reverts <sha>` trailer in place of an id.
          */
+        /**
+         * 72 columns, except for a dependency bump, which cannot be shortened.
+         *
+         * The 72 below exists so `git log --oneline` stays readable in an
+         * 80-column terminal, and that reason still holds. But Dependabot's
+         * subject is generated from names it does not choose: measured against
+         * this repository's own dependencies, `ci(deps-dev): bump
+         * markdownlint-cli2 from 0.23.2 to 0.24.0 in the node-tooling group` is
+         * 84 characters, and `@commitlint/config-conventional` alone reaches 72
+         * with no group suffix at all.
+         *
+         * Three ways out, and why this one. Raising the limit for everything
+         * gives up a rule that is doing real work. Adding the bot to
+         * `ignores` exempts a whole class of commit from every rule, not just
+         * this one. So the exception is scoped to the message shape rather than
+         * the author: a subject in Dependabot's own bump grammar gets 100
+         * columns — still bounded, so a pathological header fails — and keeps
+         * every other rule, including scope-enum and the body rules. A human
+         * who writes that exact shape gets the same allowance, which is
+         * harmless, because the shape *is* a dependency bump.
+         */
+        'header-max-length-dependency-aware': ({ header, subject }) => {
+          const limit = DEPENDENCY_BUMP_SUBJECT.test(subject || '')
+            ? HEADER_LIMIT_BUMP
+            : HEADER_LIMIT;
+          const length = (header || '').length;
+          if (length <= limit) return [true];
+
+          const why =
+            limit === HEADER_LIMIT_BUMP
+              ? ' — the dependency-bump allowance, already the wider of the two'
+              : '';
+          return [
+            false,
+            `header must not be longer than ${limit} characters${why}, ` +
+              `current length is ${length}`,
+          ];
+        },
+
         'body-references-requirement': ({ type, body, footer }) => {
           if (!BEHAVIOURAL_TYPES.includes(type)) return [true];
 
@@ -89,8 +151,11 @@ module.exports = {
     'subject-empty': [2, 'never'],
     'subject-full-stop': [2, 'never', '.'],
 
-    // 72 so `git log --oneline` stays readable in an 80-column terminal.
-    'header-max-length': [2, 'always', 72],
+    // Off, and replaced by `header-max-length-dependency-aware` below: same 72
+    // columns, with a bounded exception for the one subject shape that cannot
+    // be shortened. Leaving both on would mean the built-in fires first and the
+    // exception never applies.
+    'header-max-length': [0],
 
     // Bodies carry the reasoning and the REQ ids; wrapping is enforced so they
     // stay readable in `git log`, but the limit is generous for tables.
@@ -99,6 +164,7 @@ module.exports = {
     'body-leading-blank': [2, 'always'],
     'footer-leading-blank': [2, 'always'],
 
+    'header-max-length-dependency-aware': [2, 'always'],
     'body-references-requirement': [2, 'always'],
   },
 };
