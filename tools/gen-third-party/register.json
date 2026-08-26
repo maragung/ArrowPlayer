@@ -1,0 +1,343 @@
+{
+  "$comment": [
+    "The §4.2 dependency licence register, as DATA. Transcribed from",
+    "eclipse-player.md §4.2 (the binding requirement is REQ-GEN-012). This file is",
+    "the single source of truth; docs/THIRD-PARTY.md is generated from it by",
+    "tools/gen-third-party/gen-third-party.py and MUST NOT be hand-edited. To change",
+    "the register, edit this file, run the generator, and commit both.",
+    "A hand-written register drifts the moment a dependency changes; keeping the",
+    "register as data and regenerating on every change is what makes REQ-GEN-012's",
+    "'kept accurate' mean something a machine can check."
+  ],
+  "spec_section": "4.2",
+  "generated_document": "docs/THIRD-PARTY.md",
+  "companion_source_offer": "docs/LGPL-SOURCE-OFFER.md",
+  "spdx_url_template": "https://spdx.org/licenses/{id}.html",
+  "licence_text_policy": "pointer",
+  "licence_text_policy_note": [
+    "POINTER, not embedded. This build machine has no network access, so the",
+    "canonical licence texts cannot be fetched, and embedding a dozen full texts",
+    "(LGPL-3.0 alone is ~7,600 words) would bury the register they annotate. The",
+    "verbatim texts already exist in two mechanised places at package time: vcpkg",
+    "materialises each port's exact text at",
+    "vcpkg_installed/<triplet>/share/<port>/copyright, and Qt's LGPL-3.0 text ships",
+    "to licenses/LGPL-3.0.txt per REQ-GEN-013(3). So each entry carries the SPDX id",
+    "(the canonical, machine-checkable licence identity), the SPDX text URL, and the",
+    "corresponding source URL; the generated document states plainly that the full",
+    "texts are assembled at package time and fed to the Help -> Third-Party Licences",
+    "screen (REQ-GEN-019)."
+  ],
+  "patent_notes": {
+    "$comment": "REQ-GEN-017 requires docs/THIRD-PARTY.md to record these.",
+    "requirement": "REQ-GEN-017",
+    "items": [
+      "MP3: all known essential patents expired by April 2017; decoding and encoding are unencumbered.",
+      "AAC: decoded via FFmpeg's native LGPL decoder. Patent pools exist for AAC; because we distribute source and unmodified LGPL binaries and charge nothing, we take the same position as every Linux distribution. Encoding to AAC is not offered (REQ-GEN-016).",
+      "Monkey's Audio (APE): decoded via FFmpeg's native LGPL `ape` decoder. The upstream Monkey's Audio SDK's bespoke licence MUST NOT be vendored.",
+      "DSD: decoded to PCM by FFmpeg's LGPL `dsd_*` decoders. No proprietary component."
+    ]
+  },
+  "trademark_notes": {
+    "$comment": "REQ-GEN-022 and REQ-GEN-023, recorded here for completeness.",
+    "requirements": ["REQ-GEN-022", "REQ-GEN-023"],
+    "items": [
+      "No Winamp, AIMP, foobar2000, or other third-party trademark, logo, skin, icon, or sound asset is copied into this repository (REQ-GEN-022). Reference players are studied for design and behaviour, never for assets; built-in skins are original work.",
+      "Bundled fonts MUST be OFL-1.1, Apache-2.0, or public domain, and their licence files MUST ship alongside them (REQ-GEN-023)."
+    ]
+  },
+  "platforms": {
+    "desktop": {
+      "shipped": true,
+      "entries": [
+        {
+          "name": "Qt 6",
+          "spdx": "LGPL-3.0-only",
+          "licence_display": "LGPL-3.0-only",
+          "register_version": "6.8 LTS",
+          "version": "6.8.2",
+          "linkage": "Dynamic, always",
+          "obligation": "Provide relinking ability + licence text + source offer. Static linking is FORBIDDEN (§4.3).",
+          "source_url": "https://download.qt.io/archive/qt/6.8/6.8.2/single/qt-everywhere-src-6.8.2.tar.xz",
+          "vcpkg": [],
+          "acquisition": "Official prebuilt shared libraries via aqtinstall at the version pinned in desktop/qt-version.txt. NOT a vcpkg dependency (ADR 0005 / REQ-BLD-001); desktop/vcpkg.json MUST NOT list Qt.",
+          "notes": [
+            "Exact version 6.8.2 (desktop/qt-version.txt); the register names the 6.8 LTS series.",
+            "REQ-GEN-013(4) requires this document to state the exact Qt version and configure flags and link to the corresponding source archive.",
+            "REQ-GEN-013(3): the full LGPL-3.0 text ships in the installed tree at licenses/LGPL-3.0.txt and is reachable from Help -> Licences.",
+            "REQ-GEN-013(2)/(5): the user MUST be able to replace the Qt shared libraries with a compatible build; no checksum or signature gate over Qt binaries, no anti-tivoization."
+          ]
+        },
+        {
+          "name": "FFmpeg (libavformat, libavcodec, libavutil, libswresample)",
+          "spdx": "LGPL-2.1-or-later",
+          "licence_display": "LGPL-2.1-or-later",
+          "register_version": "7.1.x",
+          "version": "7.1.2 (vcpkg port-version 5)",
+          "linkage": "Dynamic",
+          "obligation": "Built without `--enable-gpl` and without `--enable-nonfree` (§4.4). Publish source offer.",
+          "source_url": "https://ffmpeg.org/releases/ffmpeg-7.1.2.tar.xz",
+          "vcpkg": ["ffmpeg"],
+          "acquisition": "vcpkg, pinned by override to 7.1.2#5 in desktop/vcpkg.json (features avcodec, avformat, swresample, zlib; default features off).",
+          "configure_flags": [
+            "--disable-gpl",
+            "--disable-nonfree",
+            "--disable-programs",
+            "--disable-doc",
+            "--disable-encoders",
+            "--disable-muxers",
+            "--disable-filters",
+            "--disable-devices",
+            "--disable-network",
+            "--enable-shared",
+            "--disable-static"
+          ],
+          "notes": [
+            "REQ-GEN-014 fixes the configure flags above; REQ-GEN-015 asserts at build time that the linked FFmpeg reports LGPL and not `GPL version`/`nonfree` via `avutil_license()` — a mechanical guard, not a review step (ADR 0006).",
+            "v1.0 decodes only. Encoders are enabled selectively and only for LGPL-clean codecs when the converter lands (REQ-GEN-016); `libfdk_aac` is permanently excluded as non-free."
+          ]
+        },
+        {
+          "name": "TagLib",
+          "spdx": "LGPL-2.1-or-later OR MPL-1.1",
+          "licence_display": "LGPL-2.1-or-later OR MPL-1.1",
+          "register_version": "2.x",
+          "version": "2.x",
+          "linkage": "Dynamic",
+          "obligation": "Source offer if the LGPL arm is chosen.",
+          "source_url": "https://github.com/taglib/taglib",
+          "vcpkg": ["taglib"],
+          "acquisition": "vcpkg (pinned baseline).",
+          "notes": [
+            "Dual-licensed. Eclipse takes the LGPL-2.1-or-later arm, so the source-offer obligation applies (recorded in the companion source-offer document)."
+          ]
+        },
+        {
+          "name": "SoundTouch",
+          "spdx": "LGPL-2.1-or-later",
+          "licence_display": "LGPL-2.1-or-later",
+          "register_version": "2.3.x",
+          "version": "2.3.x",
+          "linkage": "Dynamic",
+          "obligation": "Source offer.",
+          "source_url": "https://www.surina.net/soundtouch/",
+          "vcpkg": ["soundtouch"],
+          "acquisition": "vcpkg, behind the `tempo` feature (on by default) mirroring the ECLIPSE tempo/BPM options (REQ-AUD-090..093).",
+          "notes": []
+        },
+        {
+          "name": "libsamplerate",
+          "spdx": "BSD-2-Clause",
+          "licence_display": "BSD-2-Clause",
+          "register_version": "≥ 0.2.2",
+          "version": "≥ 0.2.2",
+          "linkage": "Static OK",
+          "obligation": "Attribution.",
+          "source_url": "https://github.com/libsndfile/libsamplerate",
+          "vcpkg": ["libsamplerate"],
+          "acquisition": "vcpkg (pinned baseline).",
+          "notes": [
+            "The ≥ 0.2.2 floor folds in two separate limits: releases before 0.1.9 were GPL and MUST NOT be used (they are incompatible with the MPL-2.0 core, §4.1), and anything below the registered version is a dependency the register does not describe, which REQ-GEN-012 makes a build failure. EclipseDependencies.cmake enforces `samplerate>=0.2.2`."
+          ]
+        },
+        {
+          "name": "Chromaprint",
+          "spdx": "LGPL-2.1-or-later",
+          "licence_display": "LGPL-2.1-or-later",
+          "register_version": "1.5.x",
+          "version": "1.5.x",
+          "linkage": "Dynamic",
+          "obligation": "Source offer.",
+          "source_url": "https://github.com/acoustid/chromaprint",
+          "vcpkg": ["chromaprint"],
+          "acquisition": "vcpkg, behind the `fingerprint` feature (on by default). Local and offline; the AcoustID network lookup is a separate opt-in (§9.9).",
+          "notes": []
+        },
+        {
+          "name": "projectM",
+          "spdx": "LGPL-2.1-or-later",
+          "licence_display": "LGPL-2.1-or-later",
+          "register_version": "4.x",
+          "version": "4.x",
+          "linkage": "Dynamic",
+          "obligation": "Source offer.",
+          "source_url": "https://github.com/projectM-visualizer/projectm",
+          "vcpkg": ["projectm"],
+          "acquisition": "vcpkg, behind the `visualizer` feature (on by default). Pulls transitive ports (see the transitive section) — glm, projectm-eval, and the OpenGL/EGL registries.",
+          "notes": [
+            "ADR 0009 records the choice of projectM for MilkDrop-compatible visualisation."
+          ]
+        },
+        {
+          "name": "SQLite",
+          "spdx": "blessing",
+          "licence_display": "Public domain (SQLite Blessing; SPDX `blessing`)",
+          "register_version": "3.4x",
+          "version": "3.4x",
+          "linkage": "Static OK",
+          "obligation": "None.",
+          "source_url": "https://www.sqlite.org/",
+          "vcpkg": ["sqlite3"],
+          "acquisition": "vcpkg, with the `fts5` feature for full-text search.",
+          "notes": [
+            "SQLite is dedicated to the public domain; SPDX records this as the `blessing` identifier (the 'SQLite Blessing'). No obligation, no attribution required."
+          ]
+        },
+        {
+          "name": "nlohmann/json",
+          "spdx": "MIT",
+          "licence_display": "MIT",
+          "register_version": "3.11.x",
+          "version": "3.11.x",
+          "linkage": "Static OK",
+          "obligation": "Attribution.",
+          "source_url": "https://github.com/nlohmann/json",
+          "vcpkg": [],
+          "acquisition": "Listed in the §4.2 register. NOT currently in the build: the desktop tree uses a bespoke, hardened in-house parser (`eclipse::json`, MPL-2.0, desktop/src/core/json/) rather than nlohmann/json, so it is registered but not linked today.",
+          "notes": [
+            "Kept in the register because §4.2 lists it and REQ-GEN-012 forbids silently dropping a registered dependency; the honest status is 'registered, not linked in the current build'."
+          ]
+        },
+        {
+          "name": "libzip",
+          "spdx": "BSD-3-Clause",
+          "licence_display": "BSD-3-Clause",
+          "register_version": "current (register: `libzip` or `minizip-ng`)",
+          "version": "current",
+          "linkage": "Static OK",
+          "obligation": "Attribution.",
+          "source_url": "https://libzip.org/",
+          "vcpkg": ["libzip"],
+          "acquisition": "vcpkg with `default-features: false`. The default features pull in bzip2 and OpenSSL; both are refused — REQ-THM-015 allows a skin archive only 'deflate or stored, no encryption, no other compression methods', and OpenSSL has no row in §4.2 (see OQ-025).",
+          "notes": [
+            "The register offers `libzip` or `minizip-ng`; Eclipse uses libzip (BSD-3-Clause). minizip-ng would be the zlib-licensed alternative."
+          ]
+        },
+        {
+          "name": "zlib",
+          "spdx": "Zlib",
+          "licence_display": "Zlib",
+          "register_version": "1.3.x",
+          "version": "1.3.x",
+          "linkage": "Static OK",
+          "obligation": "Attribution.",
+          "source_url": "https://zlib.net/",
+          "vcpkg": ["zlib"],
+          "acquisition": "vcpkg (pinned baseline).",
+          "notes": []
+        },
+        {
+          "name": "GoogleTest",
+          "spdx": "BSD-3-Clause",
+          "licence_display": "BSD-3-Clause",
+          "register_version": "1.15+",
+          "version": "1.15.2",
+          "linkage": "Test-only",
+          "obligation": "Not shipped.",
+          "source_url": "https://github.com/google/googletest",
+          "vcpkg": ["gtest"],
+          "acquisition": "vcpkg behind the `tests` feature, and pinned as a vendored tarball desktop/third_party/googletest-1.15.2.tar.gz with its SHA-256 asserted at build time. Test-only; never present in a shipped artifact.",
+          "notes": [
+            "Because it is test-only and not shipped, it carries no runtime attribution or source-offer obligation."
+          ]
+        },
+        {
+          "name": "RtAudio",
+          "spdx": "MIT",
+          "licence_display": "MIT-like (SPDX `MIT`; RtAudio adds a request to notify upstream of modifications)",
+          "register_version": "6.x",
+          "version": "6.x",
+          "linkage": "Dynamic",
+          "obligation": "Attribution.",
+          "source_url": "https://github.com/thestk/rtaudio",
+          "vcpkg": ["rtaudio"],
+          "acquisition": "vcpkg behind the `rtaudio` feature, which is OFF by default (matches the ECLIPSE_ENABLE_RTAUDIO CMake option). Optional last-resort Linux fallback sink only (REQ-AUD-073, [v1.x], §8.7.7); never bit-perfect, never a platform default.",
+          "notes": [
+            "The RtAudio licence is MIT with an added request that modifications be sent upstream; there is no distinct SPDX identifier, so it is recorded as `MIT` with this note."
+          ]
+        }
+      ]
+    },
+    "android": {
+      "shipped": false,
+      "shipped_note": "Listed for completeness. The Android build is deferred (ADR 0011, desktop-first sequencing); none of these components is in the current build. §0.1 rule 2 forbids silently downgrading a requirement, so the Android half of the §4.2 register is kept here and rendered, marked not-yet-shipped, rather than dropped.",
+      "columns": ["Dependency", "Licence", "Note"],
+      "entries": [
+        {
+          "name": "AndroidX Media3 (ExoPlayer)",
+          "spdx": "Apache-2.0",
+          "licence_display": "Apache-2.0",
+          "note": "Clean.",
+          "source_url": "https://github.com/androidx/media"
+        },
+        {
+          "name": "AndroidX (Compose, Room, WorkManager, DataStore, Lifecycle)",
+          "spdx": "Apache-2.0",
+          "licence_display": "Apache-2.0",
+          "note": "Clean.",
+          "source_url": "https://developer.android.com/jetpack/androidx"
+        },
+        {
+          "name": "Hilt / Dagger",
+          "spdx": "Apache-2.0",
+          "licence_display": "Apache-2.0",
+          "note": "Clean.",
+          "source_url": "https://github.com/google/dagger"
+        },
+        {
+          "name": "Kotlin stdlib / coroutines",
+          "spdx": "Apache-2.0",
+          "licence_display": "Apache-2.0",
+          "note": "Clean.",
+          "source_url": "https://github.com/JetBrains/kotlin"
+        },
+        {
+          "name": "projectM (Android)",
+          "spdx": "LGPL-2.1-or-later",
+          "licence_display": "LGPL-2.1-or-later",
+          "note": "Dynamic `.so`, source offer.",
+          "source_url": "https://github.com/projectM-visualizer/projectm"
+        },
+        {
+          "name": "Chromaprint (NDK)",
+          "spdx": "LGPL-2.1-or-later",
+          "licence_display": "LGPL-2.1-or-later",
+          "note": "Dynamic `.so`, source offer.",
+          "source_url": "https://github.com/acoustid/chromaprint"
+        }
+      ]
+    }
+  },
+  "transitive_reference": {
+    "$comment": [
+      "Transitive vcpkg ports RECORDED IN OQ-025 as observed in one resolved graph",
+      "for x64-linux-eclipse. This is reference data transcribed from a repository",
+      "document, NOT a resolution this generator performed. When --resolved-graph is",
+      "passed, these supply licence annotations for transitive ports; ports in the",
+      "resolved graph that appear in neither the register nor this list nor",
+      "build_only_ports are unknown components and fail the gate (REQ-GEN-012, OQ-025)."
+    ],
+    "source": "docs/OPEN-QUESTIONS.md OQ-025",
+    "ports": [
+      {"name": "utfcpp", "spdx": "BSL-1.0", "licence_display": "Boost-1.0", "pulled_in_by": "taglib"},
+      {"name": "glm", "spdx": "MIT", "licence_display": "MIT", "pulled_in_by": "projectm"},
+      {"name": "projectm-eval", "spdx": "LGPL-2.1-or-later", "licence_display": "LGPL-2.1-or-later", "pulled_in_by": "projectm"},
+      {"name": "opengl", "spdx": "Apache-2.0 OR MIT", "licence_display": "Apache-2.0 / MIT (Khronos registry)", "pulled_in_by": "projectm"},
+      {"name": "opengl-registry", "spdx": "Apache-2.0 OR MIT", "licence_display": "Apache-2.0 / MIT (Khronos registry)", "pulled_in_by": "projectm"},
+      {"name": "egl-registry", "spdx": "Apache-2.0 OR MIT", "licence_display": "Apache-2.0 / MIT (Khronos registry)", "pulled_in_by": "projectm"}
+    ]
+  },
+  "build_only_ports": {
+    "$comment": [
+      "vcpkg build-system helper ports. They are host/build-time tooling, never",
+      "linked into a shipped artifact, so they carry no runtime licence obligation.",
+      "Listed so that, when they appear in a resolved graph, they are classified",
+      "rather than flagged as unknown components."
+    ],
+    "ports": [
+      {"name": "vcpkg-cmake", "spdx": "MIT", "licence_display": "MIT (vcpkg build helper)"},
+      {"name": "vcpkg-cmake-config", "spdx": "MIT", "licence_display": "MIT (vcpkg build helper)"},
+      {"name": "vcpkg-cmake-get-vars", "spdx": "MIT", "licence_display": "MIT (vcpkg build helper)"},
+      {"name": "pkgconf", "spdx": "ISC", "licence_display": "ISC (build-time pkg-config)"}
+    ]
+  }
+}
