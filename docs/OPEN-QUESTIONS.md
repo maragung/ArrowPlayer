@@ -452,6 +452,88 @@ public symbol has a doc-comment**. The second does not exist.
   after it was written is a silent omission, and the failure mode is a document
   that looks complete.
 
+### OQ-033 — `docs/API.md` is hand-written, not generated · **Gap**
+
+The §27 document table describes the file as:
+
+> `docs/API.md` | Every public module API, generated from doc-comments, with
+> thread- and RT-safety noted per function
+
+The document that exists satisfies the second half and not the first. It notes
+thread- and RT-safety per function, and it was written by reading the headers
+rather than by parsing them.
+
+- **Assumption in force:** a hand-written document is acceptable as long as it
+  is accurate on the day it is written. That is a weaker guarantee than the
+  requirement asks for, and the deviation is stated in the document's own
+  opening rather than left for a reader to discover.
+- **Proposed answer:** the declaration parser proposed in OQ-032 grows an
+  `--emit` mode, so the same parser both checks that every public
+  symbol has a doc-comment and renders the tables from those comments. One
+  parser, two outputs — a separate generator would be a second thing to keep
+  in agreement with the checker. Until it exists, the doc-comments in the
+  headers are the source of truth and the document is a rendering of them that
+  a human maintains.
+- **Consequence if it stays unfixed:** the same drift as OQ-032, one step
+  further along. The check catches a symbol with no comment; nothing catches a
+  comment whose wording no longer matches the table that was copied from it.
+
+---
+
+### OQ-034 — the RT-safety gate verifies claims but cannot find omissions · **Gap**
+
+`REQ-AUD-017` asks for one specific check:
+
+> Add a CI grep that flags calls from `audio/graph/rt_*` into functions lacking
+> the annotation.
+
+The §25 gate table repeats it as a failure condition: *"A call from the RT path
+targets a function lacking `/// RT-SAFE:`"*. `tools/check-rt-safety.py` does not
+do this. It scans function bodies that already carry the annotation and flags
+forbidden constructs inside them — allocation, locking, throwing, I/O, container
+growth. That verifies every claim made. It cannot detect a claim that was never
+made, which is the direction the requirement names.
+
+- **Assumption in force:** the annotated set is the RT-callable set, held true
+  by review. The gate confirms that what is annotated is safe; nothing confirms
+  that what is called is annotated.
+- **Proposed answer:** implement it in the commit that creates
+  `audio/graph/rt_*`, for the same reason
+  OQ-031 defers the layer-ordering rule — the check needs call sites to check, and
+  `audio/graph/` has no files today. Writing it now would mean writing a gate
+  whose entire coverage is the empty set and which therefore passes for the
+  wrong reason.
+- **Consequence if it stays unfixed:** the annotation degrades into
+  documentation. A function reached from the callback without one is exactly the
+  case `REQ-AUD-017` exists to prevent, and it is the case nothing looks for.
+
+---
+
+### OQ-035 — `reset()` is unannotated and a seek runs on the audio thread · **Gap**
+
+`Biquad::reset()`, `BiquadCascade::reset()` and `Equalizer::reset()` carry no
+`/// RT-SAFE:` annotation. Their processing counterparts do. A seek must clear
+the filter delay lines — otherwise the state from the old position rings into
+the new one — and a seek is serviced on the audio thread. Under `REQ-AUD-017`
+that is a function the callback must not call, and the seek path will need to
+call something equivalent.
+
+- **Assumption in force:** unresolved, because there is no seek path yet to
+  resolve it against. `Equalizer::reset()` zeroes fixed-size arrays already
+  owned by the object, so it would qualify for the annotation on inspection —
+  but `REQ-AUD-017` rules on the annotation, not on inspection, and
+  `docs/API.md` reports the absence rather than assuming the permission.
+- **Proposed answer:** the commit that writes the seek path decides, and one of
+  two ways. Either annotate the three functions, stating in the comment that
+  they touch only preallocated state — the honest reading if the audio thread
+  is to call them directly. Or route the clear through the `REQ-AUD-016`
+  parameter-snapshot mechanism, so the RT thread publishes a generation counter
+  and the filters observe it, which keeps the RT-callable surface smaller at the
+  cost of one more piece of protocol.
+- **Consequence if it stays unfixed:** either a seek leaves stale filter state
+  audible at the new position, or the audio thread calls an unannotated function
+  and the annotation's meaning erodes for every future reader.
+
 ---
 
 ## 5 · Verification status — what is proven where
