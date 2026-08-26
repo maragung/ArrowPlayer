@@ -144,7 +144,7 @@ What it deliberately does **not** check, and where that happens instead:
 | Not checked by this script | Where it runs |
 |---|---|
 | Full draft-2020-12 semantics, `format` assertions | `.github/scripts/spec_full_validate.py` |
-| SVG sanitisation, ZIP limits, image probing | desktop `tools/theme-validate` + its tests |
+| SVG sanitisation, ZIP limits, image probing | not yet — `tools/theme-validate` is a Phase 5 deliverable (OQ-040) |
 | WCAG contrast computation | desktop tests against `contrast/pairs.json` |
 | EFS and smart-playlist **evaluation** | desktop conformance tests |
 | Android verdicts (the other half of `REQ-GEN-031`) | not yet — see below |
@@ -164,12 +164,16 @@ silently pass. Run both. They deliberately disagree in one direction only: if th
 subset accepts something the full validator rejects, the subset has a bug, and
 that is a finding rather than a nuisance.
 
-## Status: half of `REQ-GEN-031` is unproven
+## Status: `REQ-GEN-031` is unproven on both sides
 
-There is no `android/` tree yet. The corpus is complete and platform-neutral so the
-Android engine can consume it unchanged, but **agreement between two engines cannot be
-claimed while only one exists.** Recorded in `docs/adr/0011-desktop-first-sequencing.md`
-and `docs/OPEN-QUESTIONS.md` rather than left to be inferred from an absent directory.
+There is no `android/` tree yet, and no desktop theme engine either — `tools/theme-validate`
+is a Phase 5 deliverable, so **zero** implementations currently produce verdicts, not one.
+The corpus is complete and platform-neutral so either engine can consume it unchanged, but
+**agreement between two engines cannot be claimed while neither exists.** Recorded in
+`docs/adr/0011-desktop-first-sequencing.md` and `docs/OPEN-QUESTIONS.md` (OQ-018, OQ-040)
+rather than left to be inferred from an absent directory. `spec-ci.yml`'s `agreement` job
+says the same thing in its own job summary on every run, so the gap is visible where the
+gate is, not only here.
 
 ## Adding a case
 

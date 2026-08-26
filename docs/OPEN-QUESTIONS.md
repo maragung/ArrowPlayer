@@ -694,25 +694,44 @@ fixture in `tools/gen-third-party/testdata/`, because vcpkg is not installed her
 
 ---
 
-### OQ-040 — `spec-ci.yml` runs a `theme-validate` that does not exist · **Open**
+### OQ-040 — the desktop `theme-validate` engine does not exist · **Gap**
 
-`spec-ci.yml`'s `native` job builds the CMake target `theme-validate` and runs the
-resulting binary over the 122-case corpus to produce `desktop-verdicts.json`.
-Neither exists. `tools/theme-validate/` is an empty directory, `desktop/src/theme/`
-is an empty directory, no `CMakeLists.txt` under `tools/` is added by
-`desktop/CMakeLists.txt`, and so the target cannot be built. The job's own path
-filters already watch `tools/theme-validate/**`, which is how the gap survived
-review: the workflow reads as though the tool were there.
+When this entry was written, `spec-ci.yml`'s `native` job built the CMake target
+`theme-validate` unconditionally and ran the resulting binary over the 122-case
+corpus to produce `desktop-verdicts.json`. Neither existed. `tools/theme-validate/`
+is an empty directory, `desktop/src/theme/` is an empty directory, no
+`CMakeLists.txt` under `tools/` is added by `desktop/CMakeLists.txt`, and so the
+target could not be built. The job's own path filters already watch
+`tools/theme-validate/**`, which is how the gap survived review: the workflow read
+as though the tool were there.
+
+The job has since been rewritten and no longer misrepresents anything — see the
+last three bullets. What is left is the engine itself, which is why this entry is
+now a **Gap** rather than a question: it closes when Phase 5 delivers the CLI, not
+before.
 
 - **Assumption in force:** none, and that is the problem. This is not a documented
   narrowing — it is a job that fails on its build step, which `REQ-THM-060` and
   `REQ-THM-072` both depend on. It is recorded here rather than left to look like
   a passing gate, and `docs/SKIN-AUTHORING.md` says the same thing to authors.
-- **Second defect in the same job:** the run step invokes
+- **Second defect in the same job — fixed.** The run step invoked
   `./desktop/build/linux-release/tools/theme-validate`, but
   `CMakePresets.json` sets `binaryDir` to `${sourceDir}/../build/${presetName}`,
   so binaries land in the repository-root `build/`, not `desktop/build/`. The path
-  would be wrong even once the target exists.
+  would have been wrong even once the target existed. It is no longer hard-coded:
+  the step now searches `build/linux-release` for an executable named
+  `theme-validate` and refuses to guess if it finds none or more than one. A path
+  written in advance for a binary nobody has built is a guess, and guessing is
+  what produced this defect.
+- **Third defect, found while fixing the second.** The CMake project root is
+  `desktop/`, but §27 puts `tools/theme-validate/` at the repository root —
+  *outside* the source tree CMake configures. `cmake --build --preset
+  linux-release --target theme-validate` therefore cannot reach the target at all
+  unless `desktop/CMakeLists.txt` pulls it in with `add_subdirectory()` and an
+  explicit binary directory, or `tools/theme-validate/` becomes its own top-level
+  project with its own configure step. Whoever builds the CLI has to decide which;
+  the error message on the zero-executables branch names this, so the discovery
+  happens at the point of failure rather than after an hour of confusion.
 - **Proposed answer:** build the CLI — a C++ target under `tools/theme-validate/`
   reusing `desktop/src/core/json/json.hpp` rather than introducing a second JSON
   parser, emitting one verdict per corpus case in the shape
@@ -724,6 +743,35 @@ review: the workflow reads as though the tool were there.
   no desktop side to compare, so `compare_verdicts.py` — which is written and
   self-tested — has nothing real to consume, and the corpus's 122 pinned verdicts
   go unexercised by any engine.
+- **Why it is not built now, and this is not a dodge.** §28 lists `tools/theme-validate`
+  and "the full validation pipeline" under **Phase 5 — Skin engine**, and forbids
+  starting a phase before the previous one's gates are green. The repository is in
+  Phase 0. Building the CLI now would mean implementing `REQ-THM-040`'s ten-step
+  pipeline — archive safety, contrast computation, SVG scrubbing — four phases
+  early. The rule that forbids that is the same rule that keeps the rest of the
+  sequencing honest, so it is followed here too.
+- **What landed instead.** The `native` job asks the tree whether the engine is
+  there, deciding on `tools/theme-validate/CMakeLists.txt` rather than on the
+  directory — git cannot track an empty directory, so the directory is absent on a
+  fresh checkout and merely empty locally, and the CMake entry point is the one
+  test that is right in both states. Absent: it emits a `::warning::`, writes a job
+  summary naming the 122 uncovered cases, `REQ-THM-060`, `REQ-THM-072` and this
+  entry, uploads **no** artifact, and exits 0. Present: every build and run step
+  becomes blocking with no edit to the workflow, so landing the CLI is what flips
+  the gate. Sources under `tools/theme-validate/` with no `CMakeLists.txt` **fail**
+  the job — half-landed is not absent, and would otherwise skip its own gate
+  quietly.
+- **Why no artifact is uploaded while absent.** A stub or empty
+  `desktop-verdicts.json` would let `agreement` compare nothing and report
+  agreement — the OQ-042 shape. So `native` publishes its state as a job output and
+  `agreement` branches on it: present means download, compare, and honour
+  `compare_verdicts.py`'s FATAL-on-zero-reports, which exists to catch broken
+  artifact wiring; absent means report the gap and stop. The comparator's own
+  `--self-test` runs in **both** states, since it is the only thing keeping that
+  script honest across Phases 0–4, when it has no real input.
+- **Closes when:** `tools/theme-validate` exists, is reachable from a preset build,
+  and the `native` job runs the corpus through it — at which point the same
+  workflow is already blocking and needs no change.
 
 ### OQ-041 — `REQ-GEN-020`'s website mirror has no website · **Gap**
 
@@ -758,7 +806,8 @@ and no GitHub Pages site, so the repository is the only publication point.
 `[ -f build/<preset>/tests/test_decode ]` with `working-directory: desktop`, which
 resolves to `desktop/build/<preset>/…`. `CMakePresets.json` sets `binaryDir` to
 `${sourceDir}/../build/${presetName}`, so binaries land in the repository-root
-`build/` — the same mistake OQ-040 records in `spec-ci.yml`, from the same cause.
+`build/` — the same mistake OQ-040 records in `spec-ci.yml`, from the same cause,
+and now fixed in both places by discovering the binary instead of predicting it.
 The condition was therefore false on every run since the step was written, and the
 `else` branch printed *“gate not applicable”* and exited 0. A blocking licence gate
 that had never once run, reporting a clean skip.
@@ -1462,6 +1511,7 @@ to let them imply that nothing has been run.
 | `security.yml` — six jobs for §25.4's six steps | written and parsed (6 jobs, `yaml.safe_load`); every `uses:` SHA-pinned with a version-only comment (`check-action-pins.py`: 4 files, 38 references). **Not executed**, per the caveat above. Two things are non-blocking by design until their first run — the `resolved-graph` job (OQ-038) and the Windows hardening step (OQ-044) — and each records the condition for removing that |
 | `cyclonedx-cli validate` against the committed SBOM | pass locally — valid → exit 0, a planted `scope: "mandatory"` → exit 1, **with every egress route poisoned** and with no libicu on the machine, so the schemas are embedded in the executable. `--fail-on-errors` proven load-bearing: without it the invalid document is *reported* invalid and the process still exits 0 (OQ-048) |
 | `vcpkg install --dry-run` on this machine | **not run** — vcpkg is not installed here. The graph parser is exercised against a hand-built fixture and against a planted unregistered port, which it rejects by name; the runner's own vcpkg is what OQ-038 wants a measurement from |
+| `spec-ci.yml`'s `native` and `agreement` jobs | rewritten and **executed locally, step by step**, with `GITHUB_OUTPUT`/`GITHUB_STEP_SUMMARY` redirected to files. The engine-detection step gives the right answer in all four tree states — directory empty, directory absent as on a checkout, sources with no `CMakeLists.txt` (**fails**, as it must), and `CMakeLists.txt` present (`engine=present`) — and the binary-discovery step takes the right branch in five: no build directory, no executable, exactly one (flags passed through verbatim), two (**refuses to guess**), and a non-executable file. Both summary steps rendered and read as a human would read them. What is **not** proven is the engine, which does not exist: OQ-040 |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local
 `~/.local` prefix, no root required — FFmpeg 7.1.1 (LGPL-configured,

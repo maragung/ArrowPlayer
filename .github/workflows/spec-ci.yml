@@ -150,34 +150,145 @@ jobs:
   #  application will actually use, and REQ-GEN-031 is about implementations
   #  agreeing — so the shipped engine has to be held to the corpus too, not just
   #  a reference implementation of it.
+  #
+  #  That engine does not exist yet, and cannot be written yet: §28's phase list
+  #  puts "the full validation pipeline" and `tools/theme-validate` itself in
+  #  Phase 5, and forbids starting a phase before the previous one's gates are
+  #  green. We are in Phase 0. So this job cannot pass, and the question is only
+  #  what it should do about that.
+  #
+  #  It used to build `--target theme-validate` and run
+  #  `desktop/build/linux-release/tools/theme-validate`. Both were wrong — the
+  #  target has never existed, and the path would have been wrong even if it
+  #  did, because CMakePresets.json sets binaryDir to ${sourceDir}/../build,
+  #  which is the repository root and not desktop/. A step that cannot pass, for
+  #  two reasons at once, is worse than either an honest skip or a removal: a red
+  #  gate nobody expects to be green stops being read, and the wrong path would
+  #  have survived the day the target landed. Tracked as OQ-040.
+  #
+  #  What it does instead: decide from the tree whether the engine is there, and
+  #  be blocking the moment it is. Nobody has to remember to come back and edit
+  #  this file — landing tools/theme-validate/CMakeLists.txt is what flips it.
   # -------------------------------------------------------------------------
   native:
     name: theme-validate (desktop engine)
     runs-on: ubuntu-24.04
+    outputs:
+      engine: ${{ steps.detect.outputs.engine }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      - name: Is the desktop theme engine in the tree yet?
+        id: detect
+        run: |
+          set -euo pipefail
+          # Presence is decided by the CMake entry point, not by the directory.
+          # git cannot track an empty directory, so on a fresh checkout
+          # tools/theme-validate/ does not exist at all — while locally it may
+          # exist and be empty. Testing for the CMakeLists is right in both
+          # states; testing for the directory would be wrong in both.
+          if [ -f tools/theme-validate/CMakeLists.txt ]; then
+            echo "engine=present" >> "$GITHUB_OUTPUT"
+            echo "Engine present — this job is blocking from here down."
+            exit 0
+          fi
+
+          echo "engine=absent" >> "$GITHUB_OUTPUT"
+
+          # Absent has to mean absent. Sources with no CMake entry point are a
+          # half-landed engine, and would otherwise skip their own gate quietly
+          # for as long as nobody noticed.
+          stray=$(find tools/theme-validate -type f \
+                    \( -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' \
+                       -o -name '*.h' \) 2>/dev/null || true)
+          if [ -n "$stray" ]; then
+            echo "::error::tools/theme-validate has sources but no CMakeLists.txt."
+            echo "::error::Half-landed is not absent. Either finish wiring the"
+            echo "::error::target so this job runs it, or take the sources back out."
+            echo "$stray" | sed 's/^/  /'
+            exit 1
+          fi
+          echo "Engine absent — reporting the gap instead of failing to build it."
+
+      - name: Say what is not covered while the engine is absent
+        if: steps.detect.outputs.engine == 'absent'
+        run: |
+          set -euo pipefail
+          cases=$(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['cases']))" \
+                    shared-spec/conformance/theme-validation-cases/index.json)
+          echo "::warning::REQ-THM-060 is unverified: tools/theme-validate does not exist yet (OQ-040)."
+          {
+            echo "### Desktop theme engine: not built yet"
+            echo
+            echo "\`tools/theme-validate\` (\`REQ-THM-060\`) is a **Phase 5** deliverable —"
+            echo "§28 lists it under *Skin engine*, together with the full validation"
+            echo "pipeline it would have to implement. This repository is in Phase 0,"
+            echo "and §28 forbids starting a phase before the previous one's gates are"
+            echo "green. So the engine is absent on purpose, not by oversight."
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Corpus cases not run against the shipped engine | **$cases** |"
+            echo "| Requirement left unverified | \`REQ-THM-060\`, \`REQ-THM-072\` |"
+            echo "| Tracked as | \`OQ-040\` |"
+            echo "| Becomes blocking when | \`tools/theme-validate/CMakeLists.txt\` exists |"
+            echo
+            echo "The Python reference validator in the \`schemas\` job **does** run the"
+            echo "whole corpus, and is blocking. What is missing is the second"
+            echo "implementation — \`REQ-GEN-031\` is about implementations *agreeing*,"
+            echo "and one implementation cannot disagree with anything."
+            echo
+            echo "No verdict artifact is uploaded from this job while the engine is"
+            echo "absent. That is deliberate: an empty or stub report would let the"
+            echo "\`agreement\` job compare nothing and call the result agreement."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Install
+        if: steps.detect.outputs.engine == 'present'
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build g++-13 pkg-config zlib1g-dev
 
       - name: Configure
+        if: steps.detect.outputs.engine == 'present'
         env: { CC: gcc-13, CXX: g++-13 }
         run: cmake --preset linux-release
         working-directory: desktop
 
       - name: Build theme-validate
+        if: steps.detect.outputs.engine == 'present'
         run: cmake --build --preset linux-release --target theme-validate --parallel
         working-directory: desktop
 
       - name: Run the corpus through the desktop engine
+        if: steps.detect.outputs.engine == 'present'
         run: |
-          ./desktop/build/linux-release/tools/theme-validate \
+          set -euo pipefail
+          # Found, not assumed. The CMake project root is desktop/, so a target
+          # living in the repository-root tools/ tree has to be pulled in with an
+          # explicit binary directory, and where that lands is the wirer's choice.
+          # Hard-coding a path here is what produced OQ-040's second defect.
+          mapfile -t found < <(find build/linux-release -type f -name theme-validate -perm -u+x | sort)
+          if [ "${#found[@]}" -eq 0 ]; then
+            echo "::error::The target built, but no theme-validate executable is under"
+            echo "::error::build/linux-release. Check how tools/theme-validate is added to"
+            echo "::error::the desktop/ project — a target outside the CMake source tree"
+            echo "::error::needs add_subdirectory() with an explicit binary directory."
+            exit 1
+          fi
+          if [ "${#found[@]}" -gt 1 ]; then
+            echo "::error::More than one theme-validate executable; refusing to guess:"
+            printf '::error::  %s\n' "${found[@]}"
+            exit 1
+          fi
+          echo "Running ${found[0]}"
+          "${found[0]}" \
             --corpus shared-spec/conformance/theme-validation-cases \
             --report desktop-verdicts.json
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: steps.detect.outputs.engine == 'present'
         with:
           name: verdicts-desktop
           path: desktop-verdicts.json
@@ -187,11 +298,18 @@ jobs:
   #  4 · Cross-platform verdict agreement (REQ-TST-021, REQ-GEN-031).
   #
   #  This is the job §25.3 exists for. It is deliberately NOT conditional on
-  #  android/ existing: the honest output while there is one implementation is
+  #  android/ existing: the honest output once there is one implementation is
   #  "compared 1 verdict set, need 2", printed as a warning annotation, with the
   #  gap tracked as OQ-018. When android-ci.yml lands it uploads
   #  verdicts-android and this job starts comparing for real without being
   #  rewritten.
+  #
+  #  Today there are zero implementations, because the desktop engine is Phase 5
+  #  work (see the native job). compare_verdicts.py treats zero reports as FATAL
+  #  — correctly, since the case it was written for is "native said it uploaded
+  #  and the artifact is not there", which is broken wiring and must be loud. So
+  #  this job asks native what state it was in rather than inferring it from an
+  #  empty directory, and keeps that FATAL for the case it means.
   # -------------------------------------------------------------------------
   agreement:
     name: desktop and Android agree
@@ -200,17 +318,44 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      # Run the comparator's own scenarios first, in every state. If the
+      # comparator is broken, its verdict on the verdicts means nothing, and a
+      # broken comparator fails in the direction of passing. This is also the
+      # only thing holding compare_verdicts.py honest for the whole of Phases
+      # 0–4, during which it has no real input to chew on.
+      - name: The comparator still behaves as committed
+        run: python3 .github/scripts/compare_verdicts.py --self-test
+
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: needs.native.outputs.engine == 'present'
         with:
           pattern: verdicts-*
           path: verdicts
           merge-multiple: false
 
-      # Run the comparator's own scenarios first. If the comparator is broken,
-      # its verdict on the verdicts means nothing, and a broken comparator fails
-      # in the direction of passing.
-      - name: The comparator still behaves as committed
-        run: python3 .github/scripts/compare_verdicts.py --self-test
-
       - name: Compare verdict sets
+        if: needs.native.outputs.engine == 'present'
         run: python3 .github/scripts/compare_verdicts.py verdicts/
+
+      - name: Report the gap while there is nothing to compare
+        if: needs.native.outputs.engine != 'present'
+        run: |
+          set -euo pipefail
+          echo "::warning::REQ-GEN-031 is unverified: zero implementations produce verdicts (OQ-040, OQ-018)."
+          {
+            echo "### Verdict agreement: nothing to compare yet"
+            echo
+            echo "\`REQ-GEN-031\` and \`REQ-TST-021\` ask that the desktop and Android"
+            echo "validators reach the *same* verdict on every corpus case. Neither"
+            echo "exists yet — the desktop engine is Phase 5 (\`OQ-040\`), the Android"
+            echo "target is deferred by ADR 0011 (\`OQ-018\`) — so there are zero verdict"
+            echo "sets, not one."
+            echo
+            echo "The comparator itself was exercised above, and is blocking. What this"
+            echo "step does **not** do is run it over an empty directory to collect a"
+            echo "green tick: it would report zero sets as FATAL, which is the right"
+            echo "answer to *broken artifact wiring* and the wrong answer to *the"
+            echo "implementations are not written*. Distinguishing those is why the"
+            echo "\`native\` job publishes its state as an output."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"

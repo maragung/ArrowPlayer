@@ -1174,10 +1174,15 @@ committed and versioned, and the corpus pins the verdicts, which is what makes i
 safe to author early — when the loader arrives it has to agree with the corpus, not
 the other way round.
 
-`spec-ci.yml`'s `native` job already builds and runs `theme-validate`, which means
-that job cannot currently pass. That is recorded as OQ-040 in
-[`docs/OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) rather than left to look like a
-passing gate.
+`spec-ci.yml`'s `native` job used to build and run `theme-validate` unconditionally,
+which meant it could not pass. It now detects whether the engine is in the tree —
+deciding on `tools/theme-validate/CMakeLists.txt`, since git cannot track an empty
+directory — and while it is absent it emits a warning, writes a summary naming the
+122 corpus cases nobody runs, and uploads no verdict file. The day the CLI lands,
+every build and run step in that job becomes blocking with no edit to the workflow.
+Recorded as OQ-040 in [`docs/OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) rather than left
+to look like a passing gate — and the table above still says `REQ-THM-060` is unmet,
+because it is.
 
 ## See also
 
