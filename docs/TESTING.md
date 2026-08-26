@@ -495,7 +495,7 @@ The suites map onto the workflows that exist under `.github/workflows/`:
 
 | Workflow | What it runs | Spec |
 |---|---|---|
-| `desktop-ci.yml` | architecture gates → configure/build/`ctest` on `ubuntu-22.04` (gcc-12), `ubuntu-24.04` (gcc-13, plus asan, tsan, clang-18), `windows-2022` (msvc) → FFmpeg licence assertion → clang-format, clang-tidy, cppcheck | `REQ-BLD-021`, §25.2 |
+| `desktop-ci.yml` | architecture gates → configure/build/`ctest` on `ubuntu-22.04` (gcc-12), `ubuntu-24.04` (gcc-13, plus asan, tsan, clang-18), `windows-2022` (msvc) → FFmpeg licence assertion when a build links FFmpeg, and a hard failure if an adapter exists without one (OQ-042) → clang-format, clang-tidy, cppcheck | `REQ-BLD-021`, §25.2, `REQ-GEN-015` |
 | `spec-ci.yml` | `validate-shared-spec.py` → draft-2020-12 schema + fixture validation → schema/fixture-sync → `theme-validate` over the corpus → desktop/Android verdict comparison | `REQ-BLD-023`, `REQ-TST-021` |
 | `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-doc-links.py` and `gen-third-party.py --check` for both licence documents, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-GEN-012`, `REQ-GEN-020` |
 

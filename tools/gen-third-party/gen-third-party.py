@@ -1163,11 +1163,16 @@ def render_source_offer(register: dict, ledger: dict, pins: dict) -> str:
         L.append(f"- **Pinned version:** {ff['version']}.")
         L.append(f"- **Corresponding source:** {link(ff['source_url'])}")
         L.append(
-            "- **Assertion, not assurance:** `REQ-GEN-015` makes CI verify at build "
-            "time that the linked FFmpeg reports `LGPL` and neither `GPL version` nor "
-            "`nonfree` via `avutil_license()`, and fail the build otherwise. A configure "
-            "flag recorded in a document is a flag that eventually goes wrong; a test "
-            "that fails the build is a flag that stays right."
+            "- **Assertion, not assurance:** `REQ-GEN-015` requires CI to verify at "
+            "build time that the linked FFmpeg reports `LGPL` and neither `GPL version` "
+            "nor `nonfree` via `avutil_license()`, and to fail the build otherwise. A "
+            "configure flag recorded in a document is a flag that eventually goes wrong; "
+            "a test that fails the build is a flag that stays right. Stated exactly, "
+            "because the difference matters for an offer: the step is wired in "
+            "`desktop-ci.yml`, and no build has yet linked FFmpeg for it to assert "
+            "against — the adapter arrives in Phase 1. Until then CI fails if an FFmpeg "
+            "adapter appears without a registered licence case, which is the state this "
+            "document would otherwise be describing optimistically (OQ-042)."
         )
         L.append(
             "- **Decode only in 1.0.** Encoders are enabled selectively and only for "

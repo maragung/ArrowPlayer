@@ -99,7 +99,7 @@ FFmpeg can be built LGPL or GPL from the same tree — the licence is a function
 
 - **Pinned version:** 7.1.2 (vcpkg port-version 5).
 - **Corresponding source:** [https://ffmpeg.org/releases/ffmpeg-7.1.2.tar.xz](https://ffmpeg.org/releases/ffmpeg-7.1.2.tar.xz)
-- **Assertion, not assurance:** `REQ-GEN-015` makes CI verify at build time that the linked FFmpeg reports `LGPL` and neither `GPL version` nor `nonfree` via `avutil_license()`, and fail the build otherwise. A configure flag recorded in a document is a flag that eventually goes wrong; a test that fails the build is a flag that stays right.
+- **Assertion, not assurance:** `REQ-GEN-015` requires CI to verify at build time that the linked FFmpeg reports `LGPL` and neither `GPL version` nor `nonfree` via `avutil_license()`, and to fail the build otherwise. A configure flag recorded in a document is a flag that eventually goes wrong; a test that fails the build is a flag that stays right. Stated exactly, because the difference matters for an offer: the step is wired in `desktop-ci.yml`, and no build has yet linked FFmpeg for it to assert against — the adapter arrives in Phase 1. Until then CI fails if an FFmpeg adapter appears without a registered licence case, which is the state this document would otherwise be describing optimistically (OQ-042).
 - **Decode only in 1.0.** Encoders are enabled selectively and only for LGPL-clean codecs when the converter lands (`REQ-GEN-016`); `libfdk_aac` is permanently excluded as non-free.
 
 ## TagLib — a dual licence, and which arm we take
