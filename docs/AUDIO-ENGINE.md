@@ -469,7 +469,7 @@ Three of the engine's modules are implemented, all in layer 3, all pure C++20:
 | `audio/dsp/equalizer.hpp` | `REQ-AUD-080`–`REQ-AUD-088`: both graphic band sets, parametric mode, ranges, presets, computed response | 30 (bands, settings, presets, cascade response) |
 | `audio/decode/gapless_info.hpp` | `REQ-AUD-036`–`REQ-AUD-045`: MPEG header, Xing/LAME, `iTunSMPB`, `OpusHead`, granule, native | 48, plus 3 randomised-input cases |
 
-`ctest` reports **184 passing** over the whole tree — the three modules above plus
+`ctest` reports **186 passing** over the whole tree — the three modules above plus
 `core/error`, `core/text`, and `core/json`. That number is a local run, not a
 claim: see `docs/TESTING.md` for how to reproduce it and what it does and does not
 cover.

@@ -55,7 +55,7 @@ zero-connection test asserts no outbound traffic during a full session.
 | Format strings, smart playlists, theme engine | not started | — |
 | Qt UI | not started | — |
 
-**184 tests, all passing** from a clean build, clean under `-Werror` with a strict
+**186 tests, all passing** from a clean build, clean under `-Werror` with a strict
 warning set, and passing again under ASan+UBSan and under ThreadSanitizer.
 Reproduced locally on GCC 14.2 / CMake 3.31 / Ninja 1.12, not asserted from CI
 alone. The one dependency that is unavailable locally is Qt, so the UI is
