@@ -84,6 +84,7 @@ contributor who assumes a check is automated stops running it:
 | `validate-shared-spec.py` | `spec-ci.yml` — after its `--self-test`, which plants fourteen defects in a copy of `shared-spec/` |
 | `markdownlint-cli2`, `commitlint` | `repo-lint.yml` |
 | `check-dependency-denylist.py` | `security.yml` — blocking in `dependencies`, and again with `--resolved-graph` in the non-blocking `resolved-graph` job (OQ-015, OQ-038) |
+| §27's `.github/` half — the four workflow files, `dependabot.yml`, both templates | `check-doc-links.py`'s existence table. `android-ci.yml` is `required=False` (ADR 0011) and reported as a note, not an error |
 | `check-doc-links.py`, `gen-third-party.py --check`, `gen-sbom.py --check` | `repo-lint.yml`, each after its own `--self-test` |
 | `check-cve-baseline.py` | `security.yml`, after its `--self-test`, over the SBOM scan and the tree scan together |
 | `gen-third-party.py --resolved-graph`, `gen-sbom.py --resolved-graph` | `security.yml`'s `resolved-graph` job — audit mode with `--output`, never `--check`, which is stale by design against a resolved graph (OQ-038) |

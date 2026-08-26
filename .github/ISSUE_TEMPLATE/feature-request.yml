@@ -1,0 +1,56 @@
+name: Feature request
+description: Something eclipse-player.md does not cover, or covers differently.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `eclipse-player.md` is 525 numbered requirements across 10 phases, and
+        §2.3 lists things this project **rejects on purpose** — bitmap
+        sprite-sheet skins, a scripting language inside skins, bundled installer
+        offers, video playback. A request for one of those is not going to be
+        accepted, and the reasons are written down rather than left to taste.
+
+        Two things worth checking first:
+        [ROADMAP.md](https://github.com/maragung/ArrowPlayer/blob/main/docs/ROADMAP.md) for whether it is already
+        planned and in which phase, and
+        [OPEN-QUESTIONS.md](https://github.com/maragung/ArrowPlayer/blob/main/docs/OPEN-QUESTIONS.md) for whether it
+        is already an open question with a proposed answer.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >-
+        What you cannot do today. Not the solution — the situation. Most requests
+        that get accepted here are accepted because the problem was undeniable,
+        not because the proposed mechanism was clever.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like instead
+    validations:
+      required: true
+
+  - type: input
+    id: requirement
+    attributes:
+      label: Related requirement or section
+      description: >-
+        If it extends or contradicts something already specified, name it. A
+        contradiction is more interesting than a gap: it means the specification
+        is wrong somewhere, which is worth knowing.
+      placeholder: "§10.2, REQ-EFS-020"
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Before submitting
+      options:
+        - label: This is not in §2.3's reject list.
+          required: true
+        - label: I checked ROADMAP.md and this is not already planned.
+          required: true

@@ -1,0 +1,14 @@
+# Not blank issues. Every field the two forms ask for is a field somebody
+# otherwise has to ask for in a comment three days later.
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/maragung/ArrowPlayer/security/advisories/new
+    about: >-
+      Do not open a public issue for a vulnerability. SECURITY.md describes the
+      private route and the response times it commits to.
+  - name: Skin or theme not loading
+    url: https://github.com/maragung/ArrowPlayer/blob/main/docs/SKIN-AUTHORING.md
+    about: >-
+      The validation rules and every rejection reason are documented. Check
+      there first — the message the player gives you is listed with its cause.
