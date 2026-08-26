@@ -87,6 +87,37 @@ stable yet.
   planted defects that must be caught; `_FORTIFY_SOURCE` and `/GS` are advisory
   per binary and mandatory across a build, because a binary that makes no
   fortifiable call is evidence about the source rather than about hardening.
+- **One dependency register, three generated documents.** `§4.2` lives as data
+  in `tools/gen-third-party/register.json`; nothing derived from it is authored
+  twice. `tools/gen-third-party/gen-third-party.py` emits `docs/THIRD-PARTY.md`
+  (`REQ-GEN-012`) and `docs/LGPL-SOURCE-OFFER.md` with its per-tag release ledger
+  (`REQ-GEN-020`); `tools/gen-sbom.py` emits
+  `docs/sbom/eclipse-player.cdx.json`, a CycloneDX 1.6 document with 23
+  components (`REQ-GEN-021`, `REQ-SEC-014`). `repo-lint.yml` runs `--check` on
+  all three for every push and pull request, so a hand-edit or a dependency that
+  reached `vcpkg.json` without a register entry is a red build rather than a
+  discovery at release time.
+
+  The SBOM identifies vcpkg ports as `pkg:vcpkg/<port>` — the type is registered,
+  and `pkg:generic` was simply wrong — carrying `repository_revision` from the
+  pinned registry baseline and a `triplet` only where one is actually known: a
+  host-side helper port is not built for the target triplet, so stamping it with
+  one would be a wrong answer rather than a missing one. `port_version` is
+  emitted only when known, because an absent qualifier already asserts
+  port-version 0. `--resolved-graph` consumes `vcpkg install --dry-run` output to
+  supply exact versions and the transitive set, and `--diff` implements §25.4
+  step 4. All eight of these invariants were mutation-tested — each deliberately
+  broken, each caught — after two of them turned out to be covered by no test at
+  all.
+
+  What this does **not** yet do is recorded rather than glossed: the three common
+  CVE scanners either skip `pkg:vcpkg` components or match them to nothing, so
+  the scanning half of `REQ-SEC-014` would report clean over no coverage
+  ([OQ-046](docs/OPEN-QUESTIONS.md)); ten of thirteen components carry a version
+  series rather than a release, which `--resolved-graph` resolves for nine of
+  them (OQ-047); and the document validates against the canonical
+  `bom-1.6.schema.json` with zero errors, but through a throwaway draft-07
+  adapter rather than a validator this repository ships (OQ-048).
 - **Repository policy files.** `.gitattributes`, `.markdownlint.json`,
   `commitlint.config.js` with the §0.2 scope enum and a custom rule requiring a
   REQ id in the body of every behavioural commit, `CONTRIBUTING.md`,
@@ -94,7 +125,7 @@ stable yet.
 - **Documentation.** `docs/BUILDING.md` including a root-free user-local
   dependency build, `docs/PARITY.md` (the §29.2 matrix with an added Status
   column), `docs/PRIVACY.md`, `docs/ROADMAP.md` (the 56 `[v1.x]` requirements,
-  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (39
+  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (48
   registered assumptions, narrowings and gaps with stable `OQ-NNN` ids).
 - **ADRs** 0001 (MPL-2.0 core, LGPL-only dependencies), 0002 (`IAudioSink` with
   native backends rather than RtAudio), 0003 (no executable code in skins), 0005

@@ -48,6 +48,7 @@ for gate in check-layers check-sql-safety check-rt-safety validate-shared-spec \
   python3 "tools/$gate.py" --self-test || echo "SELF-TEST FAILED: $gate"
 done
 python3 tools/gen-third-party/gen-third-party.py --self-test
+python3 tools/gen-sbom.py --self-test
 
 # 2 · Then the gates themselves.
 python3 tools/check-layers.py                 # REQ-GEN-050 / REQ-GEN-051
@@ -60,9 +61,11 @@ python3 desktop/tests/fuzz/make-seeds.py --check   # REQ-SEC-011 — corpus is c
 python3 tools/check-hardening.py build/linux-release  # REQ-SEC-018 — a real binary
 npm ci && npm run lint:md                     # REQ-GEN-075
 
-# If you touched vcpkg.json, the §4.2 register, or a licence document:
+# If you touched vcpkg.json, the §4.2 register, or a generated document. One
+# register, three outputs — regenerate all three or CI reports the odd one out.
 python3 tools/gen-third-party/gen-third-party.py --document third-party
 python3 tools/gen-third-party/gen-third-party.py --document source-offer
+python3 tools/gen-sbom.py                     # REQ-GEN-021 — CycloneDX 1.6
 ```
 
 The Python scripts need only Python 3.9 from the standard library — no virtualenv,
@@ -76,7 +79,7 @@ contributor who assumes a check is automated stops running it:
 | `validate-shared-spec.py` | `spec-ci.yml` — after its `--self-test`, which plants fourteen defects in a copy of `shared-spec/` |
 | `markdownlint-cli2`, `commitlint` | `repo-lint.yml` |
 | `check-dependency-denylist.py` | **nothing yet** — `security.yml` (§25.4) is not written. Run it |
-| `check-doc-links.py`, `gen-third-party.py --check` | `repo-lint.yml`, each after its own `--self-test` |
+| `check-doc-links.py`, `gen-third-party.py --check`, `gen-sbom.py --check` | `repo-lint.yml`, each after its own `--self-test` |
 | `make-seeds.py --check` | `desktop-ci.yml`, in the same `gates` job as the three above |
 
 There is also a fuller schema check that needs the real `jsonschema` library
@@ -249,6 +252,10 @@ agreement.
 
 Contributions that would introduce a dependency outside the §4.2 register, or a
 GPL-licensed dependency, cannot be accepted: the whole dependency policy exists
-so that the licence answer is decidable, and it is enforced by the licence audit
-in `security.yml`. If you need a new dependency, propose it as a specification
+so that the licence answer is decidable. §25.4 assigns the enforcing licence
+audit to `security.yml`, which **is not written yet** — until it is, the
+mechanical part of that answer is `gen-third-party.py --check` and
+`gen-sbom.py --check` in `repo-lint.yml`, which fail on a dependency that reached
+`vcpkg.json` without a register entry, and `check-dependency-denylist.py`, which
+nothing runs for you. If you need a new dependency, propose it as a specification
 change (above) so its licence is recorded first.

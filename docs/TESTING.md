@@ -701,7 +701,7 @@ The suites map onto the workflows that exist under `.github/workflows/`:
 |---|---|---|
 | `desktop-ci.yml` | architecture gates plus `make-seeds.py --check` → configure/build/`ctest` on `ubuntu-22.04` (gcc-12), `ubuntu-24.04` (gcc-13, plus asan, tsan, clang-18), `windows-2022` (msvc) → FFmpeg licence assertion when a build links FFmpeg, and a hard failure if an adapter exists without one (OQ-042) → fuzzing smoke on clang-18: assert libFuzzer was detected, replay the corpus, 60 s per target → clang-format, clang-tidy, cppcheck | `REQ-BLD-021`, §25.2, `REQ-GEN-015`, `REQ-SEC-011`, `REQ-SEC-012` |
 | `spec-ci.yml` | `validate-shared-spec.py` → draft-2020-12 schema + fixture validation → schema/fixture-sync → `theme-validate` over the corpus → desktop/Android verdict comparison | `REQ-BLD-023`, `REQ-TST-021` |
-| `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-doc-links.py` and `gen-third-party.py --check` for both licence documents, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-GEN-012`, `REQ-GEN-020` |
+| `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-doc-links.py`, `gen-third-party.py --check` for both licence documents, and `gen-sbom.py --check` for the CycloneDX SBOM, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-GEN-012`, `REQ-GEN-020`, `REQ-GEN-021` |
 
 Two notes on that mapping:
 
@@ -711,14 +711,15 @@ Two notes on that mapping:
   introduced while red is a gate someone weakens instead of satisfying. When this
   document landed, the gate reported two missing §27 documents —
   `docs/SKIN-AUTHORING.md` and `docs/LGPL-SOURCE-OFFER.md`. Both now exist, the
-  gate reports 33 documents and 224 internal links resolved with one `[v1.x]`
+  gate reports 34 documents and 233 internal links resolved with one `[v1.x]`
   note for the deferred `docs/PLUGIN-AUTHORING.md`, and the `TODO` is gone. Each
   gate runs its own `--self-test` first: the link checker's is over its
   heading-slug algorithm, which is how a false failure against a correct link in
-  `docs/API.md` was found and fixed rather than worked around, and the
+  `docs/API.md` was found and fixed rather than worked around; the licence
   generator's covers the `REQ-GEN-020` ledger rules against seven malformed
-  release rows. A checker whose own rules are untested reports whatever its bugs
-  allow.
+  release rows; and `gen-sbom.py`'s plants 18 register defects, 25 defects in the
+  emitted document, and every purl and version shape it has to get right. A
+  checker whose own rules are untested reports whatever its bugs allow.
 - **`markdownlint-cli2` is run with no arguments, deliberately** — the file set
   and exclusions live in `.markdownlint-cli2.jsonc`, because passing a glob is
   precisely how the wrong file set once got linted ([OQ-028](OPEN-QUESTIONS.md)).

@@ -908,6 +908,118 @@ so its pass had never once depended on its matching logic being correct.
 
 ---
 
+### OQ-046 — The SBOM's CVE scan matches nothing, in all three scanners · **Gap**
+
+`REQ-SEC-004` requires the dependency CVE scan to fail the build on any new
+high-severity finding, and §25.4 step 2 is that scan. The generated SBOM carries a
+purl for every component and no `cpe` for any of them, because the §4.2 register
+records no CPE names and `gen-sbom.py` will not invent one. The consequence was
+read out of the scanners rather than assumed:
+
+| Scanner | What it does with these purls |
+|---|---|
+| osv-scanner | maps purl types to OSV ecosystems; among C/C++ types only `conan` is mapped, `generic` is present but commented out, and there is no `vcpkg` case at all. OSV.dev has no populated vcpkg ecosystem — its C/C++ data is commit-based (`GIT`) |
+| grype | recognises `pkg:vcpkg` through syft but assigns it no Language, so it routes to the stock matcher, which needs a CPE and returns `ErrEmptyCPEMatch`. Zero matches, with a debug hint to pass `--add-cpes-if-none` — default `false` |
+| trivy | falls to `default: TypeUnknown` → `ClassUnknown` and logs "Skipping a component with an unsupported type" before matching runs at all |
+
+- **The purl was corrected anyway, and it changed nothing.** An earlier draft of
+  `gen-sbom.py` emitted `pkg:generic` for the vcpkg ports on the belief that purl
+  has no `vcpkg` type. It does — a registered type with a full machine-readable
+  definition — so the ports are now `pkg:vcpkg/<port>`, qualified by
+  `repository_revision` (the pinned registry baseline) and `triplet`. That was done
+  because it is the correct identifier, **not** because it improves coverage: all
+  three outcomes above are the same either way.
+- **Why this matters more than a missing feature.** A CVE step that scans this
+  document reports clean and covers nothing — the same shape as OQ-042, where a
+  licence gate took the "not applicable" branch on every run from the day it was
+  written. A green check here would be a claim nobody had earned.
+- **Proposed answer, in three parts.** (1) `security.yml`'s CVE step scans the
+  source tree and the vcpkg manifest, not only the SBOM, so each tool's native
+  detection path is used instead of a purl lookup that is known to miss. (2) grype
+  additionally runs with `--add-cpes-if-none` and its findings are labelled
+  advisory in the job summary: a synthesised name-plus-version CPE resolves against
+  NVD, which produces false positives as readily as coverage, so it must not gate
+  the build on its own. (3) The residual gap is printed in the summary rather than
+  hidden behind a green check. Until the register carries CPE names, or vcpkg lands
+  in a scanner's ecosystem map, `REQ-SEC-004` is **not** satisfiable from the SBOM
+  alone, and the workflow will say so.
+- **What is not proven.** None of the three scanners has been run here — none is
+  installed and none can be without root. The table is read from their source and
+  issue trackers, not from an execution. The first CI run with a scanner available
+  is what settles it, and if any of these three descriptions turns out wrong, this
+  entry is what gets corrected.
+
+---
+
+### OQ-047 — Ten of thirteen registered versions are a series, so the SBOM omits `version` · **Open**
+
+CycloneDX's `component.version` is a version, not prose. The §4.2 register spells
+ten of its thirteen desktop entries as a series or a bound — `2.x`, `3.4x`,
+`≥ 0.2.2`, `current` — and only qt6 (6.8.2), ffmpeg (7.1.2) and gtest (1.15.2) as a
+release. So those ten components carry **no `version` field at all**; the raw
+register string is preserved as `eclipse:register-version` and
+`eclipse:version-precision` says `series`.
+
+- **Why the series is not simply put in `version`.** A consumer diffing two SBOMs,
+  or matching a version range, would treat `2.x` as a literal version and match
+  nothing while appearing to have matched something. An absent field is a fact a
+  consumer can act on; a fake one is not.
+- **The gate that says it out loud.** `gen-sbom.py --require-exact-versions` fails
+  today and names all ten, and for each says whether a resolved graph could supply
+  the version or whether only the register can. That distinction is not cosmetic:
+  nine of the ten have a vcpkg port and a resolved graph fixes them, while
+  nlohmann/json has no port at all — it is registered but not linked, since
+  `desktop/src/core/json/` is a bespoke hardened parser (ADR 0008) — so no graph
+  will ever pin it.
+- **Tied to OQ-026.** The resolved graph comes from `vcpkg install --dry-run`, which
+  needs vcpkg in CI — the same missing piece OQ-026 records. Until then the
+  committed baseline is generated in direct-only mode.
+- **Proposed answer.** The release SBOM (§25.5 step 6) is generated with
+  `--resolved-graph --require-exact-versions`, so no release artifact ever ships a
+  component whose version is unknown, while the committed baseline stays
+  direct-only. Pinning the register to patch releases instead would be a
+  maintenance lie the moment vcpkg's baseline moves, and it would make §4.2 claim
+  precision about a version nobody re-checks.
+
+---
+
+### OQ-048 — Nothing committed validates the SBOM against the CycloneDX schema · **Open**
+
+`REQ-GEN-021` asks for a CycloneDX SBOM, which is worth having only if it is valid.
+`gen-sbom.py`'s own `validate_bom` checks structure — required top-level fields,
+unique bom-refs, the licence array's `oneOf` shape, each purl agreeing with its
+component name, every dependency reference resolving — and is explicitly not a
+JSON Schema validation.
+
+- **What has actually been checked, and how.** Both the direct-only and the
+  resolved-graph documents were validated against the canonical
+  `bom-1.6.schema.json`, with CycloneDX's own `valid-bom-1.6.json` as a control and
+  a planted `scope: "mandatory"` to prove the harness could fail: **0 errors** for
+  each document, 0 for the control, and the planted defect caught. So the document
+  is known to be valid.
+- **But not by anything in this repository.** That run went through a throwaway
+  40-line adapter under `/tmp` that is deliberately not committed.
+  `tools/jsonschema_mini.py` implements a draft-2020-12 subset; the CycloneDX
+  schemas are draft-07 and need three things it does not have: three unimplemented
+  keywords, cross-file `$ref` into `spdx.schema.json` and `jsf-0.82.schema.json`,
+  and the tuple form of `items` with `additionalItems`. The 166 `$ref` siblings in
+  those schemas are all annotations, so the dialect difference itself is inert.
+- **Proposed answer.** CI validates with `CycloneDX/cyclonedx-cli validate
+  --input-version v1_6`: one per-platform executable that embeds bom-1.6, spdx and
+  jsf-0.82 as resources, so it needs no network on a build machine — which is what
+  an earlier draft of this entry wrongly claimed was impossible. Extending
+  `jsonschema_mini.py` to draft-07 is the alternative, measured at those three
+  keywords plus a multi-document registry, and it is worth doing on its own account
+  because `validate-shared-spec.py` could then run real schemas locally too. Either
+  way, the check belongs in `security.yml` next to the SBOM generation, not in a
+  scratch file.
+- **What is not proven.** `cyclonedx-cli`'s embedded-schema behaviour is read from
+  its source and release notes, not from a run here; it is not installed and cannot
+  be without root. Some Linux images additionally need `libicu` for it to start.
+  The first CI run is what settles both points.
+
+---
+
 ## 5 · Verification status — what is proven where
 
 The governing record for the scope decision behind this section is
@@ -940,11 +1052,18 @@ to let them imply that nothing has been run.
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | pass — 34 documents, 231 internal links, 23 §27 deliverables present |
+| `tools/check-doc-links.py` | pass — 34 documents, 235 internal links, 23 §27 deliverables present |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 | `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
 | `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires; the `REQ-GEN-020` ledger gate fires on all 7 malformed release rows |
 | the same with `--check`, both documents | pass — `docs/THIRD-PARTY.md` and `docs/LGPL-SOURCE-OFFER.md` byte-identical to a fresh render |
+| `tools/gen-sbom.py --self-test` | pass — 18 planted register defects caught, 10 valid registers accepted, 25 planted document defects caught over a control that validates, 10 purl shapes spelled out, and the `--resolved-graph` path run through the real vcpkg dry-run parser and classifier |
+| the same, with each new invariant inverted one at a time | fails, naming the case — 8 of 8: the dropped `build_only` bucket, a graph-blind version gate, a guessed port-version, `pkg:generic` for a vcpkg port, unsorted qualifier keys, a target triplet on a host-side helper, an upper-case `serialNumber`, and the component/port-name gate removed |
+| `tools/gen-sbom.py --check` | pass — `docs/sbom/eclipse-player.cdx.json` byte-identical to a fresh render |
+| that document, and a resolved-graph one, against the canonical `bom-1.6.schema.json` | **0 errors each**; CycloneDX's own `valid-bom-1.6.json` control 0 errors; a planted `scope: "mandatory"` caught — but through a throwaway draft-07 adapter, not committed code (OQ-048) |
+| both documents' 24 purls against the purl grammar | pass — no namespace on `pkg:vcpkg`, qualifier keys sorted, no subpath, no unexpected qualifier |
+| `tools/gen-sbom.py --require-exact-versions` | **fails**, naming 10 of 13 (OQ-047); over a hand-written dry-run graph it names 1 of 13 — nlohmann/json, which has no vcpkg port. Real `vcpkg install --dry-run` output has still never been through it |
+| `gen-sbom.py --self-test` and `--check` in `repo-lint.yml` | wired — self-test in the `Gate self-tests` step, `--check` beside the two licence documents, in a workflow with no `paths` filter. **Caveat that applies to every workflow here:** nothing has been pushed to `origin`, so no workflow in this repository has ever executed. Every result in this table is a local run |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local
 `~/.local` prefix, no root required — FFmpeg 7.1.1 (LGPL-configured,
