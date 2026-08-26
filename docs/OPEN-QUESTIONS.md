@@ -151,6 +151,42 @@ satisfied by not running it.
   only "deflate or stored, no encryption, no other compression methods" and
   because OpenSSL has no row in §4.2.
 
+---
+
+### OQ-039 — `window.*` actions have no §13.2 command · **Open**
+
+`layout.schema.json` admits three window actions — `window.close`,
+`window.minimize`, `window.maximizeRestore`. `REQ-THM-028` says the action set
+"mirrors the command registry from §13.2", and §13.2 as excerpted enumerates no
+window command: §13.3's default-shortcut table lists only
+`view.toggleWindowshade` and `playlist.closeTab` in that space. Read literally, an
+action with no registry entry is not a valid action.
+
+- **Assumption in force:** the three are legitimate registry commands and validate
+  today. `REQ-THM-032` counts `close` among the controls a skin "must never be able
+  to remove", which means a skin must be able to *invoke* it; a close button bound
+  to `window.close` is accepted by `layout.schema.json` as it stands, and
+  `docs/SKIN-AUTHORING.md` documents them as valid because the schema is the
+  artefact that decides what validates (`REQ-THM-010`).
+- **Proposed answer:** add the three to the §13.2 registry explicitly. They are
+  window-management commands the registry simply never enumerated, and
+  `REQ-THM-032` already requires the application to keep `close` reachable, so the
+  command must exist somewhere regardless. Then `REQ-THM-028`'s "mirrors §13.2"
+  holds by construction rather than by this note.
+- **Consequence if unfixed:** the schema and the prose disagree about whether a
+  skin may bind `window.close`. Both engines follow the schema, so a skin using it
+  validates and works — the discrepancy is invisible until someone reads
+  `REQ-THM-028` literally and removes the actions from the enum, which would
+  silently break every skin that placed a working close button. That is the exact
+  "unclosable player" failure `REQ-THM-032` exists to prevent, arrived at from the
+  opposite direction.
+- **Correction of record.** The schema's own `action` description has asserted since
+  the `shared-spec` commit that this gap "is flagged in docs/OPEN-QUESTIONS.md".
+  It was not: no entry mentioned `window.*` until this one. The assertion was
+  written in the same commit as the enum and pointed at an entry that was never
+  added. This entry makes it true rather than editing the schema to make the claim
+  disappear.
+
 ## 2 · Documented narrowings — the implementation is stricter than the requirement
 
 Each of these makes the implementation refuse something the requirement, read
@@ -614,6 +650,39 @@ fixture in `tools/gen-third-party/testdata/`, because vcpkg is not installed her
   confirms the classification, and commits the captured output as the fixture in
   place of the synthetic one. Until then the parser stays labelled untested
   against real output wherever it is described.
+
+---
+
+### OQ-040 — `spec-ci.yml` runs a `theme-validate` that does not exist · **Open**
+
+`spec-ci.yml`'s `native` job builds the CMake target `theme-validate` and runs the
+resulting binary over the 122-case corpus to produce `desktop-verdicts.json`.
+Neither exists. `tools/theme-validate/` is an empty directory, `desktop/src/theme/`
+is an empty directory, no `CMakeLists.txt` under `tools/` is added by
+`desktop/CMakeLists.txt`, and so the target cannot be built. The job's own path
+filters already watch `tools/theme-validate/**`, which is how the gap survived
+review: the workflow reads as though the tool were there.
+
+- **Assumption in force:** none, and that is the problem. This is not a documented
+  narrowing — it is a job that fails on its build step, which `REQ-THM-060` and
+  `REQ-THM-072` both depend on. It is recorded here rather than left to look like
+  a passing gate, and `docs/SKIN-AUTHORING.md` says the same thing to authors.
+- **Second defect in the same job:** the run step invokes
+  `./desktop/build/linux-release/tools/theme-validate`, but
+  `CMakePresets.json` sets `binaryDir` to `${sourceDir}/../build/${presetName}`,
+  so binaries land in the repository-root `build/`, not `desktop/build/`. The path
+  would be wrong even once the target exists.
+- **Proposed answer:** build the CLI — a C++ target under `tools/theme-validate/`
+  reusing `desktop/src/core/json/json.hpp` rather than introducing a second JSON
+  parser, emitting one verdict per corpus case in the shape
+  `.github/scripts/compare_verdicts.py` already reads, plus JSON Pointers per
+  `REQ-THM-060`. Until it exists the honest alternative is to mark the job
+  `continue-on-error` or remove it; leaving it as a step that cannot pass is worse
+  than either, because a red gate nobody expects to be green stops being read.
+- **Consequence if unfixed:** `REQ-GEN-031`'s desktop/Android verdict agreement has
+  no desktop side to compare, so `compare_verdicts.py` — which is written and
+  self-tested — has nothing real to consume, and the corpus's 122 pinned verdicts
+  go unexercised by any engine.
 
 ---
 
