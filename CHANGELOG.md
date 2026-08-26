@@ -132,6 +132,17 @@ stable yet.
   stays a limit — a 105-column bump subject still fails, naming which allowance
   it exceeded — and the existing 34-commit history re-lints with 0 problems.
 
+- **The register of open questions is now checked, not counted by hand.**
+  `tools/check-doc-links.py` parses `docs/OPEN-QUESTIONS.md` and fails on a
+  duplicate id, a hole in the sequence, a heading whose status is not in the
+  legend, or an `OQ-` citation anywhere in the tree that resolves to no entry. It
+  prints the total instead of trusting one: 51 entries, contiguous. The count in
+  this file had drifted twice — 39, then 48 — because six entries live as table
+  rows in section 3 rather than as headings, and a heading-only count misses them.
+  Six planted cases in its self-test, and three mutations of the committed files,
+  each turn it red. One real defect fell out: OQ-046 was marked `**Measured**`,
+  which describes evidence rather than a decision, and is now `**Open**`.
+
 - **One dependency register, three generated documents.** `§4.2` lives as data
   in `tools/gen-third-party/register.json`; nothing derived from it is authored
   twice. `tools/gen-third-party/gen-third-party.py` emits `docs/THIRD-PARTY.md`

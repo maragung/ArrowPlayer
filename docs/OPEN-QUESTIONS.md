@@ -23,6 +23,14 @@ it. Ids are never reused, even after an entry closes.
 | **Settled** | Decided, recorded in a fixture or schema, and the reasoning is written down. Reopening it is a specification change. |
 | **Gap** | Not a question — something the specification requires that does not exist yet. Tracked so it is not mistaken for done. |
 
+A status may be **qualified** where the bare word would overstate it —
+`**Settled, narrowly**` on OQ-003 says the decision holds for the case in front of
+it and not the general question. What a status may **not** do is describe how good
+the evidence is: `**Measured**` sat on OQ-046 for a while and read as a fourth
+status, when the entry was in fact still Open and merely better evidenced. Evidence
+belongs in the body; the marker is the decision state, and
+`tools/check-doc-links.py` now rejects a first word that is not one of the three.
+
 ---
 
 ## 1 · Specification conflicts — the specification contradicts itself
@@ -908,7 +916,7 @@ so its pass had never once depended on its matching logic being correct.
 
 ---
 
-### OQ-046 — A CVE scan of the SBOM reports clean and covers nothing · **Measured**
+### OQ-046 — A CVE scan of the SBOM reports clean and covers nothing · **Open**
 
 `REQ-SEC-004` requires the dependency CVE scan to fail the build on any new
 high-severity finding, and §25.4 step 2 is that scan. The generated SBOM carries a
@@ -916,7 +924,11 @@ purl for every component and no `cpe` for any of them, because the §4.2 registe
 records no CPE names and `gen-sbom.py` will not invent one.
 
 This entry began as a reading of three scanners' source. It has since been
-**measured**: grype 0.117.0 (release tarball, SHA-256 verified against the
+**measured** — which is why it carried the status `**Measured**` for a while, and
+why it no longer does: measurement is evidence quality, and the status records
+whether a maintainer has decided. Nobody has decided the three-part proposal at
+the foot of this entry, so it is **Open**, with better evidence behind it than
+most. grype 0.117.0 (release tarball, SHA-256 verified against the
 published `checksums.txt`) runs as a static binary with no root, so it was
 installed and run here against vulnerability database v6.1.9. Every number below
 is from that run, over the committed `docs/sbom/eclipse-player.cdx.json` and one
@@ -1276,9 +1288,10 @@ to let them imply that nothing has been run.
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | pass — 34 documents, 238 internal links, 23 §27 deliverables present |
+| `tools/check-doc-links.py` | pass — 34 documents, 237 internal links, 23 §27 deliverables present, and the register itself: **51** entries, contiguous 1..51, every status in the legend, every `OQ-NNN` citation in the tree resolving |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
-| `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
+| `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases, plus 6 register cases: 5 planted defects each rejected for the right reason, 1 fenced example correctly accepted, over a 6-entry valid control |
+| the register check, mutated against the real tree | pass — three separate mutations of the committed files each turn it red: removing OQ-039's heading (reported as a hole **and** as two now-dangling citations from `docs/SKIN-AUTHORING.md` and elsewhere), citing an `OQ-0NN` nobody defines, and giving OQ-050 the invented status `**Done**`. The tree restores byte-identical afterwards |
 | `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires; the `REQ-GEN-020` ledger gate fires on all 7 malformed release rows |
 | the same with `--check`, both documents | pass — `docs/THIRD-PARTY.md` and `docs/LGPL-SOURCE-OFFER.md` byte-identical to a fresh render |
 | `tools/gen-sbom.py --self-test` | pass — 18 planted register defects caught, 10 valid registers accepted, 25 planted document defects caught over a control that validates, 10 purl shapes spelled out, and the `--resolved-graph` path run through the real vcpkg dry-run parser and classifier |
