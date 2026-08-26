@@ -50,6 +50,20 @@
       }
     },
     {
+      "name": "linux-fuzz",
+      "displayName": "Linux · libFuzzer + ASan/UBSan (REQ-SEC-011, REQ-SEC-012)",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ECLIPSE_WERROR": "ON",
+        "ECLIPSE_SANITIZE_ADDRESS": "ON",
+        "ECLIPSE_BUILD_FUZZERS": "ON",
+        "ECLIPSE_BUILD_TESTS": "OFF",
+        "ECLIPSE_BUILD_UI": "OFF"
+      }
+    },
+    {
       "name": "windows-debug",
       "displayName": "Windows · Debug",
       "inherits": "base",
@@ -80,6 +94,7 @@
     { "name": "linux-release",   "configurePreset": "linux-release" },
     { "name": "linux-asan",      "configurePreset": "linux-asan" },
     { "name": "linux-tsan",      "configurePreset": "linux-tsan" },
+    { "name": "linux-fuzz",      "configurePreset": "linux-fuzz" },
     { "name": "windows-debug",   "configurePreset": "windows-debug" },
     { "name": "windows-release", "configurePreset": "windows-release" },
     { "name": "windows-arm64",   "configurePreset": "windows-arm64" }
@@ -96,6 +111,7 @@
     { "name": "linux-release",   "inherits": "base", "configurePreset": "linux-release" },
     { "name": "linux-asan",      "inherits": "base", "configurePreset": "linux-asan" },
     { "name": "linux-tsan",      "inherits": "base", "configurePreset": "linux-tsan" },
+    { "name": "linux-fuzz",      "inherits": "base", "configurePreset": "linux-fuzz" },
     { "name": "windows-debug",   "inherits": "base", "configurePreset": "windows-debug" },
     { "name": "windows-release", "inherits": "base", "configurePreset": "windows-release" }
   ]

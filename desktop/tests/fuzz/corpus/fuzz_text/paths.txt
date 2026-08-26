@@ -1,0 +1,10 @@
+../etc/passwd
+skin/../../etc/passwd
+/absolute/path
+C:\Windows\system32
+\\server\share
+a/./b/../c
+nested/ok/file.png
+trailing/..
+..
+.

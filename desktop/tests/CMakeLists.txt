@@ -44,3 +44,14 @@ endfunction()
 eclipse_add_test(test_core    SOURCES unit/test_text.cpp unit/test_error.cpp unit/test_json.cpp)
 eclipse_add_test(test_dsp     SOURCES unit/test_equalizer.cpp)
 eclipse_add_test(test_gapless SOURCES unit/test_gapless.cpp)
+
+# ---------------------------------------------------------------------------
+#  Fuzz targets and their corpus (§21.6, REQ-SEC-011, REQ-SEC-012)
+#
+#  Added unconditionally rather than under ECLIPSE_BUILD_FUZZERS, because corpus
+#  replay is an ordinary regression test: REQ-SEC-012 requires the input behind
+#  every sanitizer finding to enter the corpus, and a corpus only the nightly
+#  fuzzing job replays would let such a finding come back unnoticed for a day.
+#  The libFuzzer binaries themselves stay gated on compiler support inside.
+# ---------------------------------------------------------------------------
+add_subdirectory(fuzz)

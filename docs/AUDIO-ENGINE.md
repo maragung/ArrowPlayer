@@ -245,9 +245,13 @@ commonly 1024 or 2048 frames for AAC-LC — and set `source = None`.
 
 `REQ-AUD-042`: the parser is **defensive**. A wrong field count, a non-hex
 character, or a value exceeding the file's frame count rejects the tag outright.
-It never produces a negative or overflowing skip. This parser is a fuzz target,
-and it is untrusted input in the ordinary sense: the tag arrives inside a file
-the user downloaded.
+It never produces a negative or overflowing skip. It is untrusted input in the
+ordinary sense — the tag arrives inside a file the user downloaded — so it is
+fuzzed today by `tests/fuzz/fuzz_gapless.cpp`, which drives the tag *value*
+through all twenty-one of that harness's committed seeds, six of them written for
+this parser in particular. `fuzz_mp4atoms`, the target `REQ-SEC-011` names,
+does not exist yet: it belongs to the atom *tree* the value arrives in, which is
+Phase 2 work. See `docs/TESTING.md` and `OQ-043`.
 
 ### Opus
 
@@ -467,12 +471,12 @@ Three of the engine's modules are implemented, all in layer 3, all pure C++20:
 |---|---|---|
 | `audio/dsp/biquad.hpp` | `REQ-AUD-082` RBJ coefficients, `REQ-AUD-083` Q from bandwidth, `REQ-AUD-084` Nyquist bypass, Direct Form I with float64 state | 26 (response, Q, Nyquist, bypass, stability, reset, cascade) |
 | `audio/dsp/equalizer.hpp` | `REQ-AUD-080`–`REQ-AUD-088`: both graphic band sets, parametric mode, ranges, presets, computed response | 30 (bands, settings, presets, cascade response) |
-| `audio/decode/gapless_info.hpp` | `REQ-AUD-036`–`REQ-AUD-045`: MPEG header, Xing/LAME, `iTunSMPB`, `OpusHead`, granule, native | 48, plus 3 randomised-input cases |
+| `audio/decode/gapless_info.hpp` | `REQ-AUD-036`–`REQ-AUD-045`: MPEG header, Xing/LAME, `iTunSMPB`, `OpusHead`, granule, native | 49, plus 3 randomised-input cases |
 
-`ctest` reports **186 passing** over the whole tree — the three modules above plus
-`core/error`, `core/text`, and `core/json`. That number is a local run, not a
-claim: see `docs/TESTING.md` for how to reproduce it and what it does and does not
-cover.
+`ctest` reports **193 passing** over the whole tree — 189 GoogleTest cases from the
+three modules above plus `core/error`, `core/text` and `core/json`, and four
+fuzz-corpus replays. That number is a local run, not a claim: see
+`docs/TESTING.md` for how to reproduce it and what it does and does not cover.
 
 Direct Form I is chosen over transposed forms for a reason that belongs here: its
 state is the raw input/output history, so it stays meaningful when coefficients

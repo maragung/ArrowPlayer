@@ -32,19 +32,28 @@ this document is consistent with it and links to it rather than restating it.
 ## How to run every suite
 
 The suite inventory today is small and honest: it is the domain layer (layer 3),
-under GoogleTest, and the gate scripts. Everything above layer 3 — the adapters,
-the RT engine, the Qt UI — is not written yet ([ADR 0011](adr/0011-desktop-first-sequencing.md)),
-so the integration, UI, fuzz, soak, and chaos suites the specification mandates
-have nothing to exercise and are not built. What runs, runs completely.
+under GoogleTest, plus four fuzz harnesses replaying their committed corpus, plus
+the gate scripts. Everything above layer 3 — the adapters, the RT engine, the Qt
+UI — is not written yet ([ADR 0011](adr/0011-desktop-first-sequencing.md)), so the
+integration, UI, soak, and chaos suites the specification mandates have nothing to
+exercise and are not built. What runs, runs completely.
 
 | CTest binary | Source | Cases | Domain area |
 |---|---|---|---|
-| `test_core` | `unit/test_text.cpp`, `unit/test_error.cpp`, `unit/test_json.cpp` | 79 | UTF-8/sort-key/path text, `Result<T>` error model, hardened JSON parser |
+| `test_core` | `unit/test_text.cpp`, `unit/test_error.cpp`, `unit/test_json.cpp` | 81 | UTF-8/sort-key/path text (43), `Result<T>` error model (13), hardened JSON parser (25) |
 | `test_dsp` | `unit/test_equalizer.cpp` | 56 | biquad coefficients (26) + graphic/parametric EQ (30) |
-| `test_gapless` | `unit/test_gapless.cpp` | 51 | MP3 Xing/LAME, `iTunSMPB`, `OpusHead`, granule, native trim (48 + 3 randomised) |
-| **Total** | | **186** | |
+| `test_gapless` | `unit/test_gapless.cpp` | 52 | MP3 Xing/LAME, `iTunSMPB`, `OpusHead`, granule, native trim (49 + 3 randomised) |
+| `fuzz_corpus.fuzz_json` | `fuzz/fuzz_json.cpp` + corpus | 1 | 10 seeds through the hardened JSON parser |
+| `fuzz_corpus.fuzz_text` | `fuzz/fuzz_text.cpp` + corpus | 1 | 6 seeds through UTF-8 decode, sanitise, sort keys, path safety |
+| `fuzz_corpus.fuzz_xinglame` | `fuzz/fuzz_xinglame.cpp` + corpus | 1 | 12 seeds through the MPEG frame header and the Xing/Info + LAME tag |
+| `fuzz_corpus.fuzz_gapless` | `fuzz/fuzz_gapless.cpp` + corpus | 1 | 21 seeds through `iTunSMPB`, `OpusHead` and the Ogg granule derivation |
+| **Total** | | **193** | |
 
-The counts are `--gtest_list_tests` output, and their sum is the CTest total.
+The GoogleTest counts are `--gtest_list_tests` output. Each fuzz corpus is one
+CTest case that replays every seed in its directory — 49 seeds across the four —
+so the sum of the column is the CTest total. The `fuzz-corpus` label selects them:
+`ctest --preset linux-asan -R '^fuzz_corpus\.'`. See
+[The fuzz targets](#the-fuzz-targets) for why they are ordinary tests.
 
 ### The gate scripts
 
@@ -97,7 +106,7 @@ What each gate does **not** catch is as important as what it does:
   **not** fetch external `http(s)` URLs — a gate must pass offline. It is
   currently red for a real reason; see [Continuous integration](#continuous-integration).
 
-### Configure, build, and the 186 unit tests
+### Configure, build, and the 193 tests
 
 Every external library is optional at configure time, so the tree configures and
 the domain tests build with nothing but a C++20 compiler — see
@@ -129,22 +138,26 @@ are absent (see [What is not tested here](#what-is-not-tested-here)):
 `ctest --preset linux-release`:
 
 ```text
-100% tests passed, 0 tests failed out of 186
+100% tests passed, 0 tests failed out of 193
 
 Label Time Summary:
-unit    =   0.60 sec*proc (186 tests)
+fuzz-corpus    =   0.05 sec*proc (4 tests)
+unit           =   0.79 sec*proc (189 tests)
 
-Total Test time (real) =   0.69 sec
+Total Test time (real) =   0.29 sec
 ```
 
-That is the "186 tests, all passing" figure that `README.md` and
+That is the "193 tests, all passing" figure that `README.md` and
 [`AUDIO-ENGINE.md`](AUDIO-ENGINE.md#what-exists-today) quote: a local run,
 reproduced here, not a number asserted by CI alone.
 
 ### The sanitizer presets
 
-The same 186 tests run instrumented. Both presets use GCC's sanitizers, so no
-Clang is needed to run them (it is needed for the fuzzers — see below). From
+The same 193 tests run instrumented, fuzz corpus included — which is the point of
+replaying it as a CTest case rather than only in the fuzzing job: `REQ-SEC-012`
+wants the targets exercised under ASan+UBSan, and `linux-asan` does exactly that
+without needing a fuzzing engine. Both presets use GCC's sanitizers, so no Clang
+is needed to run them (it is needed for libFuzzer itself — see below). From
 `desktop/`:
 
 ```bash
@@ -155,8 +168,8 @@ cmake --preset linux-tsan && cmake --build --preset linux-tsan && ctest --preset
 Both are green here:
 
 ```text
-linux-asan (ASan + UBSan):    100% tests passed, 0 tests failed out of 186
-linux-tsan (ThreadSanitizer): 100% tests passed, 0 tests failed out of 186
+linux-asan (ASan + UBSan):    100% tests passed, 0 tests failed out of 193
+linux-tsan (ThreadSanitizer): 100% tests passed, 0 tests failed out of 193
 ```
 
 TSan passing is worth reading precisely. `linux-tsan` exists for the RT-safety
@@ -307,7 +320,7 @@ suite pass.
 
 `REQ-NFR-008` additionally requires the suites to run under **ASan + LSan** with
 zero leaks, and the audio soak under Valgrind or ASan nightly. Both preset runs
-are green today (186/186), but against domain code only: the concurrency the
+are green today (193/193), but against domain code only: the concurrency the
 TSan preset is *for* — the mock sink at 5 ms periods driving the callback while
 another thread changes volume, EQ, and seeks — is §8.11 test 9, and it is not
 written because the callback is not written.
@@ -325,17 +338,25 @@ That hook does not exist yet either; it lands with the RT thread.
 run as a 60-second smoke on each pull request and longer nightly, with a
 committed, growing corpus:
 
-| Target | Input | Target | Input |
-|---|---|---|---|
-| `fuzz_id3` | ID3v1/v2 frames | `fuzz_theme` | Theme JSON |
-| `fuzz_vorbiscomment` | Vorbis comment blocks | `fuzz_layout` | Layout DSL JSON |
-| `fuzz_apev2` | APEv2 tags | `fuzz_skinzip` | `.eclipseskin` archives |
-| `fuzz_mp4atoms` | MP4 atoms incl. `iTunSMPB` | `fuzz_efs` | EFS patterns |
-| `fuzz_xinglame` | Xing/Info + LAME (`REQ-AUD-037`) | `fuzz_smartrule` | Smart-playlist rules |
-| `fuzz_cue` | Cue sheets | `fuzz_icy` | ICY metadata streams |
-| `fuzz_playlist` | M3U/PLS/XSPF/ASX | `fuzz_rss` | Podcast feeds |
-| `fuzz_lrc` | LRC and enhanced LRC | `fuzz_ipc` | IPC messages |
-| | | `fuzz_syncmsg` | Sync protocol messages |
+| Target | Input | State |
+|---|---|---|
+| `fuzz_xinglame` | Xing/Info + LAME (`REQ-AUD-037`) | **present** |
+| `fuzz_id3` | ID3v1/v2 frames | Phase 2 |
+| `fuzz_vorbiscomment` | Vorbis comment blocks | Phase 2 |
+| `fuzz_apev2` | APEv2 tags | Phase 2 |
+| `fuzz_mp4atoms` | MP4 atoms incl. `iTunSMPB` | Phase 2 |
+| `fuzz_cue` | Cue sheets | Phase 3 |
+| `fuzz_playlist` | M3U/PLS/XSPF/ASX | Phase 3 |
+| `fuzz_smartrule` | Smart-playlist rules | Phase 3 |
+| `fuzz_efs` | EFS patterns | Phase 4 |
+| `fuzz_theme` | Theme JSON | Phase 5 |
+| `fuzz_layout` | Layout DSL JSON | Phase 5 |
+| `fuzz_skinzip` | `.eclipseskin` archives | Phase 5 |
+| `fuzz_lrc` | LRC and enhanced LRC | Phase 7 |
+| `fuzz_icy` | ICY metadata streams | Phase 8 |
+| `fuzz_rss` | Podcast feeds | Phase 8 |
+| `fuzz_ipc` | IPC messages | Phase 9 |
+| `fuzz_syncmsg` | Sync protocol messages | Phase 10 |
 
 `REQ-SEC-012` requires every target to build with ASan + UBSan and makes any
 crash, hang, or sanitizer finding a **release blocker** whose input must be added
@@ -346,22 +367,90 @@ counterpart to that growth: a crash input is added, then the corpus is minimised
 (`-merge`) so it stays a small set of behaviour-distinct inputs rather than an
 ever-growing pile of near-duplicates that slows every future run.
 
-**No fuzz target exists yet.** The CMake option is present and off by default,
-and it wires in a directory that is empty:
+**One of the seventeen exists**, plus three supporting targets that are not among
+them and are not counted as if they were. What they have in common is that the
+parser is written and untrusted bytes reach it today; a shipped parser with no
+fuzz coverage is the gap that matters, whatever the spec's list happens to name.
 
-```cmake
-option(ECLIPSE_BUILD_FUZZERS "Build libFuzzer targets (§21.6)" OFF)
-if(ECLIPSE_BUILD_FUZZERS)
-    add_subdirectory(tests/fuzz)     # desktop/tests/fuzz/ is an empty directory
-endif()
-```
+| Target | Reads | Why it is here |
+|---|---|---|
+| `fuzz_json` | `core/json` | `fuzz_theme` and `fuzz_layout` both push bytes through this parser before a schema keyword is consulted, so it is their shared foundation |
+| `fuzz_text` | `core/text` | all seventeen reach it the moment a tag value or file name becomes a `std::string` |
+| `fuzz_gapless` | `audio/decode/gapless_info` | `fuzz_xinglame` covers only the MP3 half of that header; `parse_itunsmpb` (a fuzz target by name in `REQ-AUD-042`), `parse_opus_head` and `gapless_from_granule` had none |
 
-So `-DECLIPSE_BUILD_FUZZERS=ON` would fail at configure for want of a
-`CMakeLists.txt` there. Two things gate the work: the parsers being fuzzed
-(tags, cue, playlist, skin) mostly live above the three domain modules written so
-far, and libFuzzer needs Clang, which is **not installed** on this machine
-(`clang++` is absent; the build uses GCC 14.2.0). The fuzz story is therefore
-specified and CI-shaped but unproven locally.
+The remaining sixteen are absent for one reason: a fuzz target needs a parser to
+point at, and those parsers arrive with the phases named in the table above. §28
+forbids starting a phase before the previous one's gates are green, so writing
+those harnesses now would mean writing the parsers now. Placeholder harnesses were
+**not** created to make the count look better — an empty target reports success
+for the same reason a skipped gate does. The ledger is
+[`desktop/tests/fuzz/README.md`](../desktop/tests/fuzz/README.md), which names the
+phase for every absent target, and [OQ-043](OPEN-QUESTIONS.md).
+
+### Two binaries per target, and why the corpus is a CTest case
+
+Each harness is built twice:
+
+| Binary | Built where | Job |
+|---|---|---|
+| `fuzz_<name>` | Clang only (`-fsanitize=fuzzer`) | explores new inputs |
+| `fuzz_<name>_replay` | everywhere | replays the committed corpus as `fuzz_corpus.fuzz_<name>` |
+
+`REQ-SEC-011` asks for two separable things — targets that explore, and a corpus
+that keeps old crashes dead — and only the first needs a fuzzing engine. Making
+the corpus an ordinary test means every preset replays it, `linux-asan` included,
+so a regression is caught by the `ctest` run a contributor already does rather
+than only by a nightly job. The driver walks the corpus directory at run time, so
+dropping a crash input into `corpus/<target>/` makes it a regression case with no
+CMake re-run — a step that needs a re-configure to notice a new seed is a step
+somebody forgets mid-incident.
+
+Seeds are committed, as `REQ-SEC-011` requires, and generated by
+`desktop/tests/fuzz/make-seeds.py` where the bytes are not human-readable: nobody
+verifies an MP3 frame's LAME CRC by eye, but anyone can read the code that
+computes it. `make-seeds.py --check` runs in the `gates` job so the committed
+bytes and the comments describing them cannot drift apart.
+
+### What the first runs found
+
+Two defects, both on the **first** replay of a newly written corpus, before either
+harness mutated anything:
+
+`fuzz_text`. `normalize_relative_path()` returned `true` for `/absolute/path` —
+quietly relativising it — and for a filename containing a NUL, which on POSIX
+truncates at the NUL. `REQ-THM-018` requires both classes be rejected, and
+`is_unsafe_relative_path()` did reject them: two functions, one requirement, two
+answers. The normaliser now refuses what the security check refuses and asserts
+that postcondition on its own output, pinned by
+`Normalize.RefusesWhatTheSecurityCheckRefuses` and
+`Normalize.AcceptanceImpliesSafety`.
+
+`fuzz_gapless`. `gapless_from_granule()` computed `-initial_granule` on an
+`std::int64_t` taken straight out of an Ogg page. For `INT64_MIN` that negation is
+undefined behaviour — the negative range is one wider than the positive one — and
+UBSan said so in as many words: *negation of -9223372036854775808 cannot be
+represented in type 'long int'*. The 32-bit bound underneath it would have
+rejected the value a line later; the problem is that the program had already
+executed UB to get there, and an optimiser is entitled to assume UB never happens.
+The negation now runs in the unsigned domain, which is exact for every input
+including that one, pinned by
+`GranuleGapless.RejectsMostNegativeInitialGranuleWithoutOverflowing`.
+
+Neither needed a fuzzing engine. What they needed was a harness that states an
+invariant and a seed somebody thought about — which is the argument for the
+`fuzz_corpus.*` cases being ordinary tests rather than nightly-only.
+
+### What is still unproven
+
+libFuzzer needs Clang, which is **not installed** on this machine (`clang++` is
+absent; the build uses GCC 14.2.0), so `ECLIPSE_HAVE_LIBFUZZER` is false in every
+local configuration. The harnesses compile and run here under GCC with ASan+UBSan
+through the replay driver, and the `linux-fuzz` preset exercises the
+fuzzers-without-GoogleTest build — but the libFuzzer binaries themselves and
+`eclipse-domain-fuzz`'s `-fsanitize=fuzzer-no-link` instrumentation have never
+been built. Those are **CI-only** until a Clang toolchain is available here; the
+`fuzz` job in `desktop-ci.yml` is the first thing that will build them, and it
+fails rather than degrading to replay-only if Clang does not supply the engine.
 
 ## The fifteen audio verifications
 
@@ -495,7 +584,7 @@ The suites map onto the workflows that exist under `.github/workflows/`:
 
 | Workflow | What it runs | Spec |
 |---|---|---|
-| `desktop-ci.yml` | architecture gates → configure/build/`ctest` on `ubuntu-22.04` (gcc-12), `ubuntu-24.04` (gcc-13, plus asan, tsan, clang-18), `windows-2022` (msvc) → FFmpeg licence assertion when a build links FFmpeg, and a hard failure if an adapter exists without one (OQ-042) → clang-format, clang-tidy, cppcheck | `REQ-BLD-021`, §25.2, `REQ-GEN-015` |
+| `desktop-ci.yml` | architecture gates plus `make-seeds.py --check` → configure/build/`ctest` on `ubuntu-22.04` (gcc-12), `ubuntu-24.04` (gcc-13, plus asan, tsan, clang-18), `windows-2022` (msvc) → FFmpeg licence assertion when a build links FFmpeg, and a hard failure if an adapter exists without one (OQ-042) → fuzzing smoke on clang-18: assert libFuzzer was detected, replay the corpus, 60 s per target → clang-format, clang-tidy, cppcheck | `REQ-BLD-021`, §25.2, `REQ-GEN-015`, `REQ-SEC-011`, `REQ-SEC-012` |
 | `spec-ci.yml` | `validate-shared-spec.py` → draft-2020-12 schema + fixture validation → schema/fixture-sync → `theme-validate` over the corpus → desktop/Android verdict comparison | `REQ-BLD-023`, `REQ-TST-021` |
 | `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-doc-links.py` and `gen-third-party.py --check` for both licence documents, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-GEN-012`, `REQ-GEN-020` |
 
@@ -521,9 +610,15 @@ Two notes on that mapping:
 
 `android-ci.yml`, `security.yml` and `release.yml` are named by §25 but do not
 exist yet. The first has no app to build
-([ADR 0011](adr/0011-desktop-first-sequencing.md)); `security.yml`'s fuzzing, CVE
-and SBOM steps wait on the fuzz targets and the packaging that produce their
-inputs; and `release.yml` has nothing to release while the UI does not build.
+([ADR 0011](adr/0011-desktop-first-sequencing.md)); `security.yml` will own the
+nightly 15-minute-per-target budget with corpus persistence, CodeQL, the CVE and
+licence scans and the SBOM diff, none of which the 60-second smoke above replaces;
+and `release.yml` has nothing to release while the UI does not build.
+
+The fuzzing smoke deliberately lives in `desktop-ci.yml` rather than waiting for
+`security.yml`: a target that has crashed is a **release blocker** under
+`REQ-SEC-012`, and a blocker found nightly is a blocker that landed on `main`
+hours earlier.
 
 ## What is not tested here
 
@@ -532,7 +627,8 @@ gaps. The authoritative register is
 [`OPEN-QUESTIONS.md` §5](OPEN-QUESTIONS.md#5--verification-status--what-is-proven-where);
 this is the short form, and it defers to that section wherever they touch.
 
-- **Only the domain layer is tested.** 186 unit tests over six modules. The
+- **Only the domain layer is tested.** 189 unit tests over six modules, plus four
+  fuzz-corpus replays. The
   integration tests (`REQ-TST-014`), UI/QTest and screenshot tests
   (`REQ-TST-017`, `REQ-TST-018`), property-based tests (`REQ-TST-013`), soak
   (`REQ-TST-025`), and chaos (`REQ-TST-026`) suites are specified but not
@@ -543,8 +639,10 @@ this is the short form, and it defers to that section wherever they touch.
   [`AUDIO-ENGINE.md`](AUDIO-ENGINE.md#how-each-claim-is-proven).
 - **The golden corpus and `tools/corpus-fetch` do not exist**, so no test yet
   runs against real encoded audio ([The golden corpus](#the-golden-corpus)).
-- **No fuzz target is built**, and libFuzzer's Clang is not installed here
-  ([Sanitizers and fuzzing](#sanitizers-and-fuzzing)).
+- **One of `REQ-SEC-011`'s seventeen fuzz targets exists** (plus three supporting
+  ones), and the libFuzzer binaries have never been built here — Clang is absent,
+  so only the corpus-replay half runs locally
+  ([The fuzz targets](#the-fuzz-targets), [OQ-043](OPEN-QUESTIONS.md)).
 - **The Qt UI is CI-only** — Qt is absent locally, so no window has been observed
   to open here and no accessibility or screenshot pass can run
   ([OQ-017](OPEN-QUESTIONS.md)).
@@ -562,6 +660,6 @@ this is the short form, and it defers to that section wherever they touch.
   ([ADR 0011](adr/0011-desktop-first-sequencing.md),
   [OQ-018](OPEN-QUESTIONS.md)).
 
-A test that does not exist is reported as absent, never as passing. The 186 that
+A test that does not exist is reported as absent, never as passing. The 193 that
 do exist pass under three toolchains' worth of instrumentation, and that is the
 whole of what is proven on this machine today.

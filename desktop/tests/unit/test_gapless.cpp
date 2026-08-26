@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <cstring>
+#include <limits>
 #include <random>
 #include <string>
 #include <vector>
@@ -591,6 +592,30 @@ TEST(GranuleGapless, RejectsHeadTrimExceedingLength) {
     auto info = gapless_from_granule(100, -1000);
     ASSERT_FALSE(info.has_value());
     EXPECT_EQ(info.error().code(), ErrorCode::OutOfRange);
+}
+
+// A granule position is read out of a file, so it can be INT64_MIN — the one
+// value whose negation is undefined behaviour, because the negative range is one
+// wider than the positive one. Found by fuzz_gapless: UBSan reported "negation of
+// -9223372036854775808 cannot be represented in type 'long int'" on the first
+// replay of the committed corpus. The answer must be a plain rejection, not a
+// trap, and not whatever the optimiser decides UB may become.
+TEST(GranuleGapless, RejectsMostNegativeInitialGranuleWithoutOverflowing) {
+    auto info = gapless_from_granule(1, std::numeric_limits<std::int64_t>::min());
+    ASSERT_FALSE(info.has_value());
+    EXPECT_EQ(info.error().code(), ErrorCode::OutOfRange);
+
+    // One less extreme, still far past the 32-bit skip field: same answer, which
+    // is what makes the case above a boundary rather than a special case.
+    auto big = gapless_from_granule(1, -(std::int64_t{1} << 40));
+    ASSERT_FALSE(big.has_value());
+    EXPECT_EQ(big.error().code(), ErrorCode::OutOfRange);
+
+    // And the largest trim that still fits, to prove the bound moved nowhere.
+    auto ok = gapless_from_granule(std::int64_t{0xFFFFFFFF}, -std::int64_t{0xFFFFFFFF});
+    ASSERT_TRUE(ok.has_value());
+    EXPECT_EQ(ok->skip_start_frames, 0xFFFFFFFFu);
+    EXPECT_EQ(ok->playable_frames(), 0u);
 }
 
 // ===========================================================================

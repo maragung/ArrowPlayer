@@ -43,11 +43,12 @@ zero-connection test asserts no outbound traffic during a full session.
 
 | Module | Status | Tests |
 |---|---|---|
-| Error taxonomy, `Result<T>` (§22.1) | done | 11 |
-| UTF-8 / text / sort keys (§9.2.3–9.2.4) | done | 25 |
+| Error taxonomy, `Result<T>` (§22.1) | done | 13 |
+| UTF-8 / text / sort keys (§9.2.3–9.2.4) | done | 43 |
 | Hardened JSON parser (§21.2) | done | 25 |
 | RBJ biquads + 10/18-band EQ (§8.9.1) | done | 56 |
-| Gapless metadata: Xing/LAME, iTunSMPB, OpusHead, granule (§8.4) | done | 51 |
+| Gapless metadata: Xing/LAME, iTunSMPB, OpusHead, granule (§8.4) | done | 52 |
+| Fuzz harnesses + committed corpus (§21.6, `REQ-SEC-011`) | 1 of 17 named, 3 supporting | 4 replays, 49 seeds |
 | `shared-spec/` contract: schemas, grammars, 455 fixtures (§11, §10, §9.6) | done | 455 fixtures |
 | Architecture gates: layers, SQL safety, RT safety, spec/fixture sync | done | 4 gates |
 | Audio graph, sinks, decoders | not started | — |
@@ -55,11 +56,13 @@ zero-connection test asserts no outbound traffic during a full session.
 | Format strings, smart playlists, theme engine | not started | — |
 | Qt UI | not started | — |
 
-**186 tests, all passing** from a clean build, clean under `-Werror` with a strict
-warning set, and passing again under ASan+UBSan and under ThreadSanitizer.
+**193 tests, all passing** from a clean build — the 189 GoogleTest cases in the
+table above plus the four fuzz-corpus replays — clean under `-Werror` with a
+strict warning set, and passing again under ASan+UBSan and under ThreadSanitizer.
 Reproduced locally on GCC 14.2 / CMake 3.31 / Ninja 1.12, not asserted from CI
-alone. The one dependency that is unavailable locally is Qt, so the UI is
-**CI-verified only** — see
+alone. Two things are unavailable locally: Qt, so the UI is **CI-verified only**;
+and Clang, so the libFuzzer binaries are built only in CI and just the corpus
+replay runs here. Both are recorded in
 [`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md).
 
 Notable results already verified:
@@ -73,6 +76,12 @@ Notable results already verified:
   is **ignored rather than trusted** (REQ-AUD-039).
 - Byte parsers survive several thousand pseudo-random and bit-flipped buffers
   under ASan+UBSan without a crash, hang, or out-of-range trim value.
+- The fuzz corpora found two real defects on their **first** replay, before
+  mutating anything: `normalize_relative_path()` accepted an absolute path and a
+  filename containing a NUL, both of which `REQ-THM-018` requires an archive entry
+  be rejected for; and `gapless_from_granule()` negated `INT64_MIN`, which is
+  undefined behaviour, on a value read straight out of an Ogg page. Both fixed, and
+  each pinned by a test that states the invariant that broke.
 
 ## Build
 

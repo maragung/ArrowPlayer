@@ -50,6 +50,16 @@ stable yet.
   verdict, including the 109 that claim rejection, using a dependency-free
   draft-2020-12 subset validator with a keyword allowlist so an unimplemented
   keyword is a hard error rather than a silent pass.
+- **Fuzz harnesses and a committed corpus** (`REQ-SEC-011`, `REQ-SEC-012`) —
+  `fuzz_json`, `fuzz_text`, `fuzz_xinglame` and `fuzz_gapless`, each built twice:
+  once as a libFuzzer target and once as a driver that replays the 49 committed
+  seeds as an ordinary CTest case, so the corpus is a regression suite on every
+  build rather than an artifact only the nightly job touches. The replay found
+  two real defects in code added above — `normalize_relative_path()` accepted
+  absolute paths, drive letters and control characters that `REQ-THM-018`
+  conjoins with "normalised", and `gapless_from_granule()` executed
+  signed-negation undefined behaviour on the most negative granule position.
+  Both are fixed and pinned by unit tests.
 - **Repository policy files.** `.gitattributes`, `.markdownlint.json`,
   `commitlint.config.js` with the §0.2 scope enum and a custom rule requiring a
   REQ id in the body of every behavioural commit, `CONTRIBUTING.md`,
@@ -57,7 +67,7 @@ stable yet.
 - **Documentation.** `docs/BUILDING.md` including a root-free user-local
   dependency build, `docs/PARITY.md` (the §29.2 matrix with an added Status
   column), `docs/PRIVACY.md`, `docs/ROADMAP.md` (the 56 `[v1.x]` requirements,
-  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (24
+  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (37
   registered assumptions, narrowings and gaps with stable `OQ-NNN` ids).
 - **ADRs** 0001 (MPL-2.0 core, LGPL-only dependencies), 0002 (`IAudioSink` with
   native backends rather than RtAudio), 0003 (no executable code in skins), 0005
@@ -66,10 +76,12 @@ stable yet.
 
 ### Verified
 
-- **184 tests pass from a clean build** on the development machine under
+- **193 tests pass from a clean build** on the development machine under
   `linux-release`, `linux-asan` (ASan + UBSan) and `linux-tsan`, clean under
-  `-Werror`, with CMake 3.31.6 / Ninja 1.12.1 / GCC 14.2.0. All four gate scripts
-  pass. This is a local reproduction, not a CI-only assertion.
+  `-Werror`, with CMake 3.31.6 / Ninja 1.12.1 / GCC 14.2.0 — 189 GoogleTest
+  cases plus the four corpus replays. The `linux-fuzz` preset builds and its
+  4 replays pass. All four gate scripts pass. This is a local reproduction, not
+  a CI-only assertion.
 - **FFmpeg 7.1.1, TagLib 2.0.2, alsa-lib 1.2.12 and SQLite 3.46.1** are detected
   by the configure step, so the adapters they gate can be built and tested
   locally as they are written. The FFmpeg build is LGPL-configured with
@@ -84,6 +96,16 @@ and tested, and this section is what keeps that promise honest:
   and no RT thread yet. The DSP and gapless code is unit-tested against known
   coefficients and known headers, not against playback.
 - **No user interface.** No `main.cpp`, no window, no Qt UI.
+- **Sixteen of `REQ-SEC-011`'s seventeen fuzz targets do not exist.** Only
+  `fuzz_xinglame` is one of the named seventeen; the other three harnesses are
+  supporting targets and are not counted as standing in for any of them. The
+  remaining sixteen arrive with the parsers they name (Phases 2, 3, 4, 5, 7 and
+  8). No placeholder harness was added to make the ledger read better. Tracked
+  as `OQ-043`.
+- **No fuzzing engine has ever run.** GCC 14 does not provide
+  `-fsanitize=fuzzer`, and Clang is not installed here, so every finding so far
+  came from replaying seeds a human wrote. The 60-second-per-target smoke in
+  `desktop-ci.yml` has not executed either, because nothing has been pushed.
 - **No Android application.** `android/` does not exist, so `REQ-GEN-030` (the
   repository layout) is unmet and Phase 0 exit gate 2 stays red. Recorded in
   `docs/adr/0011-desktop-first-sequencing.md`.

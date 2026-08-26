@@ -43,6 +43,13 @@ jobs:
       - name: Real-time safety annotations (REQ-AUD-017)
         run: python3 tools/check-rt-safety.py
 
+      # REQ-SEC-011 requires a *committed* corpus. The seeds that cannot be read
+      # as bytes — MP3 frames whose LAME CRC nobody verifies by eye — are written
+      # by a generator, so the committed bytes and the code that documents them
+      # have to be checked against each other or the comments become fiction.
+      - name: Fuzz corpus seeds are not stale (REQ-SEC-011)
+        run: python3 desktop/tests/fuzz/make-seeds.py --check
+
   # -------------------------------------------------------------------------
   #  Build and test
   # -------------------------------------------------------------------------
@@ -157,6 +164,107 @@ jobs:
           # upload silently empty.
           path: build/${{ matrix.preset }}/Testing/
           retention-days: 7
+
+  # -------------------------------------------------------------------------
+  #  Fuzzing smoke — §25.2, REQ-SEC-011 (60 s per target on every PR) and
+  #  REQ-SEC-012 (the targets build with ASan+UBSan).
+  #
+  #  Separate from the build matrix rather than bolted onto the clang entry,
+  #  because it wants a different preset: `linux-fuzz` turns GoogleTest off, so
+  #  a failure here is unambiguously about a fuzz target.
+  #
+  #  The longer runs and corpus persistence live in `security.yml` (§25.4). This
+  #  job is the fast one: it proves each target still builds under libFuzzer,
+  #  still replays its committed corpus, and survives a minute of mutation.
+  # -------------------------------------------------------------------------
+  fuzz:
+    name: fuzzing smoke
+    needs: gates
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang-18 libsqlite3-dev zlib1g-dev \
+            pkg-config
+
+      - name: Configure
+        env:
+          CC: clang-18
+          CXX: clang++-18
+        run: cmake --preset linux-fuzz
+        working-directory: desktop
+
+      # A clang build that silently falls back to corpus-replay-only would report
+      # success while fuzzing nothing, which is the OQ-042 failure shape. Assert
+      # the engine was actually detected before spending a minute per target.
+      - name: Assert libFuzzer was detected
+        run: |
+          set -euo pipefail
+          if ! grep -q '^ECLIPSE_HAVE_LIBFUZZER:INTERNAL=1$' \
+                 build/linux-fuzz/CMakeCache.txt; then
+            echo "::error::clang did not provide -fsanitize=fuzzer, so this job" \
+                 "would test only the corpus replay. REQ-SEC-011 needs the engine."
+            exit 1
+          fi
+
+      - name: Build
+        run: cmake --build --preset linux-fuzz --parallel
+        working-directory: desktop
+
+      # The corpus first: a regression must fail before a minute is spent looking
+      # for new inputs (REQ-SEC-012).
+      - name: Replay the committed corpus
+        run: ctest --preset linux-fuzz --output-on-failure
+        working-directory: desktop
+
+      - name: 60 s per target
+        env:
+          # A finding must be reported, not survived. UBSan defaults to printing
+          # and continuing, which libFuzzer would not treat as a crash.
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+          ASAN_OPTIONS: abort_on_error=1
+        run: |
+          set -euo pipefail
+          cd build/linux-fuzz/tests/fuzz
+          status=0
+          ran=0
+          for target in fuzz_*; do
+            case "$target" in *_replay) continue ;; esac
+            [ -x "$target" ] || continue
+            ran=$((ran + 1))
+            echo "::group::$target"
+            corpus="$GITHUB_WORKSPACE/desktop/tests/fuzz/corpus/$target"
+            # -runs is a second bound: an -only_ascii-style stall must not turn
+            # into a six-hour job just because the wall clock is the only limit.
+            ./"$target" "$corpus" -max_total_time=60 -max_len=65536 \
+                -print_final_stats=1 -artifact_prefix="$GITHUB_WORKSPACE/crash-" \
+              || status=1
+            echo "::endgroup::"
+          done
+
+          # Zero targets fuzzed is a failure, not a quiet success — the whole
+          # point of the assertion step above, restated where it is cheap.
+          if [ "$ran" -eq 0 ]; then
+            echo "::error::No libFuzzer binaries were found to run."
+            exit 1
+          fi
+          echo "fuzzed $ran target(s) for 60 s each"
+          exit $status
+
+      # REQ-SEC-012: the input behind a finding MUST enter the regression corpus,
+      # so it has to leave the runner. Uploaded on failure only, because a green
+      # run has nothing to carry.
+      - name: Upload crash inputs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crash-inputs
+          path: crash-*
+          if-no-files-found: ignore
+          retention-days: 30
 
   # -------------------------------------------------------------------------
   #  Static analysis

@@ -78,14 +78,19 @@ configure_file(include/eclipse/version.hpp.in
 #  Layer 3 — DOMAIN.  Pure C++20.  REQ-GEN-050(2): links against nothing but
 #  the standard library.  Enforced by tools/check-layers.py in CI.
 # ---------------------------------------------------------------------------
-add_library(eclipse-domain STATIC
-    src/core/error.cpp
-    src/core/text.cpp
-    src/core/json/json.cpp
-    src/audio/dsp/biquad.cpp
-    src/audio/dsp/equalizer.cpp
-    src/audio/decode/gapless_info.cpp
+#  Absolute paths, and a variable rather than a literal list, because
+#  tests/fuzz/ recompiles these same translation units with coverage
+#  instrumentation for libFuzzer (a fuzzer linked against an uninstrumented
+#  library is a fuzzer that mutates blindly). One list, one place to add a file.
+set(ECLIPSE_DOMAIN_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/error.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/text.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/json/json.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/biquad.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/equalizer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/decode/gapless_info.cpp"
 )
+add_library(eclipse-domain STATIC ${ECLIPSE_DOMAIN_SOURCES})
 target_include_directories(eclipse-domain PUBLIC
     include src "${CMAKE_BINARY_DIR}/generated")
 eclipse_set_warnings(eclipse-domain)
@@ -125,7 +130,11 @@ if(ECLIPSE_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-if(ECLIPSE_BUILD_FUZZERS)
+# tests/ adds tests/fuzz itself, because the corpus replay cases are ordinary
+# tests (REQ-SEC-012). This branch covers the fuzzers-without-tests build only;
+# adding the same directory twice is a hard CMake error, hence the NOT.
+if(ECLIPSE_BUILD_FUZZERS AND NOT ECLIPSE_BUILD_TESTS)
+    enable_testing()
     add_subdirectory(tests/fuzz)
 endif()
 

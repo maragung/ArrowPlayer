@@ -104,6 +104,16 @@ CMakeLists.txt  text eol=lf
 *.mpc           binary
 *.tta           binary
 
+# Fuzz corpus (`REQ-SEC-011`). Here the bytes *are* the test input, and
+# `desktop/tests/fuzz/make-seeds.py --check` compares them byte for byte, so
+# line-ending normalisation is not cosmetic — it rewrites the input. Several
+# formats still to be fuzzed are CRLF by definition: an ICY header is
+# CRLF-delimited by protocol, and CUE sheets and `.lrc` files usually are. So a
+# `.txt` or `.json` seed under this path is exempt from the rules above, which
+# this pattern overrides by coming after them. `-text` rather than `binary`,
+# because a seed a human can read is a seed a reviewer should be able to diff.
+desktop/tests/fuzz/corpus/**  -text
+
 # Generated — collapse in review, but keep them diffable for audit.
 docs/THIRD-PARTY.md  linguist-generated=true
 docs/PARITY.md       linguist-generated=true

@@ -626,8 +626,14 @@ Result<GaplessInfo> gapless_from_granule(std::int64_t final_granule,
     // REQ-AUD-045: a negative initial granule means the encoder trimmed the
     // start, and that trim must be honoured as a head skip.
     if (initial_granule < 0) {
-        const std::int64_t skip = -initial_granule;
-        if (skip > static_cast<std::int64_t>(std::numeric_limits<std::uint32_t>::max())) {
+        // Negate in the unsigned domain. `-initial_granule` is undefined for
+        // INT64_MIN — the one input where the negative range is wider than the
+        // positive one — and a granule position comes out of a file, so it can be
+        // exactly that. Found by fuzz_gapless; UBSan reported it on the first
+        // corpus replay. Two's complement makes the unsigned form exact for every
+        // other value too, so this is not a special case bolted on for one input.
+        const auto skip = static_cast<std::uint64_t>(-(initial_granule + 1)) + 1u;
+        if (skip > std::numeric_limits<std::uint32_t>::max()) {
             return err(ErrorCode::OutOfRange,
                        "This file's length information is invalid.",
                        "initial granule trim too large");
