@@ -27,6 +27,20 @@ stable yet.
 
 ### Added
 
+- **`release.yml`, the fifth workflow (§25.5, `REQ-BLD-025`)** — does the four
+  of ten steps whose inputs exist today and refuses the rest by name. The tag
+  must be `vX.Y.Z` and agree with `desktop/version.txt`; the 1.0.0 checklist
+  gate is scoped to that tag alone; the changelog and a stamped SBOM are
+  generated; both licence documents are checked for staleness. Step 8's OQ-013
+  precondition is probed **up front** by asking `gen-third-party.py` rather than
+  re-implementing its rule — the first draft re-implemented it and drifted,
+  demanding a field the generator does not require. The `publish` job names
+  which of packaging, signing and the Android pipeline is missing, and **fails**
+  once all three land, so the boundary cannot be forgotten (OQ-053).
+  `workflow_dispatch` makes every tag-independent step runnable without cutting
+  a tag, because a release workflow first run at release time is the classic way
+  releases fail.
+
 - **A changelog generator, `tools/gen-changelog.py`** — §25.5 step 7 and
   `REQ-BLD-036`. Reads conventional commits over a range and renders the six
   Keep a Changelog sections, mapping `feat`→Added, `fix`→Fixed, `perf`→Changed,

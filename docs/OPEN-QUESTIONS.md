@@ -1449,6 +1449,72 @@ steps, five arrows, and nothing that says what an arrow means.
   is absent, rather than analysing one and reporting the step green — which is the
   distinction OQ-042 exists to keep.
 
+### OQ-053 — Phase 0 wants all five workflows running; Phase 9 owns the release pipeline · **Open**
+
+§28's Phase 0 **Build** list includes "all five CI workflows running", which names
+`release.yml`. §28's Phase 9 **Build** list includes "signing; SBOM; installers;
+**the release pipeline**". Both cannot be satisfied as written: a release pipeline
+that runs in Phase 0 would have to sign and package four months before the phase
+that builds signing and packaging.
+
+The ingredients bear this out. Of `REQ-BLD-025`'s ten steps, four have something to
+work with today — the semver/version-file check (step 1), SBOM generation (half of
+step 6), the changelog from conventional commits (step 7), and regenerating
+`docs/THIRD-PARTY.md` with a `releases.json` entry for the tag (step 8). The other
+six need artifacts that no `install()` or `CPack` rule in this tree produces, a
+signing identity that does not exist (`REQ-SEC-016`), an Android target deferred by
+ADR 0011, and a release checklist document that has not been written.
+
+- **Assumption in force:** the two lists describe different things under one name.
+  Phase 0 needs the *workflow file* to exist and be green when triggered; Phase 9
+  builds the *pipeline* — signing, installers, publishing. `release.yml` is
+  therefore written now, does the four steps whose inputs exist, and stops at the
+  publish boundary rather than skipping past it.
+- **How the boundary is expressed:** not as a comment. The workflow detects whether
+  packaging rules exist and refuses to publish while they do not, the same shape
+  OQ-040 now uses for the theme engine: the gate flips when the thing it needs
+  lands, so nobody has to remember to come back.
+- **Why not simply defer the file to Phase 9:** a release workflow first exercised
+  at release time is the classic way releases fail. Its version check, changelog
+  generation and staleness check are exercisable now, so they are exercised now —
+  and `workflow_dispatch` makes them runnable without cutting a tag.
+- **Related, and confirming:** Phase 0's own exit gates ask less than its Build list
+  does. Gate 3 is "`spec-ci.yml` green — `theme-schema.json` is a valid JSON
+  Schema", which the `schemas` job proves and which needs no C++ engine at all. The
+  `native` job that OQ-040 records was over-reaching relative to the gate its own
+  phase sets, which is some evidence that "all five workflows running" means running
+  and green, not feature-complete.
+- **Recommendation:** amend Phase 0's Build list to "all five CI workflow files
+  present and green" and leave the release *pipeline* in Phase 9 where its
+  dependencies are. The distinction is real and the specification already relies on
+  it; it just is not written down.
+- **Consequence if unfixed:** either Phase 0 cannot close on a literal reading of
+  its own Build list, or `release.yml` gets written as ten steps of which six are
+  theatre — and a release pipeline that reports success without producing a signed
+  artifact is the worst possible place for the OQ-042 shape to live.
+- **What landed.** `release.yml` now exists in exactly that shape: `preflight`
+  (steps 1, 2 and step 8's precondition), `changelog` (step 7), `sbom` (half of
+  step 6), `third-party` (step 8's checkable half), and `publish`, whose entire
+  job is to refuse. The refusal is itemised — packaging, signing, Android — so the
+  report shrinks by a row as each lands, and when the table empties the job
+  **fails** rather than passing, because at that point the missing thing is the
+  publish steps themselves. Step 2 is scoped to the `v1.0.0` tag alone, which is
+  what §25.5 says; below 1.0.0 it says so instead of silently skipping.
+- **One thing this entry got wrong, and how.** The first draft of the step-8
+  precondition re-implemented the generator's rule in shell, and got it wrong in
+  the strict direction: it required both `offer.postal_address` and
+  `offer.mailbox`, while `gen-third-party.py` refuses on `postal_address` alone.
+  That would have failed tags the generator accepts. The step now **asks** the
+  generator — it plants a throwaway release row in a copy of the ledger, runs the
+  source-offer document, and looks for `OQ-013` in the output. The probe's row is
+  deliberately incomplete so the generator also complains about the row; that is
+  irrelevant, because the discriminator is whether OQ-013 is named, and both
+  directions were measured. A copy of a condition is a copy that drifts, and this
+  one drifted before it was ever committed.
+- **Closes when:** §28's Phase 0 Build list distinguishes the workflow files from
+  the release pipeline, or Phase 9 lands packaging and signing and the `publish`
+  job's steps are written against them.
+
 ---
 
 ## 5 · Verification status — what is proven where
@@ -1512,6 +1578,7 @@ to let them imply that nothing has been run.
 | `cyclonedx-cli validate` against the committed SBOM | pass locally — valid → exit 0, a planted `scope: "mandatory"` → exit 1, **with every egress route poisoned** and with no libicu on the machine, so the schemas are embedded in the executable. `--fail-on-errors` proven load-bearing: without it the invalid document is *reported* invalid and the process still exits 0 (OQ-048) |
 | `vcpkg install --dry-run` on this machine | **not run** — vcpkg is not installed here. The graph parser is exercised against a hand-built fixture and against a planted unregistered port, which it rejects by name; the runner's own vcpkg is what OQ-038 wants a measurement from |
 | `spec-ci.yml`'s `native` and `agreement` jobs | rewritten and **executed locally, step by step**, with `GITHUB_OUTPUT`/`GITHUB_STEP_SUMMARY` redirected to files. The engine-detection step gives the right answer in all four tree states — directory empty, directory absent as on a checkout, sources with no `CMakeLists.txt` (**fails**, as it must), and `CMakeLists.txt` present (`engine=present`) — and the binary-discovery step takes the right branch in five: no build directory, no executable, exactly one (flags passed through verbatim), two (**refuses to guess**), and a non-executable file. Both summary steps rendered and read as a human would read them. What is **not** proven is the engine, which does not exist: OQ-040 |
+| `release.yml`'s five jobs | **executed locally, step by step**, with `GITHUB_OUTPUT`/`GITHUB_STEP_SUMMARY` redirected to files. Step 1 across seven ref states (dispatch, matching tag, mismatched tag, `v1.0`, `v1.0.0-rc1`, `v01.0.0`, `0.1.0`); step 2 across five (untagged, below 1.0.0, no checklist, unticked item, all ticked); the OQ-013 probe in all three; `publish` in four, with packaging and Android planted and removed, confirming three rows → two → one → **exit 1**. The changelog, SBOM and licence steps ran for real against the committed data. What is **not** proven is any of it on GitHub: nothing has been pushed and no tag exists, so no run of this file has ever happened: OQ-053 |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local
 `~/.local` prefix, no root required — FFmpeg 7.1.1 (LGPL-configured,
