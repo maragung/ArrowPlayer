@@ -432,6 +432,37 @@ has nothing to cache.
 - **Consequence if it stays unfixed:** the pinned baseline in `vcpkg.json` is
   never exercised, so it can rot without anything going red — which is exactly
   the failure `REQ-SEC-013` (no floating versions) is trying to prevent.
+- **What landed.** `desktop-ci.yml` now has that second lane: a `vcpkg` job that
+  clones vcpkg at the baseline **read out of the manifest** rather than a hash
+  copied into the workflow, installs in manifest mode with the overlay triplet,
+  and persists a binary cache. It does not run on pull requests, for the reason
+  above. It also asserts two things the manifest claims: that no Qt port is
+  installed (§6.2, ADR 0005) and that `ffmpeg` resolves to the overridden 7.1.x
+  rather than the baseline's newer default.
+- **`x-gha` is gone, and this nearly shipped using it.** The first draft
+  configured `VCPKG_BINARY_SOURCES=clear;x-gha,readwrite`, which is what
+  essentially every published recipe still shows. The baseline
+  `9e593bb18ea69cc5095e012465dcd675a822ed0d` resolves vcpkg-tool release
+  `2026-07-27`, and that release's own message catalogue contains
+  `GhaBinaryCacheDeprecated`: *"The 'x-gha' binary caching backend has been
+  removed."* A removed backend does not fail loudly — it leaves the job compiling
+  everything from source and reporting success, which is `REQ-BLD-022` satisfied
+  on paper only. The job uses a `files` provider persisted by `actions/cache`
+  instead, and its accounting step **fails** when the log contains neither
+  `Restored N package(s)` nor `All packages already exist in the binary cache` —
+  the only two things that tool release says when a provider is active.
+- **Gate 5 has a second half nobody has built: Qt caching.** Phase 0 exit gate 5
+  reads "vcpkg binary caching **and Qt caching** demonstrably working". No
+  workflow installs Qt at all. `desktop-ci.yml` declares
+  `QT_VERSION_FILE: desktop/qt-version.txt` and then never reads it, which is a
+  promise with nothing behind it. The UI is not built yet (Stage 3), so there is
+  nothing for a cached Qt to compile against; the honest position is that half of
+  gate 5 is untouched rather than half-done.
+- **Closes when:** a second run of the `vcpkg` job on an unchanged manifest
+  restores packages instead of building them — the job's summary states which
+  kind of run it was, so the evidence is in the run rather than in a claim — and
+  a Qt install step exists to cache. Neither has happened: nothing in this
+  repository has ever been pushed.
 
 ### OQ-030 — A sixth workflow file, outside the §5 layout · **Settled**
 
