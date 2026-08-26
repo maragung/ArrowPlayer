@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -230,6 +231,32 @@ TEST(ParseInt, RejectsOverflowRatherThanWrapping) {
     EXPECT_EQ(v, 9223372036854775807LL);
     EXPECT_FALSE(parse_int("9223372036854775808", v));
     EXPECT_FALSE(parse_int("99999999999999999999999999", v));
+}
+
+// The negative limit is one further out than the positive one. A single limit
+// for both signs silently rejects the most negative int64, which is a value a
+// settings file or a tag field can legitimately contain.
+TEST(ParseInt, AcceptsTheMostNegativeInt64) {
+    std::int64_t v = 0;
+    EXPECT_TRUE(parse_int("-9223372036854775808", v));
+    EXPECT_EQ(v, std::numeric_limits<std::int64_t>::min());
+
+    EXPECT_TRUE(parse_int("-9223372036854775807", v));
+    EXPECT_EQ(v, -9223372036854775807LL);
+
+    // One past the negative limit is still an overflow.
+    EXPECT_FALSE(parse_int("-9223372036854775809", v));
+    EXPECT_FALSE(parse_int("-99999999999999999999999999", v));
+}
+
+// `out` must be untouched on failure, so a caller that ignores the bool cannot
+// read a half-written value.
+TEST(ParseInt, LeavesOutputUntouchedOnFailure) {
+    std::int64_t v = 12345;
+    EXPECT_FALSE(parse_int("nope", v));
+    EXPECT_EQ(v, 12345);
+    EXPECT_FALSE(parse_int("9223372036854775808", v));
+    EXPECT_EQ(v, 12345);
 }
 
 TEST(ParseHex, ForITunSmpbStyleFields) {
