@@ -548,24 +548,25 @@ to let them imply that nothing has been run.
 
 | Check | Result |
 |---|---|
-| `cmake --preset linux-release` + `ctest` from a clean build directory | **184/184 passed** |
-| `cmake --preset linux-asan` + `ctest` (ASan + UBSan) | **184/184 passed** |
-| `cmake --preset linux-tsan` + `ctest` (ThreadSanitizer) | **184/184 passed** |
+| `cmake --preset linux-release` + `ctest` from a clean build directory | **186/186 passed** |
+| `cmake --preset linux-asan` + `ctest` (ASan + UBSan) | **186/186 passed** |
+| `cmake --preset linux-tsan` + `ctest` (ThreadSanitizer) | **186/186 passed** |
 | `-Werror` with the strict warning set | clean |
 | `tools/check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` | pass |
 | `tools/validate-shared-spec.py` | pass — 5 schemas, 102 JSON documents |
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | **fails** — 7 of the §27 documents do not exist yet |
+| `tools/check-doc-links.py` | **fails** — 2 of the §27 documents do not exist yet |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
+| `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local
 `~/.local` prefix, no root required — FFmpeg 7.1.1 (LGPL-configured,
 decode-oriented, `--disable-network`), TagLib 2.0.2, alsa-lib 1.2.12,
 SQLite 3.46.1.
 
-So `README.md`'s "184 tests, all passing" is locally reproduced, not merely
+So `README.md`'s "186 tests, all passing" is locally reproduced, not merely
 asserted by CI.
 
 **Correction of record.** An earlier version of this section, and the table in
@@ -681,7 +682,7 @@ What was actually run against `desktop/vcpkg.json`, on this machine, with vcpkg
 |---|---|
 | `vcpkg install --dry-run --triplet x64-linux-eclipse` | resolves; `ffmpeg` pins to 7.1.2#5, no OpenSSL, no bzip2 in the graph |
 | triplet evaluation for 14 ports | linkage matches the §4.2 column exactly — LGPL dynamic, permissive static |
-| `cmake --preset linux-release` with `VCPKG_ROOT` unset | unchanged; 184/184 tests still pass |
+| `cmake --preset linux-release` with `VCPKG_ROOT` unset | unchanged; 186/186 tests still pass |
 
 What was **not** run: an actual `vcpkg install`. No port was compiled, so the
 manifest is proven to *resolve*, not proven to *build*. `arm64-linux-eclipse`

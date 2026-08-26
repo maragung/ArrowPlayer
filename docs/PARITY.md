@@ -36,7 +36,7 @@ Read this before the matrix below, because it applies to almost every row:
 - **`android/` does not exist.** Every Android column below is therefore
   **planned**, without exception. See
   [ADR 0011](adr/0011-desktop-first-sequencing.md).
-- **What "partial" rests on:** the 184-test suite passes from a clean build under
+- **What "partial" rests on:** the 186-test suite passes from a clean build under
   Release, ASan+UBSan and TSan on a Linux development machine. Windows and
   `arm64` rows carry no local evidence at all — those are CI-only
   (`OQ-022`, `OQ-023` in [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md)).
