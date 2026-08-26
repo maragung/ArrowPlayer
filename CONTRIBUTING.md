@@ -51,6 +51,7 @@ for gate in check-layers check-sql-safety check-rt-safety validate-shared-spec \
 done
 python3 tools/gen-third-party/gen-third-party.py --self-test
 python3 tools/gen-sbom.py --self-test
+python3 tools/gen-changelog.py --self-test
 
 # 2 · Then the gates themselves.
 python3 tools/check-layers.py                 # REQ-GEN-050 / REQ-GEN-051
@@ -88,6 +89,7 @@ contributor who assumes a check is automated stops running it:
 | `gen-third-party.py --resolved-graph`, `gen-sbom.py --resolved-graph` | `security.yml`'s `resolved-graph` job — audit mode with `--output`, never `--check`, which is stale by design against a resolved graph (OQ-038) |
 | `cyclonedx-cli validate --fail-on-errors` | `security.yml` — the CycloneDX schema, which `gen-sbom.py`'s own structural check is explicitly not (OQ-048) |
 | `check-action-pins.py` | `repo-lint.yml`, its own `action-pins` job, after its `--self-test` |
+| `gen-changelog.py --self-test` | `repo-lint.yml`, beside the other generators. The generator itself runs in `release.yml` (§25.5 step 7) — it has no `--check` mode because its output is a section a human finishes, not a tracked file |
 | `make-seeds.py --check` | `desktop-ci.yml`, in the same `gates` job as the three above |
 
 There is also a fuller schema check that needs the real `jsonschema` library
