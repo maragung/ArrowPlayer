@@ -114,6 +114,14 @@ set but cannot escape the exclusions, and it is how you end up linting a differe
 set than the gate does. Three details are worth knowing because getting them wrong
 is silent rather than loud:
 
+- **Dependabot's own commits are linted like anyone else's, with one measured
+  exception.** Its scope is `deps` or `deps-dev` — dependabot-core picks between
+  them by whether the dependency is a production one, and nothing configures it —
+  so both are in the scope enum. Its subject can reach 98 columns against this
+  repository's package names, which the 72-column header limit cannot accept, so
+  a subject in Dependabot's bump grammar is allowed 100 and everything else keeps
+  72. The exception is scoped to the message shape rather than the author, and
+  every other rule still applies to those commits ([OQ-051](docs/OPEN-QUESTIONS.md)).
 - Install with `npm ci`, not `npm install`, and not `npx markdownlint-cli2`. The
   version is pinned exactly in `package.json` and locked in `package-lock.json`;
   `npx` fetches whatever the registry serves today, which is how this gate once
