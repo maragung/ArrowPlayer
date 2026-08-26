@@ -80,6 +80,25 @@ REQUIRED_DOCS: list[tuple[str, bool, str]] = [
     ("CODE_OF_CONDUCT.md", True, "Contributor Covenant or equivalent, named contact"),
 ]
 
+# §27's tree has a `.github/` half, and until this list existed the gate covered
+# none of it: `release.yml` was missing for weeks and no gate said so, because
+# every check here was pointed at docs/ and the repository root. Existence only —
+# these are YAML and templates, not prose with links to resolve.
+#
+# android-ci.yml is deliberately not required. ADR 0011 defers the Android target,
+# so its absence is a recorded decision, and reporting it as an error every run
+# would train people to read errors as noise.
+REQUIRED_GITHUB: list[tuple[str, bool, str]] = [
+    (".github/PULL_REQUEST_TEMPLATE.md", True, "§1.3's Definition of Done as a checklist"),
+    (".github/ISSUE_TEMPLATE", True, "issue forms — §27 names the directory"),
+    (".github/dependabot.yml", True, "REQ-SEC-014 — dependency update automation"),
+    (".github/workflows/desktop-ci.yml", True, "§25.2 REQ-BLD-021"),
+    (".github/workflows/spec-ci.yml", True, "§25.3 REQ-BLD-023"),
+    (".github/workflows/security.yml", True, "§25.4 REQ-BLD-024"),
+    (".github/workflows/release.yml", True, "§25.5 REQ-BLD-025"),
+    (".github/workflows/android-ci.yml", False, "deferred by ADR 0011 — no app to build"),
+]
+
 # §27: "One file per decision, minimum: project licence, audio output,
 # no-code-in-skins, C ABI for plugins, Qt acquisition, sync wire format."
 REQUIRED_ADRS = [
@@ -495,6 +514,28 @@ def register_self_test() -> list[str]:
     return failures
 
 
+def check_required_paths(
+    entries: list[tuple[str, bool, str]], noun: str
+) -> tuple[list[str], list[str]]:
+    """Existence for one §27 list. Required absences are errors, optional ones notes.
+
+    The gate and the self-test both call this. Earlier today a shell step in
+    release.yml re-implemented a Python generator's rule and drifted from it
+    within the hour; a self-test that re-implements the loop it is testing has
+    the same defect, so there is exactly one loop.
+    """
+    errors: list[str] = []
+    notes: list[str] = []
+    for name, required, why in entries:
+        if (REPO / name).exists():
+            continue
+        if required:
+            errors.append(f"{name}: MISSING — {noun} ({why})")
+        else:
+            notes.append(f"{name}: absent — {why}")
+    return errors, notes
+
+
 def self_test() -> int:
     failures = [
         f"{heading!r}\n      slug -> {slug(heading)}\n      want -> {expected}"
@@ -507,6 +548,31 @@ def self_test() -> int:
             print(f"  {failure}", file=sys.stderr)
         return 1
     print(f"heading slugs: {len(SLUG_CASES)} case(s) match GitHub's algorithm")
+
+    # The existence lists get a negative test for the same reason the register
+    # checks do: a required-path table is trivially "green" if nothing ever
+    # consults it. Inverting the predicate must be caught.
+    missing_now = [name for name, required, _ in
+                   REQUIRED_DOCS + REQUIRED_GITHUB if required
+                   and not (REPO / name).exists()]
+    if missing_now:
+        print("required §27 path(s) missing from this tree:\n  "
+              + "\n  ".join(missing_now), file=sys.stderr)
+        return 1
+    planted = ".github/workflows/does-not-exist.yml"
+    if (REPO / planted).exists():
+        print(f"self-test cannot run: {planted} exists", file=sys.stderr)
+        return 1
+    caught, ignored = check_required_paths(
+        [(planted, True, "planted"), (planted + ".optional", False, "planted")],
+        "planted")
+    if len(caught) != 1 or len(ignored) != 1:
+        print(f"existence check: planted absence gave {len(caught)} error(s) and "
+              f"{len(ignored)} note(s); want 1 and 1", file=sys.stderr)
+        return 1
+    print(f"§27 existence: {len(REQUIRED_DOCS)} document(s), "
+          f"{len(REQUIRED_GITHUB)} .github path(s), {len(REQUIRED_ADRS)} ADR(s) "
+          f"— all required ones present, and a planted absence is detected")
 
     failures = register_self_test()
     if failures:
@@ -532,13 +598,11 @@ def main() -> int:
     notes: list[str] = []
 
     # ---------------------------------------------------- existence (§27 table)
-    for name, required, content in REQUIRED_DOCS:
-        if (REPO / name).exists():
-            continue
-        if required:
-            errors.append(f"{name}: MISSING — §27 requires it ({content})")
-        else:
-            notes.append(f"{name}: absent — {content}")
+    for entries, noun in ((REQUIRED_DOCS, "§27 requires it"),
+                          (REQUIRED_GITHUB, "§27's tree lists it")):
+        found_errors, found_notes = check_required_paths(entries, noun)
+        errors.extend(found_errors)
+        notes.extend(found_notes)
 
     adr_dir = REPO / "docs" / "adr"
     for name in REQUIRED_ADRS:
@@ -608,7 +672,7 @@ def main() -> int:
         print(
             "\nREQ-GEN-075: every §27 document must exist and internal links must "
             "resolve.\nIf a document is deliberately deferred, it belongs in "
-            "docs/OPEN-QUESTIONS.md\nand in the REQUIRED_DOCS table here with "
+            "docs/OPEN-QUESTIONS.md\nand in the REQUIRED_DOCS or REQUIRED_GITHUB table here with "
             "required=False — never silently absent.\n"
             "\n§0.1 rule 1 and §6 of docs/OPEN-QUESTIONS.md: an entry is added, "
             "then marked in place\nwhen it closes. It is never renumbered and "
@@ -620,7 +684,8 @@ def main() -> int:
 
     print(
         f"doc links: {scanned} document(s), {checked} internal link(s) resolved, "
-        f"{len(REQUIRED_DOCS) + len(REQUIRED_ADRS)} §27 deliverable(s) present"
+        f"{len(REQUIRED_DOCS) + len(REQUIRED_ADRS) + len(REQUIRED_GITHUB)} "
+        f"§27 deliverable(s) present"
     )
     print(
         f"OQ register: {oq_count} entries, ids contiguous 1..{oq_count}, every "

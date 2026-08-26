@@ -27,6 +27,15 @@ stable yet.
 
 ### Added
 
+- **`.github/ISSUE_TEMPLATE/` and `PULL_REQUEST_TEMPLATE.md`** — the last two
+  §27 paths that had no content. The PR template is §1.3's Definition of Done in
+  full, ten items, plus a section for anything assumed, because §0.1 rule 1 puts
+  assumptions in `docs/OPEN-QUESTIONS.md` rather than in a reviewer's head. The
+  bug form asks for a commit rather than a version, since nothing has been
+  released, and `check-doc-links.py` now covers §27's `.github/` half — until it
+  did, `release.yml` could go missing for weeks with every gate green, which is
+  exactly what had happened.
+
 - **A vcpkg lane with binary caching (`REQ-BLD-022`, OQ-026)** — the apt matrix
   stays as the fast pre-check; a separate job builds the committed manifest for
   real, at the baseline read out of `desktop/vcpkg.json` rather than a hash
