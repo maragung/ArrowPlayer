@@ -57,7 +57,7 @@ python3 tools/check-sql-safety.py             # REQ-SEC-009
 python3 tools/check-rt-safety.py              # REQ-AUD-017
 python3 tools/validate-shared-spec.py         # shared-spec/ schemas and fixtures
 python3 tools/check-dependency-denylist.py    # REQ-SET-010 / REQ-TST-024
-python3 tools/check-doc-links.py              # REQ-GEN-075 — §27 docs and links
+python3 tools/check-doc-links.py              # REQ-GEN-075 — §27 docs, links, OQ register
 python3 tools/check-action-pins.py            # REQ-SEC-013 — actions are SHA-pinned
 python3 desktop/tests/fuzz/make-seeds.py --check   # REQ-SEC-011 — corpus is current
 python3 tools/check-hardening.py build/linux-release  # REQ-SEC-018 — a real binary
@@ -246,6 +246,19 @@ issue. Recorded contradictions live in
 [`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md) as `OQ-001` … `OQ-003`; that
 register also holds every narrowing and gap, each with a stable `OQ-NNN` id you
 can cite in an issue or a commit body.
+
+Adding an entry, if you need one:
+
+- **Take the next id.** `python3 tools/check-doc-links.py` prints how many entries
+  exist; the next one is that number plus one. Never reuse an id and never
+  renumber, because the id is cited from other documents, from code comments and
+  from commit bodies — the gate fails on a duplicate and on a hole for that reason.
+- **End the heading with a status** — `· **Open**`, `· **Settled**` or `· **Gap**`,
+  optionally qualified (`· **Settled, narrowly**`). Not a fourth word of your own:
+  the status is the decision state, and how strong the evidence is belongs in the
+  body.
+- **When it closes, mark it in place.** Section 6 of that file forbids deleting an
+  entry, so a citation written a year ago still resolves.
 
 ## Reporting bugs and security issues
 

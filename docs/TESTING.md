@@ -156,8 +156,22 @@ What each gate does **not** catch is as important as what it does:
   rediscovered as a surprise.
 - `check-doc-links.py` checks that every §27 document exists and that internal
   links and `#fragment` anchors resolve (GitHub's slug algorithm). It does
-  **not** fetch external `http(s)` URLs — a gate must pass offline. It is
-  currently red for a real reason; see [Continuous integration](#continuous-integration).
+  **not** fetch external `http(s)` URLs — a gate must pass offline.
+- The same script also checks the **OQ register**, because §0.1 rule 1 makes
+  `docs/OPEN-QUESTIONS.md` load-bearing and the rest of the repository cites it by
+  id. Ids must be unique and contiguous — a hole means an entry was lost, and §6 of
+  that file forbids deleting one — every heading must carry a status from the
+  legend, and every `OQ-NNN` written anywhere in the tree must resolve to a
+  definition. The count is **derived and printed** rather than maintained by hand,
+  which is the whole reason the check exists: the hand-kept figure in
+  `CHANGELOG.md` drifted twice, 39 then 48, against an actual 51, because six
+  entries live as table rows in section 3 rather than as `###` headings and a
+  heading-only count misses them. The checker matches both forms.
+  - Two limits, stated rather than left to be discovered. Citations are searched
+    only in files whose suffix is in `REFERENCE_SUFFIXES`, so an `OQ-NNN` in a
+    shell script or an extensionless file is unchecked; and a table-row entry is
+    taken as Settled without a marker, since the tables it appears in are titled
+    by status and a row has nowhere to put one.
 
 ### The hardening gate — `REQ-SEC-018`
 
@@ -701,7 +715,7 @@ The suites map onto the workflows that exist under `.github/workflows/`:
 |---|---|---|
 | `desktop-ci.yml` | architecture gates plus `make-seeds.py --check` → configure/build/`ctest` on `ubuntu-22.04` (gcc-12), `ubuntu-24.04` (gcc-13, plus asan, tsan, clang-18), `windows-2022` (msvc) → FFmpeg licence assertion when a build links FFmpeg, and a hard failure if an adapter exists without one (OQ-042) → fuzzing smoke on clang-18: assert libFuzzer was detected, replay the corpus, 60 s per target → clang-format, clang-tidy, cppcheck | `REQ-BLD-021`, §25.2, `REQ-GEN-015`, `REQ-SEC-011`, `REQ-SEC-012` |
 | `spec-ci.yml` | `validate-shared-spec.py` → draft-2020-12 schema + fixture validation → schema/fixture-sync → `theme-validate` over the corpus → desktop/Android verdict comparison | `REQ-BLD-023`, `REQ-TST-021` |
-| `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-action-pins.py` in its own job → `check-doc-links.py`, `gen-third-party.py --check` for both licence documents, and `gen-sbom.py --check` for the CycloneDX SBOM, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-SEC-013`, `REQ-GEN-012`, `REQ-GEN-020`, `REQ-GEN-021` |
+| `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-action-pins.py` in its own job → `check-doc-links.py` (§27 documents, internal links, **and** the OQ register), `gen-third-party.py --check` for both licence documents, and `gen-sbom.py --check` for the CycloneDX SBOM, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-SEC-013`, `REQ-GEN-012`, `REQ-GEN-020`, `REQ-GEN-021` |
 
 Two notes on that mapping:
 
@@ -711,7 +725,7 @@ Two notes on that mapping:
   introduced while red is a gate someone weakens instead of satisfying. When this
   document landed, the gate reported two missing §27 documents —
   `docs/SKIN-AUTHORING.md` and `docs/LGPL-SOURCE-OFFER.md`. Both now exist, the
-  gate reports 34 documents and 238 internal links resolved with one `[v1.x]`
+  gate reports 34 documents and 237 internal links resolved with one `[v1.x]`
   note for the deferred `docs/PLUGIN-AUTHORING.md`, and the `TODO` is gone. Each
   gate runs its own `--self-test` first: the link checker's is over its
   heading-slug algorithm, which is how a false failure against a correct link in
@@ -724,6 +738,22 @@ Two notes on that mapping:
   references — otherwise a parser that matched nothing would report every
   workflow clean. A checker whose own rules are untested reports whatever its
   bugs allow.
+- **The register check was watched failing three times against the real files.**
+  Its fixture corpus proves the rules; a fixture cannot prove the rules are
+  pointed at the committed tree. So each rule was mutated in place: OQ-039's
+  heading renamed, which was reported both as a hole in the sequence *and* as two
+  citations elsewhere in `docs/` that no longer resolve; a reference to an
+  undefined id added to this file; and OQ-050 given the invented status
+  `**Done**`. All three turned the gate red, the tree restored byte-identical, and
+  the green run afterwards therefore means something.
+  - The second mutation could not be described here in its literal form, which is
+    the check working rather than a flaw in it: a three-digit id written in prose
+    *is* a citation as far as the gate is concerned, so writing "we tried
+    `OQ-0NN`" with real digits would leave a permanent dangling reference in this
+    document. For the same reason the fixture corpus inside the script uses
+    `OQ-001`…`OQ-007`, ids the register will always define — do not "tidy" them to
+    something high and unused, because the script is a `.py` file and is scanned
+    like any other.
 - **The action-pin gate is its own job, and it reads YAML as text.** Comments are
   not part of a parsed YAML document, and the trailing `# v4.4.0` on a pinned
   `uses:` line is what syft records as the component version — without it the
