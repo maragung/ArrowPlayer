@@ -44,7 +44,12 @@ python3 tools/check-sql-safety.py             # REQ-SEC-009
 python3 tools/check-rt-safety.py              # REQ-AUD-017
 python3 tools/validate-shared-spec.py         # shared-spec/ schemas and fixtures
 python3 tools/check-dependency-denylist.py    # REQ-SET-010 / REQ-TST-024
+python3 tools/check-doc-links.py              # REQ-GEN-075 — §27 docs and links
 npm ci && npm run lint:md                     # REQ-GEN-075
+
+# If you touched vcpkg.json, the §4.2 register, or a licence document:
+python3 tools/gen-third-party/gen-third-party.py --document third-party
+python3 tools/gen-third-party/gen-third-party.py --document source-offer
 ```
 
 The Python scripts need only Python 3.9 from the standard library — no virtualenv,
@@ -57,7 +62,7 @@ contributor who assumes a check is automated stops running it:
 | `validate-shared-spec.py` | `spec-ci.yml` |
 | `markdownlint-cli2`, `commitlint` | `repo-lint.yml` |
 | `check-dependency-denylist.py` | **nothing yet** — `security.yml` (§25.4) is not written. Run it |
-| `check-doc-links.py` | **nothing yet, and it fails today** — seven §27 documents do not exist. See OQ-030 |
+| `check-doc-links.py`, `gen-third-party.py --check` | `repo-lint.yml`, each after its own `--self-test` |
 
 There is also a fuller schema check that needs the real `jsonschema` library
 rather than the standard-library subset:

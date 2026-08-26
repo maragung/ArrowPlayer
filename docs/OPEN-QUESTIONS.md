@@ -431,9 +431,10 @@ here rather than left for someone to find.
   problem in the other direction.
 - **What it carries:** `markdownlint-cli2` and `commitlint`, both pinned exactly
   in `package.json` and installed with `npm ci` from the committed lockfile.
-  `tools/check-doc-links.py` joins it in the commit that adds the seven missing
-  §27 documents; it is left out for now because it fails for a real reason, and a
-  gate introduced red is a gate somebody weakens instead of satisfying.
+  `tools/check-doc-links.py` joined it in the commit that completed the last
+  missing `[v1.0]` §27 document (`docs/LGPL-SOURCE-OFFER.md`), together with
+  `gen-third-party.py --check` for both generated licence documents — added green,
+  which is the whole reason they were held back while red.
 - **The pinning is the point, not incidental.** `npx <tool>` resolves whatever the
   registry serves that day, which is how the Markdown gate came to run a version
   nobody chose (OQ-028). `REQ-SEC-013` is about tooling not moving under the
@@ -684,6 +685,33 @@ review: the workflow reads as though the tool were there.
   self-tested — has nothing real to consume, and the corpus's 122 pinned verdicts
   go unexercised by any engine.
 
+### OQ-041 — `REQ-GEN-020`'s website mirror has no website · **Gap**
+
+`REQ-GEN-020` requires the source offer to be published as
+`docs/LGPL-SOURCE-OFFER.md`, *“mirrored on the website”*. The document now exists
+and is generated from the same register as `docs/THIRD-PARTY.md`. The website does
+not: there is no domain — the same absence OQ-013 records from the security side —
+and no GitHub Pages site, so the repository is the only publication point.
+
+- **Assumption in force:** the repository copy *is* the published offer. The
+  generated document states this in its own “What is not yet in place” table
+  rather than implying a mirror that nobody can visit.
+- **Why this is a recorded gap and not an emergency, stated carefully:** the
+  substance of the obligation rests on the route the offer actually relies on —
+  LGPL-2.1 §6(d) and GPL-3.0 §6(d), equivalent access to the source from the same
+  place that serves the binary. That place is the release page, and a mirror adds
+  redundancy, not permission. What is unmet is the specification's own MUST, which
+  is reason enough to write it down.
+- **Proposed answer:** publish `docs/` as a GitHub Pages site once the domain in
+  OQ-013 exists, and add its URL to the `offer` block in
+  `tools/gen-third-party/releases.json` so the generated page names both
+  publication points. One data field, not a second copy of the text.
+- **Consequence if unfixed:** the offer lives only where the code lives. If the
+  repository moves or goes away, distributed binaries could outlive their offer —
+  exactly the risk the three-year written-offer clause exists to cover, and
+  exactly why OQ-013's missing contact channel and this entry are one problem seen
+  from two directions.
+
 ---
 
 ## 5 · Verification status — what is proven where
@@ -707,11 +735,11 @@ to let them imply that nothing has been run.
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | **fails** — 1 of the §27 documents does not exist yet |
+| `tools/check-doc-links.py` | pass — 33 documents, 224 internal links, 23 §27 deliverables present |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 | `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
-| `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires |
-| the same with `--check` | pass — `docs/THIRD-PARTY.md` byte-identical to a fresh render |
+| `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires; the `REQ-GEN-020` ledger gate fires on all 7 malformed release rows |
+| the same with `--check`, both documents | pass — `docs/THIRD-PARTY.md` and `docs/LGPL-SOURCE-OFFER.md` byte-identical to a fresh render |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local
 `~/.local` prefix, no root required — FFmpeg 7.1.1 (LGPL-configured,
@@ -733,10 +761,12 @@ runner image happens to carry — and the version gap is useful in itself: 4.19.
 locally against 4.26.0 in CI means the schemas are asserted by two library
 versions rather than one.
 
-`tools/check-doc-links.py` is listed as failing rather than omitted. Seven §27
-documents are genuinely missing; the gate says so, and it is not wired into a
-workflow until they exist, because a gate added while red is a gate somebody will
-be tempted to weaken.
+`tools/check-doc-links.py` now passes and is wired into `repo-lint.yml`. It was
+listed as failing rather than omitted for as long as §27 documents were missing —
+seven of them at first, then one — because a gate added while red is a gate
+somebody will be tempted to weaken. The one document it still names,
+`docs/PLUGIN-AUTHORING.md`, is `[v1.x]` and reported as a note rather than a
+failure, which is the difference between deferred and forgotten.
 
 ### OQ-017 — Qt is absent; Phase 0 exit gates 1 and 7 are CI-only · **Gap**
 
