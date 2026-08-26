@@ -39,17 +39,36 @@ Before opening a pull request:
 
 ```bash
 # From the repository root.
-python3 tools/check-layers.py          # REQ-GEN-050 / REQ-GEN-051
-python3 tools/check-sql-safety.py      # REQ-SEC-009
-python3 tools/check-rt-safety.py       # REQ-AUD-017
-python3 tools/validate-shared-spec.py  # shared-spec/ schemas and fixtures
+python3 tools/check-layers.py                 # REQ-GEN-050 / REQ-GEN-051
+python3 tools/check-sql-safety.py             # REQ-SEC-009
+python3 tools/check-rt-safety.py              # REQ-AUD-017
+python3 tools/validate-shared-spec.py         # shared-spec/ schemas and fixtures
+python3 tools/check-dependency-denylist.py    # REQ-SET-010 / REQ-TST-024
+npm ci && npm run lint:md                     # REQ-GEN-075
 ```
 
-All four need only Python 3.9 from the standard library — no virtualenv, no
-`pip install`. Three of them (`check-layers`, `check-sql-safety`,
-`check-rt-safety`) run in `desktop-ci.yml` today; `validate-shared-spec.py`
-belongs to `spec-ci.yml` (§25.3), which is not written yet, so for now it is
-enforced by you running it, not by CI. Run it.
+The Python scripts need only Python 3.9 from the standard library — no virtualenv,
+no `pip install`. Which of them CI actually runs, stated exactly, because a
+contributor who assumes a check is automated stops running it:
+
+| Check | Enforced by |
+|---|---|
+| `check-layers`, `check-sql-safety`, `check-rt-safety` | `desktop-ci.yml` |
+| `validate-shared-spec.py` | `spec-ci.yml` |
+| `markdownlint-cli2`, `commitlint` | `repo-lint.yml` |
+| `check-dependency-denylist.py` | **nothing yet** — `security.yml` (§25.4) is not written. Run it |
+| `check-doc-links.py` | **nothing yet, and it fails today** — seven §27 documents do not exist. See OQ-030 |
+
+There is also a fuller schema check that needs the real `jsonschema` library
+rather than the standard-library subset:
+
+```bash
+python3 .github/scripts/spec_full_validate.py --check-schemas --check-fixtures
+```
+
+Run it if `jsonschema` is installed; `spec-ci.yml` runs it either way, against a
+hash-pinned version. If it disagrees with `tools/validate-shared-spec.py`, that
+disagreement is the bug report — the standard-library subset has a keyword wrong.
 
 ## Style
 
@@ -62,12 +81,17 @@ enforced by you running it, not by CI. Run it.
 Formatting is checked, not suggested: `clang-format --dry-run --Werror` runs in
 CI. Run it before you push.
 
-The Markdown gate is `npx markdownlint-cli2` with **no arguments**. The file set
-and the exclusions both come from `.markdownlint-cli2.jsonc`; passing your own
-globs on the command line adds to that set but cannot escape the exclusions, and
-it is how you end up linting a different set than the gate does. Two details are
-worth knowing because getting them wrong is silent rather than loud:
+The Markdown gate is `npm run lint:md`, which is `markdownlint-cli2` with **no
+arguments**. The file set and the exclusions both come from
+`.markdownlint-cli2.jsonc`; passing your own globs on the command line adds to that
+set but cannot escape the exclusions, and it is how you end up linting a different
+set than the gate does. Three details are worth knowing because getting them wrong
+is silent rather than loud:
 
+- Install with `npm ci`, not `npm install`, and not `npx markdownlint-cli2`. The
+  version is pinned exactly in `package.json` and locked in `package-lock.json`;
+  `npx` fetches whatever the registry serves today, which is how this gate once
+  ran a version nobody had chosen.
 - `.markdownlintignore` is **not** read by cli2. Exclusions live in the `ignores`
   array of `.markdownlint-cli2.jsonc`.
 - `eclipse-player.md` is excluded on purpose — it is the upstream specification,

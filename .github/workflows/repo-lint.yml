@@ -1,0 +1,96 @@
+name: repo-lint
+
+# Repository-hygiene gates: Markdown, commit messages, and (once the §27
+# documents exist) documentation links.
+#
+# Why this is a sixth workflow when §5 lists five. The five in §5 map to the
+# specification's own concerns — the two platforms, the shared spec, security,
+# and release. Markdown style and commit-message form belong to none of them, and
+# the alternative was to hang them off desktop-ci.yml, whose `paths` filter is
+# ['desktop/**', 'shared-spec/**', 'tools/**', …]. That filter would skip these
+# checks on exactly the pull requests they exist to check: documentation-only
+# ones. A gate that is silent on the changes it governs is not a gate, so it gets
+# its own file with no `paths` filter at all. Recorded as OQ-030.
+#
+# Both tools are pinned exactly in package.json and installed with `npm ci` from
+# the committed lockfile: REQ-SEC-013 is about not letting tooling move under the
+# project, and `npx <tool>` resolves whatever the registry serves today. That is
+# how the Markdown gate came to run a version nobody chose (OQ-028).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: repo-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  markdown:
+    name: markdownlint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      # No arguments, deliberately. The file set and the exclusions live in
+      # .markdownlint-cli2.jsonc; passing a glob here is precisely how the wrong
+      # file set got linted for three commits (OQ-028). If this needs to lint
+      # something different, the config changes, not the command.
+      - name: Markdown style (REQ-GEN-075)
+        run: npm run lint:md
+
+  commits:
+    name: commitlint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      # The range under review, never all of history. `bf91096` ("Initial
+      # commit") predates the config and does not satisfy it; rewriting main to
+      # fix that would invalidate every commit hash quoted in an ADR, so the
+      # range is bounded instead. See OQ-016.
+      - name: Conventional commits (REQ-BLD-031)
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BASE:-}" ]; then
+            from="$BASE"; to="$HEAD"
+          elif [ -n "${BEFORE:-}" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+               && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            from="$BEFORE"; to="${{ github.sha }}"
+          else
+            # A first push, a force-push, or a manual dispatch: no range exists,
+            # so lint the tip commit rather than silently checking nothing.
+            from="HEAD~1"; to="HEAD"
+          fi
+          echo "Linting $from..$to"
+          npx --no-install commitlint --from "$from" --to "$to" --verbose
+
+  # TODO: add `python3 tools/check-doc-links.py` here in the same commit that
+  # adds the seven missing §27 documents (REQ-GEN-075). It is not added now
+  # because it currently fails for a real reason, and a gate introduced red is a
+  # gate somebody weakens instead of satisfying.

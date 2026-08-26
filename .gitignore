@@ -10,6 +10,9 @@ vcpkg_installed/
 *.user
 __pycache__/
 *.pyc
+# The Markdown and commit-message gates are Node tools. Nothing here is a build
+# input — `npm ci` reproduces it from the lockfile.
+node_modules/
 desktop/third_party/*
 !desktop/third_party/*.tar.gz
 !desktop/third_party/README.md
