@@ -164,9 +164,11 @@ What each gate does **not** catch is as important as what it does:
   legend, and every `OQ-NNN` written anywhere in the tree must resolve to a
   definition. The count is **derived and printed** rather than maintained by hand,
   which is the whole reason the check exists: the hand-kept figure in
-  `CHANGELOG.md` drifted twice, 39 then 48, against an actual 51, because six
-  entries live as table rows in section 3 rather than as `###` headings and a
-  heading-only count misses them. The checker matches both forms.
+  `CHANGELOG.md` drifted twice, 39 then 48, against an actual 51 at the time —
+  52 now, which is the point: the figure moves whenever an entry is added, and it
+  is printed rather than typed. It drifted because six entries live as table rows
+  in section 3 rather than as `###` headings and a heading-only count misses them.
+  The checker matches both forms.
   - Two limits, stated rather than left to be discovered. Citations are searched
     only in files whose suffix is in `REFERENCE_SUFFIXES`, so an `OQ-NNN` in a
     shell script or an extensionless file is unchecked; and a table-row entry is
@@ -552,8 +554,9 @@ committed, growing corpus:
 `REQ-SEC-012` requires every target to build with ASan + UBSan and makes any
 crash, hang, or sanitizer finding a **release blocker** whose input must be added
 to the regression corpus. The extended 15-minute-per-target budget with corpus
-persistence belongs to `security.yml`, which is **not written yet** (see the
-Continuous integration section below); §28's Phase 9 gate 4 restates it as "all
+persistence belongs to `security.yml`'s `fuzz` job, one matrix entry per target
+so the fifteen minutes are per target and not per run (see the Continuous
+integration section below); §28's Phase 9 gate 4 restates it as "all
 fuzz targets clean at 15 minutes each". The corpus-minimisation discipline is the
 counterpart to that growth: a crash input is added, then the corpus is minimised
 (`-merge`) so it stays a small set of behaviour-distinct inputs rather than an
@@ -779,6 +782,7 @@ The suites map onto the workflows that exist under `.github/workflows/`:
 | `desktop-ci.yml` | architecture gates plus `make-seeds.py --check` → configure/build/`ctest` on `ubuntu-22.04` (gcc-12), `ubuntu-24.04` (gcc-13, plus asan, tsan, clang-18), `windows-2022` (msvc) → FFmpeg licence assertion when a build links FFmpeg, and a hard failure if an adapter exists without one (OQ-042) → fuzzing smoke on clang-18: assert libFuzzer was detected, replay the corpus, 60 s per target → clang-format, clang-tidy, cppcheck | `REQ-BLD-021`, §25.2, `REQ-GEN-015`, `REQ-SEC-011`, `REQ-SEC-012` |
 | `spec-ci.yml` | `validate-shared-spec.py` → draft-2020-12 schema + fixture validation → schema/fixture-sync → `theme-validate` over the corpus → desktop/Android verdict comparison | `REQ-BLD-023`, `REQ-TST-021` |
 | `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-action-pins.py` in its own job → `check-doc-links.py` (§27 documents, internal links, **and** the OQ register), `gen-third-party.py --check` for both licence documents, and `gen-sbom.py --check` for the CycloneDX SBOM, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-SEC-013`, `REQ-GEN-012`, `REQ-GEN-020`, `REQ-GEN-021` |
+| `security.yml` | six jobs for §25.4's six steps, run in parallel rather than chained (OQ-052): CodeQL C++ with `security-extended`, stating in its summary that there is no Kotlin (ADR 0011) · grype by digest over the SBOM **and** the tree, gated by `check-cve-baseline.py`, with `--add-cpes-if-none` advisory-only and the `pkg:vcpkg` coverage gap printed every run (OQ-046) · the denylist and both licence documents against the register, then again against a real `vcpkg install --dry-run` (OQ-015, OQ-038) · SBOM regeneration, release diff, and `cyclonedx validate --fail-on-errors` (OQ-048) · 15 minutes of libFuzzer per target with the corpus cached (OQ-043) · `check-hardening.py` over the release build | `REQ-BLD-024`, `REQ-SEC-004`, `REQ-GEN-012`, `REQ-SEC-011`, `REQ-SEC-018`, `REQ-SET-010` |
 
 Two notes on that mapping:
 
@@ -788,7 +792,7 @@ Two notes on that mapping:
   introduced while red is a gate someone weakens instead of satisfying. When this
   document landed, the gate reported two missing §27 documents —
   `docs/SKIN-AUTHORING.md` and `docs/LGPL-SOURCE-OFFER.md`. Both now exist, the
-  gate reports 34 documents and 237 internal links resolved with one `[v1.x]`
+  gate reports 34 documents and 243 internal links resolved with one `[v1.x]`
   note for the deferred `docs/PLUGIN-AUTHORING.md`, and the `TODO` is gone. Each
   gate runs its own `--self-test` first: the link checker's is over its
   heading-slug algorithm, which is how a false failure against a correct link in
@@ -827,12 +831,16 @@ Two notes on that mapping:
   and exclusions live in `.markdownlint-cli2.jsonc`, because passing a glob is
   precisely how the wrong file set once got linted ([OQ-028](OPEN-QUESTIONS.md)).
 
-`android-ci.yml`, `security.yml` and `release.yml` are named by §25 but do not
-exist yet. The first has no app to build
-([ADR 0011](adr/0011-desktop-first-sequencing.md)); `security.yml` will own the
-nightly 15-minute-per-target budget with corpus persistence, CodeQL, the CVE and
-licence scans and the SBOM diff, none of which the 60-second smoke above replaces;
-and `release.yml` has nothing to release while the UI does not build.
+`android-ci.yml` and `release.yml` are named by §25 but do not exist yet: the
+first has no app to build ([ADR 0011](adr/0011-desktop-first-sequencing.md)), and
+the second has nothing to release while the UI does not build. `security.yml` now
+exists and owns the nightly 15-minute-per-target budget with corpus persistence,
+CodeQL, the CVE and licence scans and the SBOM diff — none of which the 60-second
+smoke above replaces. Two parts of it are deliberately non-blocking on their first
+run and each names the condition for becoming blocking: the resolved-graph job,
+whose parser has never seen real vcpkg output ([OQ-038](OPEN-QUESTIONS.md)), and
+the Windows hardening step ([OQ-044](OPEN-QUESTIONS.md)). Nothing in it has
+executed, because nothing has been pushed.
 
 The fuzzing smoke deliberately lives in `desktop-ci.yml` rather than waiting for
 `security.yml`: a target that has crashed is a **release blocker** under

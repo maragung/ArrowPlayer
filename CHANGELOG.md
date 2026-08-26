@@ -27,6 +27,35 @@ stable yet.
 
 ### Added
 
+- **`security.yml`, the §25.4 security workflow** (`REQ-BLD-024`). Six jobs for
+  the sentence's six steps, scheduled daily at 04:41 plus every pull request.
+  CodeQL analyses C++ with `security-extended` and prints a two-row coverage table
+  saying that Kotlin is absent because ADR 0011 defers Android, rather than
+  analysing one language and reporting the step green. grype is installed by
+  release digest, not through an action, so the pin is auditable the way §25.2
+  audits actions; it scans the SBOM and the tree, because those catalogue disjoint
+  sets, and `check-cve-baseline.py` gates both together after its own self-test.
+  `--add-cpes-if-none` runs in a step that cannot fail the job, and the
+  `pkg:vcpkg` coverage gap is printed on every run, green or red. The licence
+  audit, the denylist and the SBOM run against the register, then again against a
+  real `vcpkg install --dry-run` in a job that is non-blocking only until its
+  parser has seen real vcpkg output. libFuzzer runs 15 minutes per target — one
+  matrix entry each, since libFuzzer cannot divide one run's time evenly — with
+  the corpus cached under a run-numbered key, because cache entries are immutable
+  and a fixed key would freeze the corpus at whatever the first run made.
+  Hardening is verified against the built release binaries.
+- **`cyclonedx validate --fail-on-errors`, and why the flag is not optional.**
+  Without it the tool prints *BOM is not valid.* and exits 0, so a step written
+  the obvious way would have passed over an invalid document for the life of the
+  project. Measured both ways round, with every egress route poisoned to prove the
+  schemas are embedded rather than fetched, on a machine with no libicu at all.
+  Two claims in `OPEN-QUESTIONS.md` were wrong and are corrected next to the
+  measurements that refuted them.
+- **The order §25.4's arrows imply is a reading, and it is now on the record.**
+  Six steps joined by five arrows, with nothing saying whether they enumerate or
+  serialise. The jobs run in parallel; every step still fails the workflow, and
+  chaining them would have put a hardening regression 90 minutes behind the push.
+
 - **A negative test for every gate script** (`REQ-TST-024`, `OQ-045`).
   `check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` and
   `validate-shared-spec.py` each grew a `--self-test` that plants the defect the
@@ -155,7 +184,7 @@ stable yet.
   `tools/check-doc-links.py` parses `docs/OPEN-QUESTIONS.md` and fails on a
   duplicate id, a hole in the sequence, a heading whose status is not in the
   legend, or an `OQ-` citation anywhere in the tree that resolves to no entry. It
-  prints the total instead of trusting one: 51 entries, contiguous. The count in
+  prints the total instead of trusting one: 52 entries, contiguous. The count in
   this file had drifted twice — 39, then 48 — because six entries live as table
   rows in section 3 rather than as headings, and a heading-only count misses them.
   Six planted cases in its self-test, and three mutations of the committed files,
@@ -200,7 +229,7 @@ stable yet.
 - **Documentation.** `docs/BUILDING.md` including a root-free user-local
   dependency build, `docs/PARITY.md` (the §29.2 matrix with an added Status
   column), `docs/PRIVACY.md`, `docs/ROADMAP.md` (the 56 `[v1.x]` requirements,
-  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (51
+  the `[v2]` tier, and the §2.4 non-goals) and `docs/OPEN-QUESTIONS.md` (52
   registered assumptions, narrowings and gaps with stable `OQ-NNN` ids).
 - **ADRs** 0001 (MPL-2.0 core, LGPL-only dependencies), 0002 (`IAudioSink` with
   native backends rather than RtAudio), 0003 (no executable code in skins), 0005

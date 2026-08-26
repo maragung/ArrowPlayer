@@ -387,12 +387,14 @@ escalation, which is honest but external.
 
 §19.5 makes "no telemetry" a **structural** property — the analytics and
 telemetry SDKs must be absent from the dependency tree, enforced by a denylist
-check in `security.yml`. `security.yml` does not exist yet.
+check in `security.yml`. `security.yml` did not exist when this entry was
+written; see the last bullet for what has changed and what has not.
 
 - **Assumption in force:** the property currently holds because there are no
   network dependencies at all, which is true but proves nothing about the future.
   `docs/PRIVACY.md` says so in its own words.
 - **Blocking:** `security.yml` is Phase 0 scaffolding and is next in sequence.
+  *(Since written: it is written. What blocks now is a run, not a file.)*
 - **Half of this is now done.** `tools/check-dependency-denylist.py` exists,
   passes over the real tree, and is pinned by a committed 72-name corpus
   (`--self-test`) so its matcher cannot rot. What is still missing is the wiring:
@@ -403,6 +405,16 @@ check in `security.yml`. `security.yml` does not exist yet.
   171 transitive npm packages behind three direct devDependencies are checked
   too. A telemetry SDK arriving as somebody else's dependency is exactly how this
   requirement gets violated without anyone editing a manifest.
+- **The wiring landed; the entry still does not close.**
+  `.github/workflows/security.yml` runs `check-dependency-denylist.py` in its
+  `dependencies` job — unconditionally, blocking, ahead of the licence audit — and
+  again with `--resolved-graph` in the `resolved-graph` job, which is where the
+  transitive vcpkg ports this gate cannot otherwise see come from. So
+  `CONTRIBUTING.md`'s "enforced by: nothing yet" is no longer true of the
+  repository. It is still true of every *run*: nothing has been pushed to `origin`,
+  so the file exists and has never executed, and the condition above says "when
+  `security.yml` runs it, not before". A workflow file is not a run. This entry
+  closes with the first green `dependencies` job.
 
 ### OQ-026 — CI installs dependencies with `apt`, so `REQ-BLD-022` has nothing to cache · **Gap**
 
@@ -659,6 +671,26 @@ fixture in `tools/gen-third-party/testdata/`, because vcpkg is not installed her
   confirms the classification, and commits the captured output as the fixture in
   place of the synthetic one. Until then the parser stays labelled untested
   against real output wherever it is described.
+- **That lane now exists, and is deliberately non-blocking.** `security.yml`'s
+  `resolved-graph` job runs `vcpkg install --triplet x64-linux-eclipse --dry-run`
+  against the runner's own vcpkg — the manifest pins the registry with
+  `builtin-baseline` and the custom triplet comes from `vcpkg-configuration.json`'s
+  overlay, so what resolves there resolves anywhere — then pipes the output through
+  the generator, the denylist and `gen-sbom.py`, and uploads it as an artifact. The
+  **whole job** carries `continue-on-error: true`, for the reason OQ-044 sets out:
+  the likeliest cause of a red first run is a defect in my parser rather than in the
+  build, and failing the workflow over that puts pressure on the wrong file. The
+  artifact is what closes this entry — real output replaces the synthetic fixture,
+  `continue-on-error` comes off, and both happen in the commit that records the run.
+- **The audit runs in audit mode, not `--check` mode, and the difference is not
+  cosmetic.** `gen-third-party.py --check --resolved-graph <graph>` reports **STALE**
+  by design: the committed `docs/THIRD-PARTY.md` is generated direct-only, so
+  comparing it against a resolved graph *must* differ, and a CI step written that way
+  would fail on every run for a reason that is not the requirement. The step passes
+  `--resolved-graph` with `--output` to a scratch path instead, where a non-zero exit
+  means an unregistered port and nothing else. Verified by planting one:
+  `✗ unknown-telemetry-lib` — "These ports are in the resolved graph but described by
+  no register entry, no transitive reference, and no build-only entry."
 
 ---
 
@@ -805,6 +837,21 @@ harnesses now would mean writing the parsers now.
   ledger — every absent target names the phase that will bring it. The table is
   the mechanism: it converts sixteen silent omissions into sixteen rows a
   reviewer can count. This entry closes when the last row does.
+- **§25.4's 15-minute lane now exists, one matrix entry per target.**
+  `security.yml`'s `fuzz` job runs each of the four harnesses with
+  `-max_total_time=900`, persists the corpus across runs through `actions/cache`
+  under a run-numbered key with `restore-keys` walking back — a fixed key would
+  freeze the corpus at whatever the first run produced, because cache entries are
+  immutable — and fails on any reproducer, uploading it for 90 days. A matrix entry
+  per target is what makes "15 minutes per target" literal: libFuzzer has no
+  mechanism for dividing one invocation's time evenly across targets, so a single
+  60-minute job would satisfy the sentence only by coincidence.
+- **The job refuses to run rather than replay the corpus and call it fuzzing.**
+  Without clang, `eclipse_add_fuzz_target` builds only `<name>_replay`, which walks
+  the committed seeds and exits in seconds. A step that ran *that* for fifteen
+  minutes of wall-clock would report extended fuzzing and perform none of it —
+  OQ-042's shape once more — so the job installs clang, then checks the real target
+  is executable and errors out naming this file if it is not.
 - **Each new corpus found a real defect on its first replay,** which is the
   argument for doing this now rather than at the end. Neither needed a mutation,
   and neither needed libFuzzer.
@@ -997,6 +1044,16 @@ behind it rather than a citation.
   job summary on every run rather than hidden behind a green check. Until the
   register carries CPE names, or vcpkg lands in a scanner's ecosystem map,
   `REQ-SEC-004` is **not** satisfiable from the SBOM, and the workflow says so.
+- **Wired in the shape this entry describes.** `security.yml`'s `cve` job installs
+  grype 0.117.0 by digest rather than through an action, so the pin is auditable the
+  same way §25.2 audits actions; runs `check-cve-baseline.py --self-test` *before*
+  the gate, so a green verdict is distinguishable from a matcher that never matches
+  (OQ-045); gates on both scans together; runs `--add-cpes-if-none` in a step that
+  `continue-on-error` makes structurally unable to fail the job; and prints the
+  `pkg:vcpkg` coverage gap with `if: always()`, green run or red. What stays
+  undecided is the part that needs a decision rather than a file: whether the §4.2
+  register grows CPE names for its thirteen C and C++ entries. Until it does, this
+  entry stays **Open** however much of the scan is built.
 - **What is still not proven.** osv-scanner and trivy have not been run — the rows
   describing them in earlier drafts of this entry were read from their source and
   issue trackers, and only grype has been executed. The grype numbers are from one
@@ -1038,7 +1095,7 @@ register string is preserved as `eclipse:register-version` and
 
 ---
 
-### OQ-048 — Nothing committed validates the SBOM against the CycloneDX schema · **Open**
+### OQ-048 — Nothing committed validates the SBOM against the CycloneDX schema · **Settled**
 
 `REQ-GEN-021` asks for a CycloneDX SBOM, which is worth having only if it is valid.
 `gen-sbom.py`'s own `validate_bom` checks structure — required top-level fields,
@@ -1059,19 +1116,45 @@ JSON Schema validation.
   keywords, cross-file `$ref` into `spdx.schema.json` and `jsf-0.82.schema.json`,
   and the tuple form of `items` with `additionalItems`. The 166 `$ref` siblings in
   those schemas are all annotations, so the dialect difference itself is inert.
-- **Proposed answer.** CI validates with `CycloneDX/cyclonedx-cli validate
-  --input-version v1_6`: one per-platform executable that embeds bom-1.6, spdx and
-  jsf-0.82 as resources, so it needs no network on a build machine — which is what
-  an earlier draft of this entry wrongly claimed was impossible. Extending
-  `jsonschema_mini.py` to draft-07 is the alternative, measured at those three
-  keywords plus a multi-document registry, and it is worth doing on its own account
-  because `validate-shared-spec.py` could then run real schemas locally too. Either
-  way, the check belongs in `security.yml` next to the SBOM generation, not in a
-  scratch file.
-- **What is not proven.** `cyclonedx-cli`'s embedded-schema behaviour is read from
-  its source and release notes, not from a run here; it is not installed and cannot
-  be without root. Some Linux images additionally need `libicu` for it to start.
-  The first CI run is what settles both points.
+- **What landed.** `security.yml`'s `dependencies` job downloads
+  `CycloneDX/cyclonedx-cli` v0.33.1 by digest and runs `validate --input-file
+  docs/sbom/eclipse-player.cdx.json --input-format json --input-version v1_6
+  --fail-on-errors`. Both flags are load-bearing, for different reasons; see the
+  next two bullets. Extending `tools/jsonschema_mini.py` to draft-07 is still worth
+  doing on its own account — `validate-shared-spec.py` could then run real schemas
+  locally rather than a subset — but it is no longer what `REQ-GEN-021` waits on.
+- **`--fail-on-errors` is not optional, and measurement is what showed it.**
+  Without the flag, `cyclonedx validate` prints `BOM is not valid.` and **exits 0**.
+  The planted `scope: "mandatory"` document was correctly *reported* invalid and the
+  process returned success. A step written the obvious way — no flag, trust the exit
+  code — would have passed over an invalid document for the life of the project:
+  OQ-042's shape arriving through somebody else's tool rather than through a branch
+  in mine. With the flag, both directions hold: valid → 0, invalid → 1.
+- **`--input-version v1_6` is pinned even though the default also passes.** The flag
+  defaults to v1.7 and a 1.6 document validates under it today. Validating a document
+  against a schema it does not declare is not a validation of that document, and the
+  first 1.7 keyword that changes meaning would quietly move what is being checked.
+- **Two claims above were wrong, and are corrected here rather than edited away.**
+  *"It is not installed and cannot be without root"* — it is a single self-contained
+  ELF executable, downloaded to a scratch directory and run as an ordinary user on
+  this machine. *"Some Linux images additionally need `libicu`"* — this machine has
+  **no** libicu at all (`ldconfig -p` finds zero entries) and the binary links only
+  libc, libstdc++, libm, libgcc, libdl, librt and libpthread; it also runs identically
+  under `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`. Both stay visible in this entry
+  rather than moving to §29.6, which corrects claims made by the *specification*;
+  these two were mine. §6 rule 3 below is amended to say which table takes which.
+- **The embedded schemas are now measured, not inferred.** Validation was re-run with
+  every egress route poisoned — `HTTP_PROXY`, `HTTPS_PROXY` and `ALL_PROXY` pointed at
+  `127.0.0.1:1`, `no_proxy` and `NO_PROXY` cleared — and produced byte-identical
+  verdicts: valid → 0 with *BOM validated successfully*, planted defect → 1 with
+  *Validation failed*. bom-1.6, spdx and jsf-0.82 therefore come out of the
+  executable, and the check works on a build machine with no network, which is what
+  §25.4 needs of it.
+- **What is still not proven.** CycloneDX publishes no checksums file for this
+  release, so the pin `bfc8b253…` is a digest measured from one download on
+  2026-08-26 rather than one the project vouches for — weaker evidence than grype's
+  pin, and stated as such. And the step has never executed in CI, like every other
+  step in this repository.
 
 ---
 
@@ -1280,6 +1363,45 @@ cannot be satisfied is a gate somebody turns off.
 
 ---
 
+### OQ-052 — §25.4's arrows: enumeration, or execution order? · **Open**
+
+`REQ-BLD-024` is one sentence joined by arrows: "CodeQL (C++, Kotlin) → CVE scan
+… → licence audit … → SBOM generation and diff against the previous release →
+extended fuzzing … → hardening-flag verification on the produced binaries". Six
+steps, five arrows, and nothing that says what an arrow means.
+
+- **Assumption in force:** the arrows enumerate the steps and fix the order they
+  are *described* in, not the order they *execute* in. `security.yml` runs the
+  independent ones as parallel jobs and uses `needs:` nowhere, because no step
+  consumes another step's output across a job boundary.
+- **Why this is the narrow reading and not a weakening.** All six steps exist and
+  every one of them can fail the workflow, which is the property the requirement
+  protects. What the parallel shape gives up is that a failing CodeQL run would
+  prevent the CVE scan from starting — and here that property has *negative* value.
+  Chained, the 60-minute fuzzing matrix lands last, so a hardening regression is
+  reported an hour and a half after the push instead of ten minutes, and one CodeQL
+  failure hides five verdicts a reviewer needs in the same pass. Serialising also
+  makes the daily run's wall-clock the sum of its parts, which is how a scheduled
+  workflow ends up switched off.
+- **Where an order is real, it is written down.** Two orderings are genuine data
+  dependencies and appear as sequential steps inside a job: the resolved dependency
+  graph must exist before the licence audit, the denylist and the SBOM can read it;
+  and each gate script's `--self-test` runs before the gate it qualifies, so a green
+  gate is never the first thing a job proves (OQ-045).
+- **Recommendation:** amend §25.4 to read "each of the following, any of which
+  fails the workflow" and drop the arrows, or state that the sequence is normative.
+  As written the sentence cannot be complied with unambiguously — and under the
+  literal reading the whole cost falls on feedback latency rather than on coverage,
+  which is a poor trade to make by accident.
+- **One clause of the same sentence is settled elsewhere, not by this entry.**
+  "(C++, Kotlin)" names two languages and this repository has one: ADR 0011 defers
+  the Android target, so there is no Kotlin to analyse. The CodeQL job prints a
+  two-row coverage table naming the language it analysed and the reason the other
+  is absent, rather than analysing one and reporting the step green — which is the
+  distinction OQ-042 exists to keep.
+
+---
+
 ## 5 · Verification status — what is proven where
 
 The governing record for the scope decision behind this section is
@@ -1312,7 +1434,7 @@ to let them imply that nothing has been run.
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | pass — 34 documents, 237 internal links, 23 §27 deliverables present, and the register itself: **51** entries, contiguous 1..51, every status in the legend, every `OQ-NNN` citation in the tree resolving |
+| `tools/check-doc-links.py` | pass — 34 documents, 243 internal links, 23 §27 deliverables present, and the register itself: **52** entries, contiguous 1..52, every status in the legend, every `OQ-NNN` citation in the tree resolving |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 | `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases, plus 6 register cases: 5 planted defects each rejected for the right reason, 1 fenced example correctly accepted, over a 6-entry valid control |
 | the register check, mutated against the real tree | pass — three separate mutations of the committed files each turn it red: removing OQ-039's heading (reported as a hole **and** as two now-dangling citations from `docs/SKIN-AUTHORING.md` and elsewhere), citing an `OQ-0NN` nobody defines, and giving OQ-050 the invented status `**Done**`. The tree restores byte-identical afterwards |
@@ -1337,6 +1459,9 @@ to let them imply that nothing has been run.
 | `commitlint` over the whole history after that change | 34 commits, **0 problems** — the relaxation did not loosen anything the existing history relied on |
 | `.github/dependabot.yml` | parses; three ecosystems, each grouped into one pull request. Its pip entry was checked against dependabot-core rather than assumed: `requirements_file?` accepts `requirements-spec.txt` because the name matches `/requirements/`, and the requirement replacer rewrites `--hash=` entries. **Never run** — nothing is pushed |
 | `gen-sbom.py --self-test` and `--check` in `repo-lint.yml` | wired — self-test in the `Gate self-tests` step, `--check` beside the two licence documents, in a workflow with no `paths` filter. **Caveat that applies to every workflow here:** nothing has been pushed to `origin`, so no workflow in this repository has ever executed. Every result in this table is a local run |
+| `security.yml` — six jobs for §25.4's six steps | written and parsed (6 jobs, `yaml.safe_load`); every `uses:` SHA-pinned with a version-only comment (`check-action-pins.py`: 4 files, 38 references). **Not executed**, per the caveat above. Two things are non-blocking by design until their first run — the `resolved-graph` job (OQ-038) and the Windows hardening step (OQ-044) — and each records the condition for removing that |
+| `cyclonedx-cli validate` against the committed SBOM | pass locally — valid → exit 0, a planted `scope: "mandatory"` → exit 1, **with every egress route poisoned** and with no libicu on the machine, so the schemas are embedded in the executable. `--fail-on-errors` proven load-bearing: without it the invalid document is *reported* invalid and the process still exits 0 (OQ-048) |
+| `vcpkg install --dry-run` on this machine | **not run** — vcpkg is not installed here. The graph parser is exercised against a hand-built fixture and against a planted unregistered port, which it rejects by name; the runner's own vcpkg is what OQ-038 wants a measurement from |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local
 `~/.local` prefix, no root required — FFmpeg 7.1.1 (LGPL-configured,
@@ -1552,8 +1677,14 @@ ALAC and WavPack encoders are native to FFmpeg; **MP3 is not** — it needs
 1. Make the decision, in an ADR if it changes the specification.
 2. Update the requirement text **and** the affected fixtures in the same commit,
    so the schema/fixture-sync gate (`REQ-BLD-023`) has something to verify.
-3. If the entry recorded a wrong earlier claim, add a row to §29.6 — that table
-   exists so mistakes are not silently reintroduced.
+3. If the entry recorded a wrong earlier claim, keep the correction where the
+   claim was, so a reader meets both together — that is why OQ-046's "scan the
+   source tree instead, the native path covers more" and OQ-048's "cannot be
+   installed without root" are still legible above, each next to the measurement
+   that refuted it. §29.6 of `eclipse-player.md` is **not** the place for these:
+   that table corrects claims made by the *specification*, and a register entry's
+   mistake is the implementation's, not the spec's. Add a row there only when the
+   thing that was wrong is a requirement.
 4. Move the entry to a `## Closed` section here with the resolution and the
    commit. **Do not delete it.** The point of a register is that it still shows
    what was once uncertain, and an entry that vanishes leaves the next reader
