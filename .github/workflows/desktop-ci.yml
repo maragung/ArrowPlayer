@@ -219,6 +219,217 @@ jobs:
   #  job is the fast one: it proves each target still builds under libFuzzer,
   #  still replays its committed corpus, and survives a minute of mutation.
   # -------------------------------------------------------------------------
+  # -------------------------------------------------------------------------
+  #  The vcpkg lane — REQ-BLD-022, OQ-026, Phase 0 exit gate 5.
+  #
+  #  The matrix above installs FFmpeg, TagLib and the rest with apt. That is why
+  #  it is fast, and it is also why the manifest this repository commits has
+  #  never been exercised: §6.2 says every non-Qt dependency comes from vcpkg in
+  #  manifest mode, and REQ-BLD-022 makes binary caching mandatory rather than
+  #  optional. A mandatory cache with nothing to cache is not a satisfied
+  #  requirement. OQ-026 records the two-lane answer; this is the second lane.
+  #
+  #  Not on pull requests. A cold cache here builds ffmpeg, projectm, chromaprint
+  #  and soundtouch from source, and OQ-026's whole reason for keeping apt was to
+  #  avoid putting that in front of every review. It runs on main, and on demand.
+  #
+  #  Honest limit: vcpkg is not installed on the machine where this job was
+  #  written, so unlike every other step in this file its shell was reasoned
+  #  about rather than executed — the accounting step below was exercised against
+  #  synthetic logs built from vcpkg's real message catalogue, which is not the
+  #  same as having seen vcpkg print them. Nothing has been pushed either, so no run of it
+  #  exists. The summary it writes says which run it is, because on a cold cache
+  #  "0 restored" is the correct result and only the *next* run is evidence for
+  #  gate 5's "second run substantially faster".
+  # -------------------------------------------------------------------------
+  vcpkg:
+    name: vcpkg manifest · binary cache
+    needs: gates
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    env:
+      # A `files` provider under RUNNER_TEMP, persisted by actions/cache.
+      #
+      # NOT x-gha. The first draft of this job used it, because that is what
+      # every tutorial still shows. The pinned baseline resolves vcpkg-tool
+      # release 2026-07-27, and that release's own message catalogue contains
+      # GhaBinaryCacheDeprecated: "The 'x-gha' binary caching backend has been
+      # removed." Configuring a removed backend is how a mandatory cache becomes
+      # a job that compiles everything and still reports success.
+      #
+      # `clear` first so nothing inherits vcpkg's default local cache: on a
+      # runner that is a fresh empty directory, and a provider that can only
+      # ever miss is indistinguishable from no provider at all.
+      VCPKG_BINARY_SOURCES: 'clear;files,${{ runner.temp }}/vcpkg-cache,readwrite'
+      VCPKG_DISABLE_METRICS: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Build dependencies vcpkg itself needs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gcc-13 g++-13 pkg-config \
+            autoconf automake libtool nasm
+
+      # The key is everything that changes what gets built: the manifest, the
+      # overlay triplets, and the baseline the manifest pins. Not the commit —
+      # keying on that would guarantee a miss on every push, which is a cache
+      # that exists and never works.
+      - name: Restore the vcpkg binary cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/vcpkg-cache
+          key: vcpkg-x64-linux-eclipse-${{ hashFiles('desktop/vcpkg.json', 'desktop/vcpkg-configuration.json', 'desktop/cmake/triplets/*.cmake') }}
+          # A partial restore is worth having: one changed port should not mean
+          # rebuilding the other eight.
+          restore-keys: |
+            vcpkg-x64-linux-eclipse-
+
+      # Read, not written twice. The baseline lives in desktop/vcpkg.json and
+      # REQ-SEC-013 is about versions not floating; a hash copied into this file
+      # would be a second place for it to drift. Manifest mode also *requires*
+      # the checkout to contain that commit, so a preinstalled vcpkg of some
+      # other vintage is not usable here.
+      - name: Check out vcpkg at the manifest's own baseline
+        run: |
+          set -euo pipefail
+          baseline=$(python3 -c "
+          import json; print(json.load(open('desktop/vcpkg.json'))['builtin-baseline'])")
+          echo "builtin-baseline: $baseline"
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/microsoft/vcpkg.git "$RUNNER_TEMP/vcpkg"
+          git -C "$RUNNER_TEMP/vcpkg" fetch --depth 1 origin "$baseline"
+          git -C "$RUNNER_TEMP/vcpkg" checkout "$baseline"
+          "$RUNNER_TEMP/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
+          echo "VCPKG_ROOT=$RUNNER_TEMP/vcpkg" >> "$GITHUB_ENV"
+
+      - name: Install the manifest
+        id: install
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        working-directory: desktop
+        run: |
+          set -euo pipefail
+          # The overlay triplets are relative to vcpkg-configuration.json, which
+          # is why this runs from desktop/ rather than the repository root.
+          set +e
+          "$VCPKG_ROOT/vcpkg" install \
+            --triplet x64-linux-eclipse \
+            --host-triplet x64-linux-eclipse \
+            --x-manifest-root . \
+            2>&1 | tee "$RUNNER_TEMP/vcpkg-install.log"
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          exit "$rc"
+
+      - name: Did the cache actually do anything?
+        if: always() && steps.install.outputs.rc != ''
+        run: |
+          set -euo pipefail
+          log="$RUNNER_TEMP/vcpkg-install.log"
+
+          # Read once, and fail loudly if it comes back empty. Interpolating a
+          # command substitution straight into an echo swallows its failure: a
+          # wrong working directory would have printed a blank baseline into the
+          # summary and gone green, which is how this very step first behaved
+          # under test.
+          baseline=$(python3 -c "
+          import json; print(json.load(open('desktop/vcpkg.json'))['builtin-baseline'])" \
+                     2>/dev/null || true)
+          if [ -z "$baseline" ]; then
+            echo "::error::Could not read builtin-baseline from desktop/vcpkg.json."
+            echo "::error::This step runs from the repository root; check the path."
+            exit 1
+          fi
+          # vcpkg's own accounting, and its own wording. Both patterns below are
+          # message strings taken from vcpkg-tool 2026-07-27's locales catalogue,
+          # the release this manifest's baseline pins:
+          #   RestoredPackagesFromFiles  "Restored {count} package(s) from {path}
+          #                               in {elapsed}."
+          #   PackagesCached             "All packages already exist in the binary
+          #                               cache. Installation skipped."
+          # The second matters: on a fully warm run there may be nothing to
+          # restore *because* everything is already accounted for, and a guard
+          # that only knew the first pattern would fail the best possible run.
+          restored=$(grep -oE 'Restored [0-9]+ package' "$log" \
+                     | grep -oE '[0-9]+' | tail -1 || true)
+          built=$(grep -cE '^Building [a-z0-9-]+' "$log" || true)
+          restored=${restored:-0}; built=${built:-0}
+          if grep -qF 'All packages already exist in the binary cache' "$log"; then
+            fully_cached=yes
+          else
+            fully_cached=no
+          fi
+
+          if [ "$fully_cached" = "no" ] \
+             && ! grep -qE 'Restored [0-9]+ package' "$log"; then
+            echo "::error::The install log has neither a 'Restored N package(s)' line"
+            echo "::error::nor 'All packages already exist in the binary cache'. Those"
+            echo "::error::are the only two things vcpkg 2026-07-27 says when a binary"
+            echo "::error::provider is active, so no provider was active: it built"
+            echo "::error::everything from source and would still have gone green."
+            echo "::error::REQ-BLD-022 is not satisfied by a cache that is not there."
+            echo "::error::Check VCPKG_BINARY_SOURCES — and note that x-gha was removed"
+            echo "::error::in this tool release, so a copied x-gha recipe lands here."
+            exit 1
+          fi
+
+          {
+            echo "### vcpkg binary cache (REQ-BLD-022, Phase 0 exit gate 5)"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Restored from cache | **$restored** package(s) |"
+            echo "| Built from source | **$built** package(s) |"
+            echo "| Baseline | \`$baseline\` |"
+            echo
+            if [ "$fully_cached" = "yes" ]; then
+              echo "**Fully cached.** vcpkg reported that every package already"
+              echo "existed in the binary cache and skipped installation outright —"
+              echo "the strongest form of what \`REQ-BLD-022\` asks for."
+            elif [ "$restored" -eq 0 ]; then
+              echo "**Cold cache.** Zero restored is the correct result for the first"
+              echo "run against a given baseline and triplet — there was nothing to"
+              echo "restore. It is *not* evidence for gate 5, which asks that a second"
+              echo "run be substantially faster. The next run on this baseline is the"
+              echo "evidence; until one exists, \`OQ-026\` stays open."
+            else
+              echo "**Warm cache.** $restored package(s) came back from the restored"
+              echo "cache instead of being compiled, which is what \`REQ-BLD-022\`"
+              echo "requires and what gate 5 asks to be demonstrated."
+            fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: The manifest is what was resolved (REQ-SEC-013)
+        if: always() && steps.install.outputs.rc == '0'
+        working-directory: desktop
+        run: |
+          set -euo pipefail
+          # Two facts worth failing on rather than trusting. Qt must never come
+          # from vcpkg (§6.2, ADR 0005), and ffmpeg must be the overridden 7.1.x
+          # the register names — not the baseline's newer default.
+          if "$VCPKG_ROOT/vcpkg" list | grep -qiE '^qt'; then
+            echo "::error::A Qt port is installed from vcpkg. §6.2 forbids it and"
+            echo "::error::desktop/vcpkg.json says so in \$no-qt. ADR 0005 is the record."
+            exit 1
+          fi
+          want=$(python3 -c "
+          import json
+          o=[x for x in json.load(open('vcpkg.json'))['overrides'] if x['name']=='ffmpeg'][0]
+          print(o['version'])")
+          got=$("$VCPKG_ROOT/vcpkg" list ffmpeg | head -1 || true)
+          echo "override wants ffmpeg $want; vcpkg reports: ${got:-<nothing>}"
+          case "$got" in
+            *"$want"*) echo "ffmpeg matches the override." ;;
+            *) echo "::error::ffmpeg is not $want. The override in desktop/vcpkg.json"
+               echo "::error::exists because §6.3 and the §4.2 register both name 7.1.x;"
+               echo "::error::a floating resolve is what REQ-SEC-013 forbids."
+               exit 1 ;;
+          esac
+
   fuzz:
     name: fuzzing smoke
     needs: gates

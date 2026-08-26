@@ -27,6 +27,17 @@ stable yet.
 
 ### Added
 
+- **A vcpkg lane with binary caching (`REQ-BLD-022`, OQ-026)** — the apt matrix
+  stays as the fast pre-check; a separate job builds the committed manifest for
+  real, at the baseline read out of `desktop/vcpkg.json` rather than a hash
+  copied into the workflow. Its first draft used the `x-gha` cache backend,
+  which the pinned vcpkg-tool release has **removed** — its own message
+  catalogue says so — and a removed backend would have compiled everything from
+  source while still reporting success. It now uses a `files` provider persisted
+  by `actions/cache`, and the accounting step fails when the log shows no
+  provider was active at all. The job also checks two claims the manifest makes:
+  no Qt port, and `ffmpeg` at the overridden 7.1.x.
+
 - **`release.yml`, the fifth workflow (§25.5, `REQ-BLD-025`)** — does the four
   of ten steps whose inputs exist today and refuses the rest by name. The tag
   must be `vX.Y.Z` and agree with `desktop/version.txt`; the 1.0.0 checklist
