@@ -54,9 +54,10 @@ zero-connection test asserts no outbound traffic during a full session.
 | Audio graph, sinks, decoders | not started | — |
 | Library index, scanner, tagging | not started | — |
 | Format strings, smart playlists, theme engine | not started | — |
-| Qt UI | not started | — |
+| Application object, lifecycle, exit codes (§5, §28 gate 7) | done | 17 |
+| Qt UI shell, About dialog | in progress | — |
 
-**193 tests, all passing** from a clean build — the 189 GoogleTest cases in the
+**210 tests, all passing** from a clean build — the 206 GoogleTest cases in the
 table above plus the four fuzz-corpus replays — clean under `-Werror` with a
 strict warning set, and passing again under ASan+UBSan and under ThreadSanitizer.
 Reproduced locally on GCC 14.2 / CMake 3.31 / Ninja 1.12, not asserted from CI

@@ -60,6 +60,7 @@ enum class ErrorCode {
     Cancelled,
     Timeout,
     ResourceExhausted,
+    InvalidState,              ///< the operation is legal, the object's state is not
 
     // ---- filesystem -------------------------------------------------------
     FileNotFound = 100,

@@ -28,6 +28,7 @@ std::string_view to_string(ErrorCode code) noexcept {
         case ErrorCode::Cancelled:                return "CANCELLED";
         case ErrorCode::Timeout:                  return "TIMEOUT";
         case ErrorCode::ResourceExhausted:        return "RESOURCE_EXHAUSTED";
+        case ErrorCode::InvalidState:             return "INVALID_STATE";
 
         case ErrorCode::FileNotFound:             return "FILE_NOT_FOUND";
         case ErrorCode::PermissionDenied:         return "PERMISSION_DENIED";
