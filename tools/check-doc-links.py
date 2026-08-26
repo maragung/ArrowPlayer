@@ -31,6 +31,7 @@ Standard library only: no pip, no venv.
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 import unicodedata
@@ -115,7 +116,11 @@ def slug(heading: str) -> str:
     text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", text)      # links/images
     text = re.sub(r"\[([^\]]*)\]\[[^\]]*\]", r"\1", text)       # reference links
     text = text.replace("`", "")
-    text = re.sub(r"[*_~]+", "", text)                          # emphasis
+    text = re.sub(r"[*~]+", "", text)                           # emphasis
+    # Underscore emphasis is not intra-word in GFM, so `gapless_info` keeps its
+    # underscore while `_stressed_` loses both. Stripping every underscore would
+    # invent an anchor GitHub never generates and fail a link that works.
+    text = re.sub(r"(?<!\w)_+|_+(?!\w)", "", text)
     out = []
     for ch in text.strip().lower():
         if ch in " \t":
@@ -215,7 +220,54 @@ def scannable() -> list[Path]:
     return docs
 
 
+# Headings whose slug is easy to get wrong, with the anchor GitHub actually
+# generates for each. The underscore cases are here because an earlier version
+# stripped every underscore as emphasis and so failed a working link into
+# `docs/API.md`; a fix without a case that pins it is a fix that comes back.
+SLUG_CASES = (
+    ("`audio/decode/gapless_info.hpp` — trim metadata",
+     "audiodecodegapless_infohpp--trim-metadata"),
+    ("OQ-021 — Dependency detection needs `PKG_CONFIG_PATH` for a user-local "
+     "prefix · **Settled**",
+     "oq-021--dependency-detection-needs-pkg_config_path-for-a-user-local-"
+     "prefix--settled"),
+    ("snake_case_and_more", "snake_case_and_more"),
+    ("_stressed_ heading", "stressed-heading"),
+    ("*emphasis* and **strong**", "emphasis-and-strong"),
+    ("5 · Verification status — what is proven where",
+     "5--verification-status--what-is-proven-where"),
+    ("`core/text.hpp` — UTF-8, sort keys, path safety",
+     "coretexthpp--utf-8-sort-keys-path-safety"),
+    ("Qt 6 · LGPL-3.0-only", "qt-6--lgpl-30-only"),
+    ("[A linked heading](x.md)", "a-linked-heading"),
+)
+
+
+def self_test() -> int:
+    failures = [
+        f"{heading!r}\n      slug -> {slug(heading)}\n      want -> {expected}"
+        for heading, expected in SLUG_CASES
+        if slug(heading) != expected
+    ]
+    if failures:
+        print(f"{len(failures)} slug failure(s):\n", file=sys.stderr)
+        for failure in failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+    print(f"heading slugs: {len(SLUG_CASES)} case(s) match GitHub's algorithm")
+    return 0
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="check the slug algorithm against its committed corpus and exit",
+    )
+    if parser.parse_args().self_test:
+        return self_test()
+
     errors: list[str] = []
     notes: list[str] = []
 
