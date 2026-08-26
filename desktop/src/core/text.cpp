@@ -491,17 +491,25 @@ bool parse_int(std::string_view s, std::int64_t& out) noexcept {
     if (t[0] == '+' || t[0] == '-') { negative = (t[0] == '-'); i = 1; }
     if (i >= t.size()) return false;
 
+    // The magnitude limit is asymmetric: int64 reaches 2^63 going down but only
+    // 2^63 - 1 going up. Guarding both with the positive limit would reject
+    // INT64_MIN, whose magnitude is exactly one past it.
+    constexpr std::uint64_t kMaxPositive =
+        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
+    const std::uint64_t limit = negative ? kMaxPositive + 1u : kMaxPositive;
+
     std::uint64_t acc = 0;
-    constexpr std::uint64_t kLimit = static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
     for (; i < t.size(); ++i) {
         if (t[i] < '0' || t[i] > '9') return false;
         const std::uint64_t digit = static_cast<std::uint64_t>(t[i] - '0');
-        if (acc > (kLimit - digit) / 10) return false;   // overflow
+        if (acc > (limit - digit) / 10) return false;   // overflow
         acc = acc * 10 + digit;
     }
-    if (negative && acc == kLimit + 1) { out = std::numeric_limits<std::int64_t>::min(); return true; }
-    if (acc > kLimit) return false;
-    out = negative ? -static_cast<std::int64_t>(acc) : static_cast<std::int64_t>(acc);
+
+    if (!negative) { out = static_cast<std::int64_t>(acc); return true; }
+    // Negating 2^63 as int64 is undefined, so INT64_MIN is named, not computed.
+    out = (acc == kMaxPositive + 1u) ? std::numeric_limits<std::int64_t>::min()
+                                     : -static_cast<std::int64_t>(acc);
     return true;
 }
 
