@@ -44,7 +44,8 @@ Before opening a pull request:
 #     the defect that gate exists to catch, over synthetic input, and requires it
 #     to be caught. Closes OQ-045.
 for gate in check-layers check-sql-safety check-rt-safety validate-shared-spec \
-            check-doc-links check-dependency-denylist check-hardening; do
+            check-doc-links check-dependency-denylist check-hardening \
+            check-action-pins; do
   python3 "tools/$gate.py" --self-test || echo "SELF-TEST FAILED: $gate"
 done
 python3 tools/gen-third-party/gen-third-party.py --self-test
@@ -57,6 +58,7 @@ python3 tools/check-rt-safety.py              # REQ-AUD-017
 python3 tools/validate-shared-spec.py         # shared-spec/ schemas and fixtures
 python3 tools/check-dependency-denylist.py    # REQ-SET-010 / REQ-TST-024
 python3 tools/check-doc-links.py              # REQ-GEN-075 — §27 docs and links
+python3 tools/check-action-pins.py            # REQ-SEC-013 — actions are SHA-pinned
 python3 desktop/tests/fuzz/make-seeds.py --check   # REQ-SEC-011 — corpus is current
 python3 tools/check-hardening.py build/linux-release  # REQ-SEC-018 — a real binary
 npm ci && npm run lint:md                     # REQ-GEN-075
@@ -80,6 +82,7 @@ contributor who assumes a check is automated stops running it:
 | `markdownlint-cli2`, `commitlint` | `repo-lint.yml` |
 | `check-dependency-denylist.py` | **nothing yet** — `security.yml` (§25.4) is not written. Run it |
 | `check-doc-links.py`, `gen-third-party.py --check`, `gen-sbom.py --check` | `repo-lint.yml`, each after its own `--self-test` |
+| `check-action-pins.py` | `repo-lint.yml`, its own `action-pins` job, after its `--self-test` |
 | `make-seeds.py --check` | `desktop-ci.yml`, in the same `gates` job as the three above |
 
 There is also a fuller schema check that needs the real `jsonschema` library

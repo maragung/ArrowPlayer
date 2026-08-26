@@ -928,7 +928,7 @@ database, so the only variable is the flag.
 | the same document with one `pkg:npm/lodash@4.17.15` component appended | 24 | **6**, all `javascript-matcher` / `exact-direct-match` |
 | the same document, `--add-cpes-if-none` | 23 | **49** — 8 Critical, 27 High, 13 Medium, 1 Low; every one `stock-matcher` / `cpe-match` |
 | `grype dir:desktop` | **1** | 0 |
-| `grype dir:.` (excluding `node_modules/`, `build/`) | 23 | **1** High — and not a C/C++ dependency; see OQ-050 |
+| `grype dir:.` (excluding `node_modules/`, `build/`) | 23 | **1** High — and not a C/C++ dependency: a floating action tag, since pinned and gated (OQ-050) |
 
 Read the first two rows together: the injected npm component is found by the same
 binary, from the same file, through the same reader, so the zero on the row above
@@ -1102,14 +1102,13 @@ severity" is red on its first run and every run after it.
 
 ---
 
-### OQ-050 — Every GitHub Action is pinned to a floating major tag · **Open**
+### OQ-050 — Every GitHub Action was pinned to a floating major tag · **Settled**
 
 `REQ-SEC-013` forbids floating dependency versions, and `CONTRIBUTING.md` applies
 that to Node tooling in as many words: `npx <tool>` "resolves whatever the registry
 serves today", which is how the Markdown gate came to run a version nobody chose
-(OQ-028). The six actions used across the three workflows are pinned the same way
-they were in every example anyone copies from — to a major tag:
-
+(OQ-028). The six actions used across the three workflows were pinned the same way
+they are in every example anyone copies from — to a major tag:
 `actions/checkout@v4`, `actions/setup-python@v5`, `actions/setup-node@v4`,
 `actions/upload-artifact@v4`, `actions/download-artifact@v4`,
 `ilammy/msvc-dev-cmd@v1`.
@@ -1122,20 +1121,66 @@ also an arbitrary-code-execution surface with no pin in front of it.
   OQ-046, and expected to find nothing — reported one High-severity match:
   `GHSA-cxww-7g56-2vh6`, arbitrary file write via artifact extraction, against
   `actions/download-artifact@v4` in `spec-ci.yml`, fixed in 4.1.3.
-- **Whether that finding is a true positive: probably not, and it does not
+- **Whether that finding was a true positive: probably not, and it did not
   matter.** `v4` today resolves to a 4.x release well past 4.1.3, so the runner
-  almost certainly gets fixed code; grype flags it because `v4` is not a version
-  it can order against `4.1.3`. The finding is still the useful kind — the reason
+  almost certainly got fixed code; grype flagged it because `v4` is not a version
+  it can order against `4.1.3`. The finding was still the useful kind — the reason
   the scanner cannot decide is precisely the reason the pin is wrong. An
   unorderable version is one nobody can audit.
-- **Proposed answer.** Pin every action to a full commit SHA with the human-readable
-  version in a trailing comment, which is GitHub's own documented recommendation
-  and what `dependabot.yml` updates for you. Do it as its own `ci:` commit, before
-  `security.yml` adds more actions to pin.
-- **What is not proven.** The residual risk of a mutable tag is argued, not
-  measured, and no SHA has been recorded yet. Whether Dependabot's
-  `github-actions` ecosystem keeps SHA pins current for this repository is unknown
-  until `dependabot.yml` exists and has run once.
+
+**Resolution.** All 22 action references across the three workflows are pinned to a
+full 40-character commit SHA with the version in a trailing comment. Each tag was
+resolved to a concrete release and then verified twice by independent routes — the
+GitHub releases and commits API, and `git ls-remote … refs/tags/<tag>^{}` — which
+agreed on all six:
+
+| Action | Was | Now | SHA |
+|---|---|---|---|
+| `actions/checkout` | `v4` | v4.4.0 | `11d5960a326750d5838078e36cf38b85af677262` |
+| `actions/setup-python` | `v5` | v5.6.0 | `a26af69be951a213d495a4c3e4e4022e16d87065` |
+| `actions/setup-node` | `v4` | v4.4.0 | `49933ea5288caeca8642d1e84afbd3f7d6820020` |
+| `actions/upload-artifact` | `v4` | v4.6.2 | `ea165f8d65b6e75b540449e92b4886f43607fa02` |
+| `actions/download-artifact` | `v4` | v4.3.0 | `d3f86a106a0bac45b974a628896c90dbdf5c8093` |
+| `ilammy/msvc-dev-cmd` | `v1` | v1.13.0 | `0b201ec74fa43914dc39ae48a89fd1d8cb592756` |
+
+Every SHA is inside the major line the workflow already named, so pinning is not a
+silent major upgrade. `download-artifact` 4.3.0 is past 4.1.3, so the finding that
+started this is moot by version and not only by argument.
+
+- **The trailing version comment is load-bearing, and that is measured, not
+  assumed.** Two one-step workflows differing in nothing but the comment, scanned
+  by the same grype build: with `# v4.4.0` the component is
+  `pkg:github/actions/checkout@v4.4.0`; without it, the version syft records is
+  the SHA itself — `pkg:github/actions/checkout@11d5960a…`. A SHA is not orderable
+  against a fixed-in constraint, so a bare SHA pin reinstates the original defect
+  in a form that looks pinned. Hence the gate requires the comment, and requires
+  it to hold nothing but the version: trailing prose lands inside the string syft
+  reads.
+- **The pin is enforced, not merely applied.** `tools/check-action-pins.py`
+  rejects mutable refs, branches, abbreviated and upper-case SHAs, a missing
+  version comment, a prose-polluted one, and an undigested `docker://` reference,
+  while accepting local composite actions. Its `--self-test` catches 12 planted
+  defects and accepts 12 valid lines, 8 of which it confirms it actually parsed as
+  references — the OQ-045 shape, since a parser matching nothing would report
+  every workflow as clean. It also reads the workflows as **text**: a YAML parse
+  is the obvious approach and would silently defeat the comment rule, because
+  comments are not part of the parsed document. It runs as its own `action-pins`
+  job in `repo-lint.yml`, the workflow with no `paths` filter, so a pull request
+  that only touches `.github/` cannot skip it.
+- **Empirical close.** Re-running `grype dir:. --exclude './node_modules/**'
+  --exclude './build/**'` after pinning: **0 matches**, with all six actions still
+  catalogued at orderable versions. Reverting a single pin to `@v4` in the working
+  tree makes the gate fail, naming the file, line and mutable ref; deleting a
+  single version comment while keeping the SHA also fails, naming the SBOM
+  consequence. Both mutations were run against the real tree, not a fixture.
+- **What is still not proven.** Nothing has been pushed to `origin`, so this gate
+  has never run on a runner. `dependabot.yml` does not exist yet, so a SHA pin now
+  goes stale silently: unlike a floating tag, it will never pick up a security fix
+  on its own, which is the trade this pin deliberately accepts and Dependabot is
+  what pays it back. Whether Dependabot's `github-actions` ecosystem keeps SHA
+  pins current for this repository is unknown until that file exists and has run
+  once. The SHAs were resolved from this machine; a reader re-verifying them
+  should use the `git ls-remote` command the gate prints on failure.
 
 ---
 
@@ -1171,7 +1216,7 @@ to let them imply that nothing has been run.
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
 | the same, with defects planted (`"type": 5`; a flipped verdict; an undeclared `$id`) | fails, as it must — 3 of 3 |
 | `.github/scripts/compare_verdicts.py --self-test` | pass — 10 scenarios, 6 of which must fail and do |
-| `tools/check-doc-links.py` | pass — 34 documents, 235 internal links, 23 §27 deliverables present |
+| `tools/check-doc-links.py` | pass — 34 documents, 237 internal links, 23 §27 deliverables present |
 | `tools/check-dependency-denylist.py --self-test` | pass — 24 denied, 48 allowed, 0 either way |
 | `tools/check-doc-links.py --self-test` | pass — 9 heading-slug cases |
 | `tools/gen-third-party/gen-third-party.py --self-test` | pass — fixture parses to 19 ports; the unknown-component gate fires; the `REQ-GEN-020` ledger gate fires on all 7 malformed release rows |
@@ -1186,6 +1231,9 @@ to let them imply that nothing has been run.
 | the same, `--add-cpes-if-none` | **49 matches** — 8 Critical, 27 High, 13 Medium, 1 Low; all `stock-matcher`/`cpe-match`; **20 of 49** on a component with no version, so advisory only |
 | `grype dir:desktop` | **1 component catalogued** — `pkg:vcpkg/eclipse-player@0.1.0`, the project itself, no dependencies. The native path covers less than the SBOM, correcting this register's own earlier proposal |
 | `grype dir:.` (`node_modules/`, `build/` excluded) | 23 components, **1 High** — `GHSA-cxww-7g56-2vh6` against `actions/download-artifact@v4` in `spec-ci.yml`. Not a C/C++ dependency; recorded as OQ-050 |
+| the same, after every action was SHA-pinned | **0 matches**, six actions still catalogued at orderable versions. Two one-step control workflows differing only in the trailing `# v4.4.0` comment show syft recording either `@v4.4.0` or the bare SHA as the version — which is why the gate requires the comment |
+| `tools/check-action-pins.py --self-test` | pass — 12 planted defects caught (mutable tag, branch, short and upper-case SHA, missing version comment, prose-polluted comment, undigested `docker://`), 12 valid lines accepted, 8 confirmed parsed as real references |
+| the same over the real tree, one pin reverted to `@v4`, then one version comment deleted | **fails both times**, naming file, line and reason; passes over 22 references when restored |
 | `gen-sbom.py --self-test` and `--check` in `repo-lint.yml` | wired — self-test in the `Gate self-tests` step, `--check` beside the two licence documents, in a workflow with no `paths` filter. **Caveat that applies to every workflow here:** nothing has been pushed to `origin`, so no workflow in this repository has ever executed. Every result in this table is a local run |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local

@@ -87,6 +87,28 @@ stable yet.
   planted defects that must be caught; `_FORTIFY_SOURCE` and `/GS` are advisory
   per binary and mandatory across a build, because a binary that makes no
   fortifiable call is evidence about the source rather than about hardening.
+- **Every CI action pinned to a commit SHA, and a gate that keeps it that way**
+  (`REQ-SEC-013`, `OQ-050`). All 22 `uses:` references across the three workflows
+  moved from a floating major tag — `actions/checkout@v4` and five others — to a
+  full 40-character SHA with the version in a trailing comment. Each tag was
+  resolved to a concrete release and verified twice, by the GitHub API and by
+  `git ls-remote refs/tags/<tag>^{}`, both agreeing; every SHA stays inside the
+  major line the workflow already named, so no pin is a silent major upgrade.
+  Found by measurement rather than review: `grype dir:.`, run while quantifying
+  the SBOM's CVE coverage and expected to report nothing, flagged
+  `GHSA-cxww-7g56-2vh6` against `actions/download-artifact@v4`. That match was
+  probably a false positive — and beside the point, since the reason a scanner
+  cannot decide is the reason the pin is wrong. `tools/check-action-pins.py`
+  enforces it in a new `action-pins` job in `repo-lint.yml`, rejecting mutable
+  refs, branches, abbreviated and upper-case SHAs, a missing or prose-polluted
+  version comment, and an undigested `docker://` image. It reads the workflows as
+  text on purpose: comments are not part of a parsed YAML document, and a control
+  pair differing only in the trailing comment shows syft recording either
+  `@v4.4.0` or the bare SHA as the component version — so a `safe_load` gate
+  would pass a pin no CVE database can order. Post-pin `grype dir:.` reports 0
+  matches. `dependabot.yml` still does not exist, which is the cost this pin
+  accepts and is recorded with it.
+
 - **One dependency register, three generated documents.** `§4.2` lives as data
   in `tools/gen-third-party/register.json`; nothing derived from it is authored
   twice. `tools/gen-third-party/gen-third-party.py` emits `docs/THIRD-PARTY.md`

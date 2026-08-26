@@ -18,6 +18,11 @@ name: repo-lint
 # the committed lockfile: REQ-SEC-013 is about not letting tooling move under the
 # project, and `npx <tool>` resolves whatever the registry serves today. That is
 # how the Markdown gate came to run a version nobody chose (OQ-028).
+#
+# The actions these jobs run are pinned by the same argument, which for three
+# commits they were not: `uses: actions/checkout@v4` resolves through a tag its
+# owner can move. The `action-pins` job below enforces the pins so the argument
+# survives the next person who adds a step (OQ-050).
 
 on:
   push:
@@ -37,9 +42,9 @@ jobs:
     name: markdownlint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
           cache: npm
@@ -57,11 +62,11 @@ jobs:
     name: commitlint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
           cache: npm
@@ -92,6 +97,33 @@ jobs:
           echo "Linting $from..$to"
           npx --no-install commitlint --from "$from" --to "$to" --verbose
 
+  # Actions are dependencies that run with the job's token, so §25.2's pinning
+  # policy has to cover them. Its own job rather than a step in `docs` because it
+  # is supply chain, not documentation, and because a red pin should not be
+  # reported as a documentation failure.
+  #
+  # It lives in this workflow for the OQ-030 reason above: repo-lint.yml has no
+  # `paths` filter, and a change that adds an unpinned action to spec-ci.yml
+  # touches no path desktop-ci.yml watches.
+  action-pins:
+    name: action pins
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      # The gate's own corpus first, for the reason the docs job gives: this one
+      # implements a line parser and eight rejection rules, and a parser that
+      # matched nothing would report every workflow as clean.
+      - name: Gate self-test
+        run: python3 tools/check-action-pins.py --self-test
+
+      - name: Actions are SHA-pinned (REQ-SEC-013, REQ-BLD-021)
+        run: python3 tools/check-action-pins.py
+
   # The §27 documentation gates. Held back until they were green — a gate
   # introduced red is a gate somebody weakens instead of satisfies — and added
   # here in the commit that created the last missing [v1.0] §27 document,
@@ -104,9 +136,9 @@ jobs:
     name: documentation
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
 
