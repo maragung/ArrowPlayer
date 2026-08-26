@@ -908,46 +908,89 @@ so its pass had never once depended on its matching logic being correct.
 
 ---
 
-### OQ-046 — The SBOM's CVE scan matches nothing, in all three scanners · **Gap**
+### OQ-046 — A CVE scan of the SBOM reports clean and covers nothing · **Measured**
 
 `REQ-SEC-004` requires the dependency CVE scan to fail the build on any new
 high-severity finding, and §25.4 step 2 is that scan. The generated SBOM carries a
 purl for every component and no `cpe` for any of them, because the §4.2 register
-records no CPE names and `gen-sbom.py` will not invent one. The consequence was
-read out of the scanners rather than assumed:
+records no CPE names and `gen-sbom.py` will not invent one.
 
-| Scanner | What it does with these purls |
-|---|---|
-| osv-scanner | maps purl types to OSV ecosystems; among C/C++ types only `conan` is mapped, `generic` is present but commented out, and there is no `vcpkg` case at all. OSV.dev has no populated vcpkg ecosystem — its C/C++ data is commit-based (`GIT`) |
-| grype | recognises `pkg:vcpkg` through syft but assigns it no Language, so it routes to the stock matcher, which needs a CPE and returns `ErrEmptyCPEMatch`. Zero matches, with a debug hint to pass `--add-cpes-if-none` — default `false` |
-| trivy | falls to `default: TypeUnknown` → `ClassUnknown` and logs "Skipping a component with an unsupported type" before matching runs at all |
+This entry began as a reading of three scanners' source. It has since been
+**measured**: grype 0.117.0 (release tarball, SHA-256 verified against the
+published `checksums.txt`) runs as a static binary with no root, so it was
+installed and run here against vulnerability database v6.1.9. Every number below
+is from that run, over the committed `docs/sbom/eclipse-player.cdx.json` and one
+database, so the only variable is the flag.
+
+| Run | Components read | Matches |
+|---|---|---|
+| `grype sbom:docs/sbom/eclipse-player.cdx.json` | 23 | **0** — "No vulnerabilities found" |
+| the same document with one `pkg:npm/lodash@4.17.15` component appended | 24 | **6**, all `javascript-matcher` / `exact-direct-match` |
+| the same document, `--add-cpes-if-none` | 23 | **49** — 8 Critical, 27 High, 13 Medium, 1 Low; every one `stock-matcher` / `cpe-match` |
+| `grype dir:desktop` | **1** | 0 |
+| `grype dir:.` (excluding `node_modules/`, `build/`) | 23 | **1** High — and not a C/C++ dependency; see OQ-050 |
+
+Read the first two rows together: the injected npm component is found by the same
+binary, from the same file, through the same reader, so the zero on the row above
+it is not grype failing to parse the document. It is `pkg:vcpkg` having no
+ecosystem matcher — which is what the source said, now with a non-vacuous control
+behind it rather than a citation.
 
 - **The purl was corrected anyway, and it changed nothing.** An earlier draft of
   `gen-sbom.py` emitted `pkg:generic` for the vcpkg ports on the belief that purl
   has no `vcpkg` type. It does — a registered type with a full machine-readable
   definition — so the ports are now `pkg:vcpkg/<port>`, qualified by
   `repository_revision` (the pinned registry baseline) and `triplet`. That was done
-  because it is the correct identifier, **not** because it improves coverage: all
-  three outcomes above are the same either way.
+  because it is the correct identifier, **not** because it improves coverage: the
+  0-match row above is the corrected purl.
 - **Why this matters more than a missing feature.** A CVE step that scans this
   document reports clean and covers nothing — the same shape as OQ-042, where a
   licence gate took the "not applicable" branch on every run from the day it was
-  written. A green check here would be a claim nobody had earned.
-- **Proposed answer, in three parts.** (1) `security.yml`'s CVE step scans the
-  source tree and the vcpkg manifest, not only the SBOM, so each tool's native
-  detection path is used instead of a purl lookup that is known to miss. (2) grype
-  additionally runs with `--add-cpes-if-none` and its findings are labelled
-  advisory in the job summary: a synthesised name-plus-version CPE resolves against
-  NVD, which produces false positives as readily as coverage, so it must not gate
-  the build on its own. (3) The residual gap is printed in the summary rather than
-  hidden behind a green check. Until the register carries CPE names, or vcpkg lands
-  in a scanner's ecosystem map, `REQ-SEC-004` is **not** satisfiable from the SBOM
-  alone, and the workflow will say so.
-- **What is not proven.** None of the three scanners has been run here — none is
-  installed and none can be without root. The table is read from their source and
-  issue trackers, not from an execution. The first CI run with a scanner available
-  is what settles it, and if any of these three descriptions turns out wrong, this
-  entry is what gets corrected.
+  written. A green check here would be a claim nobody had earned. The measurement
+  is what makes that concrete: 0 and 49 out of the same document.
+- **One part of the earlier proposal was wrong, and the measurement is what
+  showed it.** This entry previously proposed scanning "the source tree and the
+  vcpkg manifest, not only the SBOM, so each tool's native detection path is used
+  instead of a purl lookup that is known to miss". For grype that is **backwards**:
+  `grype dir:desktop` catalogues exactly one component,
+  `pkg:vcpkg/eclipse-player@0.1.0` — the project itself, read out of
+  `desktop/vcpkg.json`, with none of its dependencies. The native path covers
+  *less* than the SBOM, not more. The scan of the whole repository catalogues 23
+  components and not one of them is a registered C/C++ dependency: nine GitHub
+  Actions, five pinned Python packages from `.github/requirements-spec.txt`, the
+  npm tooling root, and the project. Scanning both is still worth doing — that is
+  how the one real finding surfaced — but not for the reason stated here before.
+- **`--add-cpes-if-none` cannot gate the build, and the numbers say why.** Of its
+  49 matches, **20 are against a component with no version at all** — `libzip`,
+  `pkgconf`, `taglib`, `zlib`, the four whose register entry records a series
+  rather than a release (OQ-047). A CPE match with no version is every CVE ever
+  filed against the name: the list includes `CVE-2005-1849` against zlib and
+  `CVE-2017-12858` against libzip, both fixed years before the pinned versions.
+  Synthesised CPEs are therefore advisory output, never a gate — which is what
+  this entry already said, now with a count.
+- **The 29 ffmpeg matches are the half worth reading, and they raise a separate
+  question.** ffmpeg is the one component with an exact version (7.1.2), so its
+  matches are version-aware: 21 are High or Critical and 5 name a fix version
+  (8.0, 8.1, 8.1.2). Whether any applies to *this* build is unassessed — the
+  configuration is decode-only with no encoders, muxers, avfilter, swscale or
+  network — and the assessment, not the count, is what a usable gate needs. The
+  immediate consequence for `REQ-SEC-004` is recorded as
+  OQ-049.
+- **Proposed answer.** (1) `security.yml` scans both the SBOM and the repository
+  tree, because they catalogue disjoint sets and the tree scan is where the one
+  real finding came from. (2) grype additionally runs with `--add-cpes-if-none`,
+  its output labelled advisory in the job summary and unable to fail the job. (3)
+  The residual gap — no ecosystem matcher for `pkg:vcpkg`, therefore no coverage
+  of the 13 registered C/C++ dependencies from the SBOM alone — is printed in the
+  job summary on every run rather than hidden behind a green check. Until the
+  register carries CPE names, or vcpkg lands in a scanner's ecosystem map,
+  `REQ-SEC-004` is **not** satisfiable from the SBOM, and the workflow says so.
+- **What is still not proven.** osv-scanner and trivy have not been run — the rows
+  describing them in earlier drafts of this entry were read from their source and
+  issue trackers, and only grype has been executed. The grype numbers are from one
+  machine, one database build (v6.1.9, 2026-08-26) and one architecture; a
+  database rebuild changes the 49 and possibly the 21. Nothing here has run in CI,
+  because no workflow in this repository has ever executed.
 
 ---
 
@@ -1020,6 +1063,82 @@ JSON Schema validation.
 
 ---
 
+### OQ-049 — `REQ-SEC-004`'s "new" is undefined, and the gate is red today · **Open**
+
+`REQ-SEC-004` says the CVE scan fails the build "on any **new** high severity"
+finding. The word *new* is load-bearing and the specification never defines it
+against anything. The measurement in OQ-046 turns that from a pedantic reading
+into a blocking one: grype, given the one component whose version is exact,
+returns **21 High or Critical CPE matches against the pinned ffmpeg 7.1.2 right
+now**, before a line of adapter code exists. A gate reading "fail on any high
+severity" is red on its first run and every run after it.
+
+- **Why the obvious readings both fail.** *New since the last run* makes the gate
+  depend on scheduler history, so a re-run of the same commit can pass where the
+  first run failed. *New since the previous release* is what §25.4 step 4 already
+  uses for the SBOM diff, but there is no previous release, so on day one it
+  degenerates to "any". Neither can be implemented as written today.
+- **What the 21 are and are not.** They are CPE matches from NVD data against
+  version 7.1.2. They are not an assessment: this build is decode-only, with no
+  encoders, muxers, `avfilter`, `swscale` or network protocols (§6.3,
+  `REQ-GEN-014`), and a large share of FFmpeg CVEs land in exactly those
+  components. Five name a fix version — 8.0, 8.1 and 8.1.2 — against a pin the
+  register and §6.3 both set at 7.1.x, so at least the question "should the pin
+  move" is real and separate from "is this build affected".
+- **Proposed answer.** A committed baseline: `security/cve-baseline.json`, one
+  entry per accepted finding with the CVE id, the component, the reason it does
+  not apply or is accepted, and the date. The gate then means *fail on any
+  high-severity finding absent from the baseline*, which is a definition that does
+  not depend on run history and cannot silently drift, because adding an entry is
+  a reviewed diff that has to say why. An entry whose component or version no
+  longer matches anything is itself an error, so the file cannot rot into a
+  blanket suppression. The 21 ffmpeg matches are **not** pre-populated by this
+  entry: each needs the configuration assessment above, and writing 21
+  justifications nobody has performed would be exactly the fiction this register
+  exists to prevent.
+- **What is not proven.** The 21 is one database build (grype v6.1.9, 2026-08-26)
+  on one machine; the count moves with the data. No baseline file exists, and no
+  finding has been assessed against this build's configuration.
+
+---
+
+### OQ-050 — Every GitHub Action is pinned to a floating major tag · **Open**
+
+`REQ-SEC-013` forbids floating dependency versions, and `CONTRIBUTING.md` applies
+that to Node tooling in as many words: `npx <tool>` "resolves whatever the registry
+serves today", which is how the Markdown gate came to run a version nobody chose
+(OQ-028). The six actions used across the three workflows are pinned the same way
+they were in every example anyone copies from — to a major tag:
+
+`actions/checkout@v4`, `actions/setup-python@v5`, `actions/setup-node@v4`,
+`actions/upload-artifact@v4`, `actions/download-artifact@v4`,
+`ilammy/msvc-dev-cmd@v1`.
+
+A tag is mutable. `@v4` is whatever the maintainer last moved `v4` to, which is
+the property `REQ-SEC-013` exists to forbid, and for a third-party action it is
+also an arbitrary-code-execution surface with no pin in front of it.
+
+- **How this surfaced.** Not from review. `grype dir:.` — run while measuring
+  OQ-046, and expected to find nothing — reported one High-severity match:
+  `GHSA-cxww-7g56-2vh6`, arbitrary file write via artifact extraction, against
+  `actions/download-artifact@v4` in `spec-ci.yml`, fixed in 4.1.3.
+- **Whether that finding is a true positive: probably not, and it does not
+  matter.** `v4` today resolves to a 4.x release well past 4.1.3, so the runner
+  almost certainly gets fixed code; grype flags it because `v4` is not a version
+  it can order against `4.1.3`. The finding is still the useful kind — the reason
+  the scanner cannot decide is precisely the reason the pin is wrong. An
+  unorderable version is one nobody can audit.
+- **Proposed answer.** Pin every action to a full commit SHA with the human-readable
+  version in a trailing comment, which is GitHub's own documented recommendation
+  and what `dependabot.yml` updates for you. Do it as its own `ci:` commit, before
+  `security.yml` adds more actions to pin.
+- **What is not proven.** The residual risk of a mutable tag is argued, not
+  measured, and no SHA has been recorded yet. Whether Dependabot's
+  `github-actions` ecosystem keeps SHA pins current for this repository is unknown
+  until `dependabot.yml` exists and has run once.
+
+---
+
 ## 5 · Verification status — what is proven where
 
 The governing record for the scope decision behind this section is
@@ -1063,6 +1182,10 @@ to let them imply that nothing has been run.
 | that document, and a resolved-graph one, against the canonical `bom-1.6.schema.json` | **0 errors each**; CycloneDX's own `valid-bom-1.6.json` control 0 errors; a planted `scope: "mandatory"` caught — but through a throwaway draft-07 adapter, not committed code (OQ-048) |
 | both documents' 24 purls against the purl grammar | pass — no namespace on `pkg:vcpkg`, qualifier keys sorted, no subpath, no unexpected qualifier |
 | `tools/gen-sbom.py --require-exact-versions` | **fails**, naming 10 of 13 (OQ-047); over a hand-written dry-run graph it names 1 of 13 — nlohmann/json, which has no vcpkg port. Real `vcpkg install --dry-run` output has still never been through it |
+| `grype 0.117.0 sbom:docs/sbom/eclipse-player.cdx.json` (db v6.1.9) | **0 matches** over 23 components — and the same document with one `pkg:npm/lodash@4.17.15` appended returns **6**, so the reader works and the zero is `pkg:vcpkg` having no matcher (OQ-046) |
+| the same, `--add-cpes-if-none` | **49 matches** — 8 Critical, 27 High, 13 Medium, 1 Low; all `stock-matcher`/`cpe-match`; **20 of 49** on a component with no version, so advisory only |
+| `grype dir:desktop` | **1 component catalogued** — `pkg:vcpkg/eclipse-player@0.1.0`, the project itself, no dependencies. The native path covers less than the SBOM, correcting this register's own earlier proposal |
+| `grype dir:.` (`node_modules/`, `build/` excluded) | 23 components, **1 High** — `GHSA-cxww-7g56-2vh6` against `actions/download-artifact@v4` in `spec-ci.yml`. Not a C/C++ dependency; recorded as OQ-050 |
 | `gen-sbom.py --self-test` and `--check` in `repo-lint.yml` | wired — self-test in the `Gate self-tests` step, `--check` beside the two licence documents, in a workflow with no `paths` filter. **Caveat that applies to every workflow here:** nothing has been pushed to `origin`, so no workflow in this repository has ever executed. Every result in this table is a local run |
 
 Toolchain in use: CMake 3.31.6, Ninja 1.12.1, GCC 14.2.0, and — in a user-local
