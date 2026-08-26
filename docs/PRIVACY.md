@@ -210,9 +210,13 @@ that way. Being accurate about what "exists" means:
 - **`REQ-TST-023`, the automated zero-connection test, is not yet implemented.**
   It lands with the network layer, and until then the claim rests on the absence
   of network code rather than on a test.
-- **The dependency denylist gate is not yet wired into CI.** It is specified in
-  §25.6 and belongs to `security.yml`; tracked as `OQ-015` in
-  [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).
+- **The dependency denylist gate is wired into CI but has never run.** It is
+  specified in §25.6 and now sits in `security.yml`, blocking, ahead of the licence
+  audit — and again against the resolved dependency graph, which is where a
+  telemetry SDK arriving as somebody else's transitive dependency would show up.
+  Nothing has been pushed to `origin`, so no run has happened; `OQ-015` in
+  [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) closes on the first green one, not on
+  the file existing.
 - **The local FFmpeg is built `--disable-network` with `--enable-protocol='file,pipe'`.**
   Supporting evidence rather than proof: the decode path has no network transport
   available to it even in principle. Release builds must be configured the same

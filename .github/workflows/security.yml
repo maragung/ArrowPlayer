@@ -1,0 +1,547 @@
+name: security
+
+# Spec §25.4 (REQ-BLD-024): "Scheduled daily plus on pull request: CodeQL (C++,
+# Kotlin) → CVE scan against pinned dependency versions, failing on new high
+# severity (REQ-SEC-004) → licence audit against §4.2, failing on any dependency
+# not in the register (REQ-GEN-012) → SBOM generation and diff against the
+# previous release → extended fuzzing (15 minutes per target) with corpus
+# persistence → hardening-flag verification on the produced binaries
+# (REQ-SEC-018)."
+#
+# Two readings of that sentence are recorded rather than assumed:
+#
+#   the arrows      read as enumeration, not serialisation. Every step below
+#                   exists; the independent ones run as parallel jobs, because
+#                   chaining a 60-minute fuzzing job behind CodeQL would delay
+#                   every other verdict without changing any of them. Where an
+#                   order is real it is a `needs:`. See OQ-052.
+#   "(C++, Kotlin)" Kotlin is absent from this repository by decision, not by
+#                   oversight: ADR 0011 defers the Android target, so there is no
+#                   Kotlin to analyse. The CodeQL job says so in its summary
+#                   rather than quietly analysing one language and reporting
+#                   success for the step.
+#
+# Nothing here has ever executed. No workflow in this repository has: the remote
+# has never been pushed to. Every number quoted in a comment below was measured
+# locally, and each says so.
+
+on:
+  schedule:
+    # 04:41 rather than the hour: every scheduled workflow in the world asks for
+    # :00, and GitHub's scheduler drops runs under load at the peaks.
+    - cron: '41 4 * * *'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Pinned by version *and* digest, for the same reason §25.2 pins actions to a
+  # commit SHA: a release asset can be replaced. The digest below was measured
+  # against the published `grype_0.117.0_checksums.txt`; cyclonedx-cli publishes
+  # no checksum file, so its digest was computed from the downloaded artefact on
+  # 2026-08-26 and is recorded here as the pin.
+  GRYPE_VERSION: '0.117.0'
+  GRYPE_SHA256: '38525dab1e06f162ebaa02f94d82d1f807076b011a44180cf2777edf1a7b9c26'
+  CYCLONEDX_CLI_VERSION: '0.33.1'
+  CYCLONEDX_CLI_SHA256: 'bfc8b2538da86fe239bc53658bbb63c1c8c510a293c1e6891aa5bea5d3c58746'
+
+jobs:
+  # ==========================================================================
+  #  §25.4 step 1 — CodeQL
+  # ==========================================================================
+  codeql:
+    name: codeql (c-cpp)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: State the language coverage, including what is missing
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+          ### CodeQL coverage
+
+          | Language | Analysed | Why |
+          |---|---|---|
+          | C++ | yes | `desktop/`, the whole implementation |
+          | Kotlin | **no — none exists** | ADR 0011 defers the Android target, so `android/` is absent. §25.4 names Kotlin; this is a scope decision on record, not a skipped step. |
+
+          SUMMARY
+
+      - uses: github/codeql-action/init@42947a340483f03ba47bb1a039b2c519aab3df85 # v3.37.8
+        with:
+          languages: c-cpp
+          # Default queries plus security-extended: §25.4 asks for CodeQL without
+          # naming a suite, and the default suite alone omits most of the memory
+          # -safety queries that matter to a C++ audio pipeline.
+          queries: security-extended
+
+      # Not autobuild. The tree is designed so that every external library is
+      # optional at configure time, so a plain configure-and-build compiles the
+      # domain layer — which is where the parsers reachable by untrusted bytes
+      # live — with no system packages at all. Autobuild would guess at this.
+      - name: Build for analysis
+        working-directory: desktop
+        run: |
+          cmake --preset linux-debug
+          cmake --build --preset linux-debug --parallel
+
+      - uses: github/codeql-action/analyze@42947a340483f03ba47bb1a039b2c519aab3df85 # v3.37.8
+        with:
+          category: /language:c-cpp
+
+  # ==========================================================================
+  #  §25.4 step 2 — CVE scan (REQ-SEC-004)
+  # ==========================================================================
+  cve:
+    name: cve scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install grype, pinned and digest-verified
+        run: |
+          set -euo pipefail
+          url="https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+          curl -sSL --retry 3 -o grype.tar.gz "$url"
+          echo "${GRYPE_SHA256}  grype.tar.gz" | sha256sum --check --strict
+          tar -xzf grype.tar.gz grype
+          sudo install -m 0755 grype /usr/local/bin/grype
+          grype version
+
+      # Check the instrument before taking the measurement (OQ-045). This one
+      # matters more than most: the committed baseline is empty, so a green run
+      # of the gate below is also what a gate that matches nothing would print.
+      - name: The CVE gate can go red — negative tests (OQ-045)
+        run: python3 tools/check-cve-baseline.py --self-test
+
+      # Two scans, because they catalogue disjoint sets. Measured locally on
+      # 2026-08-26 (grype 0.117.0, DB v6.1.9): the SBOM holds 23 components,
+      # `grype dir:desktop` finds exactly one — the project itself, read out of
+      # vcpkg.json, with none of its dependencies — and the whole-tree scan is
+      # where the only real finding this repository has ever had came from (a
+      # floating action tag, since pinned and gated: OQ-050). Scanning only the
+      # SBOM would have missed it; scanning only the tree covers less. OQ-046.
+      - name: Scan the SBOM and the tree
+        run: |
+          set -euo pipefail
+          grype "sbom:docs/sbom/eclipse-player.cdx.json" -o json > cve-sbom.json
+          grype "dir:." --exclude './node_modules/**' --exclude './build/**' \
+            -o json > cve-tree.json
+
+      - name: Gate on new high-severity findings (REQ-SEC-004)
+        run: python3 tools/check-cve-baseline.py cve-sbom.json cve-tree.json
+
+      # Advisory only, and structurally unable to fail this job. Measured:
+      # --add-cpes-if-none turns 0 matches into 49 over the same document, and 20
+      # of the 49 are against a component with no version at all — which is every
+      # CVE ever filed against the name, including fixes that predate the pin by
+      # years. Useful to read, impossible to gate on. OQ-046.
+      - name: Advisory scan with synthesised CPEs (never gates)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          grype "sbom:docs/sbom/eclipse-player.cdx.json" --add-cpes-if-none \
+            -o table > cve-advisory.txt || true
+          {
+            echo "### Advisory CVE scan — synthesised CPEs"
+            echo
+            echo "Cannot fail this job, by design. Synthesised CPE matches"
+            echo "include every CVE filed against a component *name*, and this"
+            echo "register spells ten of thirteen versions as a series (OQ-047),"
+            echo "so those matches carry no version to compare against."
+            echo
+            echo '```text'
+            head -60 cve-advisory.txt
+            echo '```'
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Printed on every run, green or red. A gate whose coverage hole is only
+      # written down in a document nobody opens during an incident is a gate that
+      # reads as total.
+      - name: Say what this scan does not cover
+        if: always()
+        run: |
+          {
+            echo "### What the CVE scan does not cover"
+            echo
+            echo "grype has **no ecosystem matcher for \`pkg:vcpkg\`**. The 13"
+            echo "registered C and C++ dependencies of §4.2 — the bulk of the"
+            echo "attack surface — are therefore invisible to the SBOM scan"
+            echo "above, which is why it returns 0 matches rather than because"
+            echo "they are clean. Proven non-vacuous by injecting a known"
+            echo "vulnerable npm component into a copy of the same document: 6"
+            echo "matches, same binary, same database (OQ-046)."
+            echo
+            echo "Until the register carries CPE names, or vcpkg lands in a"
+            echo "scanner's ecosystem map, \`REQ-SEC-004\` is **not** satisfiable"
+            echo "from the SBOM alone. This job says so rather than reporting a"
+            echo "green check that has not been earned."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: cve-scans
+          path: |
+            cve-sbom.json
+            cve-tree.json
+            cve-advisory.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ==========================================================================
+  #  §25.4 steps 3 and 4 — licence audit and SBOM, against the register alone
+  #
+  #  Everything in this job is proven green on the development machine, so it is
+  #  introduced blocking. The parts that need a resolved dependency graph — which
+  #  needs vcpkg, which has never run anywhere — are in the job below instead.
+  # ==========================================================================
+  dependencies:
+    name: licence and sbom (register)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: The gates can go red — negative tests (OQ-045)
+        run: |
+          python3 tools/gen-third-party/gen-third-party.py --self-test
+          python3 tools/gen-sbom.py --self-test
+          python3 tools/check-dependency-denylist.py --self-test
+
+      # §19.5 makes "no telemetry" structural: the SDKs must be absent from the
+      # dependency tree, asserted by a build failure rather than a promise in a
+      # README. This step is the wiring OQ-015 was open for. It scans every place
+      # a dependency can enter — vcpkg.json and its per-feature ports, the CMake
+      # find_package/pkg_check_modules/FetchContent calls, and package-lock.json,
+      # which is why the count is 198 dependencies rather than the 27 direct ones.
+      - name: No telemetry SDK in the dependency tree (REQ-SET-010)
+        run: python3 tools/check-dependency-denylist.py
+
+      - name: Licence audit against the §4.2 register (REQ-GEN-012)
+        run: |
+          python3 tools/gen-third-party/gen-third-party.py --check
+          python3 tools/gen-third-party/gen-third-party.py --check \
+            --document source-offer
+
+      - name: The SBOM matches the register (REQ-GEN-021)
+        run: python3 tools/gen-sbom.py --check
+
+      - name: Install cyclonedx-cli, pinned and digest-verified
+        run: |
+          set -euo pipefail
+          url="https://github.com/CycloneDX/cyclonedx-cli/releases/download/v${CYCLONEDX_CLI_VERSION}/cyclonedx-linux-x64"
+          curl -sSL --retry 3 -o cyclonedx "$url"
+          echo "${CYCLONEDX_CLI_SHA256}  cyclonedx" | sha256sum --check --strict
+          chmod +x cyclonedx
+          ./cyclonedx --version
+
+      # `--fail-on-errors` is load-bearing and was found by measurement, not by
+      # reading: without it, `cyclonedx validate` prints "BOM is not valid." and
+      # **exits 0**. A step written the obvious way would have reported success
+      # over an invalid document forever. `--input-version v1_6` is pinned for a
+      # related reason: the flag defaults to v1.7, and validating a document
+      # against a schema it does not declare is not a validation of it. OQ-048.
+      - name: Validate the SBOM against the canonical CycloneDX schema (OQ-048)
+        run: |
+          ./cyclonedx validate \
+            --input-file docs/sbom/eclipse-player.cdx.json \
+            --input-format json --input-version v1_6 --fail-on-errors
+
+      # §25.4 step 4 asks for a diff against the previous release. There is no
+      # previous release — `tools/gen-third-party/releases.json` holds an empty
+      # ledger — so this reports that and stops. It does not compare against the
+      # committed document and call that a release diff, which would be a green
+      # check for a comparison nobody made.
+      - name: Diff against the previous release's SBOM (§25.4 step 4)
+        run: |
+          set -euo pipefail
+          published=$(python3 -c "
+          import json
+          ledger = json.load(open('tools/gen-third-party/releases.json'))
+          rows = ledger.get('releases', ledger if isinstance(ledger, list) else [])
+          print(len(rows))")
+          if [ "$published" = "0" ]; then
+            {
+              echo "### SBOM release diff — not run"
+              echo
+              echo "No published release exists yet (the §25.5 ledger is empty),"
+              echo "so there is nothing to diff against. \`release.yml\` step 8"
+              echo "appends to that ledger and step 6 attaches the SBOM; the"
+              echo "first tag makes this comparison real."
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "A release exists; wire the asset download here." >&2
+          exit 1
+
+  # ==========================================================================
+  #  §25.4 step 3 continued — the same audit against a *resolved* graph
+  #
+  #  Non-blocking on purpose, and only until it has passed once. OQ-038: the
+  #  resolved-graph parser has never seen real vcpkg output — it is exercised
+  #  against a hand-built fixture, because vcpkg is not installed on the
+  #  development machine. Its dangerous failure direction is silent
+  #  under-reporting, so the first real run is a measurement, not a gate. The
+  #  same reasoning and the same removal obligation as the Windows hardening
+  #  step (OQ-044): delete `continue-on-error` in the commit that records the
+  #  first green run.
+  # ==========================================================================
+  resolved-graph:
+    name: licence and sbom (resolved graph) · non-blocking, OQ-038
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      # The runner ships vcpkg at $VCPKG_INSTALLATION_ROOT. The manifest pins the
+      # registry with `builtin-baseline`, so what resolves here is what resolves
+      # anywhere; the custom triplet comes from `vcpkg-configuration.json`'s
+      # overlay-triplets, which is why no --overlay-triplets flag is needed.
+      - name: Resolve the dependency graph (vcpkg install --dry-run)
+        working-directory: desktop
+        run: |
+          set -euo pipefail
+          "$VCPKG_INSTALLATION_ROOT/vcpkg" install \
+            --triplet x64-linux-eclipse --dry-run \
+            | tee "$GITHUB_WORKSPACE/vcpkg-dry-run.txt"
+
+      - name: Every resolved port is described by the register (REQ-GEN-012)
+        run: |
+          python3 tools/gen-third-party/gen-third-party.py \
+            --resolved-graph vcpkg-dry-run.txt \
+            --output third-party-resolved.md
+
+      # The denylist already ran unconditionally in the job above over the 198
+      # dependencies it can see without vcpkg. This adds the transitive set — the
+      # ports nobody wrote down, which is exactly where an unwanted SDK would
+      # arrive from.
+      - name: No telemetry SDK in the resolved graph (REQ-SET-010)
+        run: |
+          python3 tools/check-dependency-denylist.py \
+            --resolved-graph vcpkg-dry-run.txt
+
+      - name: SBOM from the resolved graph, and the diff it makes visible
+        run: |
+          set -euo pipefail
+          python3 tools/gen-sbom.py --resolved-graph vcpkg-dry-run.txt \
+            -o sbom-resolved.json
+          python3 tools/gen-sbom.py --diff \
+            docs/sbom/eclipse-player.cdx.json sbom-resolved.json \
+            | tee sbom-diff.txt
+          {
+            echo "### SBOM: register-only vs resolved graph"
+            echo
+            echo "The committed document is generated in direct-only mode so it"
+            echo "claims nothing the development machine could not check. This"
+            echo "diff is what a resolved graph adds — transitive ports, and the"
+            echo "exact versions the register spells as a series (OQ-047)."
+            echo
+            echo '```text'
+            cat sbom-diff.txt
+            echo '```'
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Not a gate: measured locally against the fixture graph, two components
+      # still resolve to a series — nlohmann-json, which has no vcpkg port for a
+      # graph to pin, and rtaudio. Reported so the number is visible and can be
+      # driven to zero, rather than asserted and switched off. OQ-047.
+      - name: How many versions are still a series (advisory, OQ-047)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          python3 tools/gen-sbom.py --resolved-graph vcpkg-dry-run.txt \
+            --require-exact-versions -o /dev/null > precision.txt 2>&1 || true
+          {
+            echo "### Version precision — advisory (OQ-047)"
+            echo
+            echo "\`--require-exact-versions\` exits non-zero while any component"
+            echo "resolves to a series rather than a release, so it is reported"
+            echo "here and never gated on. Measured against the fixture graph it"
+            echo "still fails on two: nlohmann-json, which has no vcpkg port for a"
+            echo "graph to pin, and rtaudio. Driving this to zero is the work; a"
+            echo "switched-off check would not show the progress."
+            echo
+            echo '```text'
+            tail -20 precision.txt
+            echo '```'
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: resolved-graph
+          path: |
+            vcpkg-dry-run.txt
+            third-party-resolved.md
+            sbom-resolved.json
+            sbom-diff.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ==========================================================================
+  #  §25.4 step 5 — extended fuzzing, 15 minutes per target, corpus persisted
+  # ==========================================================================
+  fuzz:
+    name: fuzz ${{ matrix.target }} (15 min)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The four targets that exist. REQ-SEC-011 names seventeen, and
+        # exactly *one* of the four below is among them (fuzz_xinglame): a fuzz
+        # target needs a parser to point at, and sixteen of those parsers are
+        # Phase 2 and later work. The other three cover parsers that do exist
+        # and are reached by untrusted bytes today; they stand in for none of the
+        # seventeen. OQ-043 records the gap rather than papering over it with
+        # empty harnesses, and this comment repeats it because a green matrix of
+        # four is the easiest place in the repository to mistake for coverage.
+        #
+        # One matrix entry per target is what makes "15 minutes per target"
+        # literal: a single 60-minute job would be 15 minutes each only if
+        # libFuzzer divided its own time evenly across targets, which it has no
+        # mechanism to do.
+        target: [fuzz_json, fuzz_text, fuzz_xinglame, fuzz_gapless]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # libFuzzer needs clang; the fuzz preset detects -fsanitize=fuzzer support
+      # and builds corpus-replay drivers only when it is absent, so a gcc runner
+      # would produce a job that replays the committed corpus in seconds and
+      # calls it fifteen minutes of fuzzing.
+      - name: Install clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang lld
+
+      # Corpus persistence, §25.4's own words. The key carries the run number so
+      # each run writes a new entry — cache entries are immutable, so a fixed key
+      # would freeze the corpus at whatever the first run produced — and
+      # restore-keys walks back to the most recent one.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: corpus-persisted/${{ matrix.target }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_number }}
+          restore-keys: |
+            fuzz-corpus-${{ matrix.target }}-
+
+      - name: Configure and build the fuzz targets
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          set -euo pipefail
+          cmake --preset linux-fuzz
+          cmake --build --preset linux-fuzz --parallel
+        working-directory: desktop
+
+      # The build reports whether it found a fuzzing engine. If it did not, the
+      # replay drivers exist and the real target does not, and running the
+      # replay for fifteen minutes would be a green check for fuzzing that never
+      # happened. Fail instead.
+      - name: The fuzz target actually exists
+        run: |
+          set -euo pipefail
+          target="build/linux-fuzz/tests/fuzz/${{ matrix.target }}"
+          if [ ! -x "$target" ]; then
+            echo "::error::$target was not built — clang reported no" \
+                 "-fsanitize=fuzzer support, so this job would have replayed" \
+                 "the committed corpus instead of fuzzing. See" \
+                 "desktop/tests/fuzz/CMakeLists.txt." >&2
+            exit 1
+          fi
+
+      - name: Fuzz for 15 minutes
+        run: |
+          set -uo pipefail
+          seeds="desktop/tests/fuzz/corpus/${{ matrix.target }}"
+          live="corpus-persisted/${{ matrix.target }}"
+          mkdir -p "$live" crashes
+          # Seeds are copied in, never fuzzed over: the committed corpus is a
+          # regression fixture that ctest replays, and libFuzzer prunes the
+          # directory it is given.
+          if [ -d "$seeds" ]; then cp -n "$seeds"/* "$live"/ 2>/dev/null || true; fi
+          echo "corpus before: $(find "$live" -type f | wc -l) input(s)"
+          set +e
+          "build/linux-fuzz/tests/fuzz/${{ matrix.target }}" \
+            "$live" \
+            -max_total_time=900 \
+            -print_final_stats=1 \
+            -artifact_prefix=crashes/ \
+            -rss_limit_mb=2560
+          status=$?
+          set -e
+          echo "corpus after:  $(find "$live" -type f | wc -l) input(s)"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::${{ matrix.target }} exited $status — a crash," \
+                 "leak or timeout. The reproducer is in the crashes artifact;" \
+                 "add it to desktop/tests/fuzz/corpus/${{ matrix.target }}/ so" \
+                 "ctest replays it (REQ-SEC-011)." >&2
+            exit "$status"
+          fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
+        with:
+          name: fuzz-crashes-${{ matrix.target }}
+          path: crashes/
+          if-no-files-found: warn
+          retention-days: 90
+
+  # ==========================================================================
+  #  §25.4 step 6 — hardening flags, verified in the produced binaries
+  # ==========================================================================
+  hardening:
+    name: hardening flags (REQ-SEC-018)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: The reader can go red — negative tests (OQ-045)
+        run: python3 tools/check-hardening.py --self-test
+
+      - name: Build the release preset
+        working-directory: desktop
+        run: |
+          cmake --preset linux-release
+          cmake --build --preset linux-release --parallel
+
+      # REQ-SEC-018's clause is "in the produced binaries, not merely in the
+      # build files", and it describes a bug this tree had: eclipse_set_hardening
+      # was defined and called from nowhere, so every flag was in the CMake and
+      # in no binary. Grepping the build files would have reported success. This
+      # reads ELF headers.
+      - name: Verify the flags reached the binaries
+        run: python3 tools/check-hardening.py build/linux-release

@@ -82,9 +82,11 @@ contributor who assumes a check is automated stops running it:
 | `check-hardening.py` | `desktop-ci.yml` — self-test in `gates`, then the linked ELF; PE non-blocking until it has passed once (OQ-044) |
 | `validate-shared-spec.py` | `spec-ci.yml` — after its `--self-test`, which plants fourteen defects in a copy of `shared-spec/` |
 | `markdownlint-cli2`, `commitlint` | `repo-lint.yml` |
-| `check-dependency-denylist.py` | **nothing yet** — `security.yml` (§25.4) is not written. Run it |
+| `check-dependency-denylist.py` | `security.yml` — blocking in `dependencies`, and again with `--resolved-graph` in the non-blocking `resolved-graph` job (OQ-015, OQ-038) |
 | `check-doc-links.py`, `gen-third-party.py --check`, `gen-sbom.py --check` | `repo-lint.yml`, each after its own `--self-test` |
 | `check-cve-baseline.py` | `security.yml`, after its `--self-test`, over the SBOM scan and the tree scan together |
+| `gen-third-party.py --resolved-graph`, `gen-sbom.py --resolved-graph` | `security.yml`'s `resolved-graph` job — audit mode with `--output`, never `--check`, which is stale by design against a resolved graph (OQ-038) |
+| `cyclonedx-cli validate --fail-on-errors` | `security.yml` — the CycloneDX schema, which `gen-sbom.py`'s own structural check is explicitly not (OQ-048) |
 | `check-action-pins.py` | `repo-lint.yml`, its own `action-pins` job, after its `--self-test` |
 | `make-seeds.py --check` | `desktop-ci.yml`, in the same `gates` job as the three above |
 
@@ -279,10 +281,14 @@ agreement.
 
 Contributions that would introduce a dependency outside the §4.2 register, or a
 GPL-licensed dependency, cannot be accepted: the whole dependency policy exists
-so that the licence answer is decidable. §25.4 assigns the enforcing licence
-audit to `security.yml`, which **is not written yet** — until it is, the
-mechanical part of that answer is `gen-third-party.py --check` and
-`gen-sbom.py --check` in `repo-lint.yml`, which fail on a dependency that reached
-`vcpkg.json` without a register entry, and `check-dependency-denylist.py`, which
-nothing runs for you. If you need a new dependency, propose it as a specification
-change (above) so its licence is recorded first.
+so that the licence answer is decidable. §25.4 assigns the enforcing licence audit
+to `security.yml`, which now runs it: `gen-third-party.py --check` for both licence
+documents, `gen-sbom.py --check`, and `check-dependency-denylist.py` over the
+manifest, the CMake calls and `package-lock.json` — all blocking — plus the same
+three against a real resolved dependency graph in a job that is non-blocking only
+until its parser has seen real vcpkg output ([OQ-038](docs/OPEN-QUESTIONS.md)).
+`repo-lint.yml` runs the two `--check` gates on every pull request as well, so a
+dependency that reaches `vcpkg.json` without a register entry fails before the
+nightly. None of these has executed yet — nothing has been pushed to `origin` —
+so run them locally too. If you need a new dependency, propose it as a
+specification change (above) so its licence is recorded first.
