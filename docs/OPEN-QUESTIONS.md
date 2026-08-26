@@ -712,6 +712,45 @@ and no GitHub Pages site, so the repository is the only publication point.
   exactly why OQ-013's missing contact channel and this entry are one problem seen
   from two directions.
 
+### OQ-042 — The `REQ-GEN-015` licence gate had never executed · **Settled**
+
+`desktop-ci.yml`'s FFmpeg licence step guarded its work on
+`[ -f build/<preset>/tests/test_decode ]` with `working-directory: desktop`, which
+resolves to `desktop/build/<preset>/…`. `CMakePresets.json` sets `binaryDir` to
+`${sourceDir}/../build/${presetName}`, so binaries land in the repository-root
+`build/` — the same mistake OQ-040 records in `spec-ci.yml`, from the same cause.
+The condition was therefore false on every run since the step was written, and the
+`else` branch printed *“gate not applicable”* and exited 0. A blocking licence gate
+that had never once run, reporting a clean skip.
+
+- **Correction of record.** `docs/TESTING.md` listed “FFmpeg licence assertion”
+  among what `desktop-ci.yml` runs, and `docs/LGPL-SOURCE-OFFER.md` said
+  `REQ-GEN-015` *“makes CI verify at build time … and fail the build otherwise”*.
+  Both described a step that had never executed. The requirement says what CI
+  *must* do; only the workflow says what it *does*, and a licence document is the
+  worst place to blur the two.
+- **What changed.** The build directory is no longer guessed. `ctest --preset` is
+  asked whether any `FfmpegLicense.*` case is registered, and runs them if so.
+  The three outcomes are kept distinct: cases registered → assert; no cases and
+  no `src/audio/decode/ffmpeg_decoder.cpp` → an honest skip, because nothing in
+  the tree links FFmpeg and `REQ-GEN-015` has nothing to assert about a library
+  this build does not use; no cases **but** an adapter present → **fail**, because
+  that is precisely the shape of the bug this step used to have.
+- **Second defect in the same job.** The failure-artifact upload pointed at
+  `desktop/build/<preset>/Testing/` and would have uploaded an empty artifact for
+  the same reason. Fixed alongside.
+- **Verified locally, all three branches.** Against `build/linux-release`: a
+  control filter that does match reports 14 registered tests, so the counting is
+  real rather than always-zero; `^FfmpegLicense\.` reports 0; with
+  `PKG_CONFIG_PATH` set the step takes the “FFmpeg present, nothing links it yet”
+  notice and exits 0; and with a planted
+  `src/audio/decode/ffmpeg_decoder.cpp` it exits 1 with the error annotation.
+- **What is still not proven, and cannot be yet.** No FFmpeg is linked by anything
+  in the tree, so `avutil_license()` has not been called in CI or here. Phase 0's
+  exit gates do not include it — it belongs to Phase 1 (§28) — but the gate is now
+  armed rather than decorative, and it will fail the moment an adapter lands
+  without its assertion.
+
 ---
 
 ## 5 · Verification status — what is proven where

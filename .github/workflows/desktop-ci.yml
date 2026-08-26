@@ -101,25 +101,61 @@ jobs:
         run: ctest --preset ${{ matrix.preset }} --parallel 4
         working-directory: desktop
 
-      # REQ-GEN-015: mechanically assert FFmpeg is not GPL/nonfree. This is a
-      # blocking licence gate, not a review item — see §4.4.
+      # REQ-GEN-015: mechanically assert the FFmpeg this build links is neither
+      # GPL nor nonfree. A blocking licence gate, not a review item — §4.4.
+      #
+      # The build directory is asked for, never guessed. CMakePresets sets
+      # binaryDir to ${sourceDir}/../build/${presetName}, which is the repository
+      # root, not desktop/build — and the first version of this step tested
+      # `build/<preset>/tests/test_decode` with working-directory: desktop, a path
+      # that cannot exist. It took the "not applicable" branch on every run from
+      # the day it was written: a licence gate that had never once executed.
+      # `ctest --preset` already knows where the binaries are, so it is asked.
+      #
+      # The three states are kept distinct on purpose. A skip is only honest while
+      # nothing in the tree links FFmpeg; once the adapter is here, an unregistered
+      # licence case is a failure, because that is the exact shape of the bug this
+      # step used to have.
       - name: FFmpeg licence assertion (REQ-GEN-015)
         if: runner.os == 'Linux'
-        run: |
-          if [ -f build/${{ matrix.preset }}/tests/test_decode ]; then
-            ./build/${{ matrix.preset }}/tests/test_decode \
-              --gtest_filter='FfmpegLicense.*'
-          else
-            echo "FFmpeg adapter not built on this runner; gate not applicable."
-          fi
         working-directory: desktop
+        run: |
+          set -uo pipefail
+          # `ctest -N` exits non-zero when nothing matches, which is information
+          # here rather than an error, hence the `|| true`.
+          listing=$(ctest --preset ${{ matrix.preset }} -N -R '^FfmpegLicense\.' 2>&1 || true)
+          registered=$(printf '%s\n' "$listing" | sed -n 's/^Total Tests: *//p')
+          registered=${registered:-0}
+
+          if [ "$registered" -gt 0 ]; then
+            echo "$registered FfmpegLicense case(s) registered; asserting REQ-GEN-015."
+            exec ctest --preset ${{ matrix.preset }} -R '^FfmpegLicense\.' --output-on-failure
+          fi
+
+          if [ -e src/audio/decode/ffmpeg_decoder.cpp ]; then
+            echo "::error::An FFmpeg adapter exists (src/audio/decode/ffmpeg_decoder.cpp)" \
+                 "but no FfmpegLicense.* case is registered, so REQ-GEN-015 is unenforced." \
+                 "Add the assertion test; do not relax this step."
+            exit 1
+          fi
+
+          if pkg-config --exists libavformat libavcodec libavutil libswresample; then
+            echo "::notice::FFmpeg is present on this runner, but no adapter in the tree" \
+                 "links it yet, so REQ-GEN-015 has nothing to assert (arrives in Phase 1)."
+          else
+            echo "::notice::FFmpeg development packages are unavailable on this runner;" \
+                 "no FFmpeg is linked and REQ-GEN-015 has nothing to assert."
+          fi
 
       - name: Upload test results on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-output-${{ matrix.name }}
-          path: desktop/build/${{ matrix.preset }}/Testing/
+          # Repository-root build/, per CMakePresets' binaryDir — the same
+          # path mistake that disabled the licence gate above once made this
+          # upload silently empty.
+          path: build/${{ matrix.preset }}/Testing/
           retention-days: 7
 
   # -------------------------------------------------------------------------
