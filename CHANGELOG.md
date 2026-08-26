@@ -27,6 +27,19 @@ stable yet.
 
 ### Added
 
+- **A negative test for every gate script** (`REQ-TST-024`, `OQ-045`).
+  `check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` and
+  `validate-shared-spec.py` each grew a `--self-test` that plants the defect the
+  gate exists to catch and requires it to be caught, over synthetic input rather
+  than committed fixtures — a planted violation inside this repository would be
+  found by the gate itself. They run in CI *before* the gates they belong to, so
+  the instruments are checked before the measurement is taken. The four differ in
+  how they get their input, because the input shape follows from how each reads
+  the tree: `check-layers.py` materialises throwaway trees under `/tmp` and its
+  four checks now take their roots as arguments; the two source linters split a
+  `scan_lines(name, lines)` core out of `scan(path)`; `validate-shared-spec.py`
+  copies `shared-spec/`, plants one defect in the copy, and re-runs itself against
+  it through a new `--spec-root`.
 - **Specification.** `eclipse-player.md` — 4,198 lines, 525 numbered
   requirements, exit gates per phase (§28), and an appendix recording every
   correction made to the earlier draft (§29.6) so the same mistakes are not
@@ -102,6 +115,21 @@ stable yet.
   `__snprintf_chk`. `tools/check-hardening.py` verifies all 7 binaries the build
   produces and, pointed at `build/linux-asan`, exits 2 rather than passing
   vacuously on binaries the requirement does not govern.
+- **The four new self-tests, run locally:** 29 synthetic trees over
+  `check-layers.py`'s four checks (16 planted violations); 10 injection sites
+  caught and 8 safe constructs left alone by `check-sql-safety.py`; 11 false
+  `/// RT-SAFE:` claims caught and 7 legitimate constructs left alone by
+  `check-rt-safety.py`, whose span finder is asserted to bound both bodies of a
+  two-function source; and 14 defects planted one at a time in a copy of
+  `shared-spec/`, each caught with the *specific* complaint it should provoke,
+  over a control run on the unmutated copy that passes. The `validate-shared-spec`
+  harness was then checked for vacuity by replacing one mutation with a no-op and
+  misspelling one expected complaint: it reported both, naming them.
+- **One blind spot is pinned rather than fixed.** `check-sql-safety.py` matches
+  uppercase SQL keywords only, which is what keeps it silent on prose like
+  `" limit=" + n`; lowercase SQL evades it. The self-test asserts the lowercase
+  case is *not* flagged, so making the matcher case-insensitive fails the test and
+  forces the trade-off to be re-decided rather than discovered later.
 - **FFmpeg 7.1.1, TagLib 2.0.2, alsa-lib 1.2.12 and SQLite 3.46.1** are detected
   by the configure step, so the adapters they gate can be built and tested
   locally as they are written. The FFmpeg build is LGPL-configured with
@@ -121,12 +149,6 @@ and tested, and this section is what keeps that promise honest:
   self-test; no MSVC-produced PE has been through it, here or in CI. Its Windows
   step runs non-blocking until it has passed once, with the condition for
   removing that recorded in `OQ-044` rather than left to judgement.
-- **Four gate scripts have no negative test.** `check-layers.py`,
-  `check-sql-safety.py`, `check-rt-safety.py` and `validate-shared-spec.py` report
-  "no violations" over a tree that contains none, which is what a script with an
-  inverted condition would also print. `README.md` claimed all three source-level
-  gates had a negative test; none did, and the claim has been replaced with the
-  fact. Tracked as `OQ-045`.
 - **Sixteen of `REQ-SEC-011`'s seventeen fuzz targets do not exist.** Only
   `fuzz_xinglame` is one of the named seventeen; the other three harnesses are
   supporting targets and are not counted as standing in for any of them. The

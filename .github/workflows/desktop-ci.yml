@@ -34,6 +34,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A gate that has never failed is not evidence. All three below run over a
+      # tree that contains no violations, and check-sql-safety.py has never had
+      # its matcher exercised by this repository at all — there is no SQL in it
+      # yet, so its pass has never depended on the matching being right. Each
+      # --self-test plants the defect its gate exists to catch, over synthetic
+      # input rather than committed fixtures, and requires it to be caught. It
+      # runs first: check the instruments, then take the measurement (OQ-045).
+      - name: The gates can go red — negative tests (OQ-045)
+        run: |
+          python3 tools/check-layers.py --self-test
+          python3 tools/check-sql-safety.py --self-test
+          python3 tools/check-rt-safety.py --self-test
+
       - name: Layer dependency rules (REQ-GEN-051)
         run: python3 tools/check-layers.py
 

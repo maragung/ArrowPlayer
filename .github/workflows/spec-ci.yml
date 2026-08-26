@@ -80,6 +80,16 @@ jobs:
         run: |
           python -m pip install --require-hashes --no-deps -r .github/requirements-spec.txt
 
+      # The corpus is entirely valid, so a clean run is also what an inverted
+      # comparison or an unreachable branch would print. This plants fourteen
+      # defects in a copy of shared-spec/ — a fixture claiming the wrong verdict,
+      # a broken $ref, an unlisted file, a README that overstates its own case
+      # count — and requires each to be caught with the right complaint, over a
+      # control run on the unmutated copy (OQ-045). Before the real run, and
+      # before the pinned validator below, because it needs neither.
+      - name: The validator can go red — planted defects (OQ-045)
+        run: python3 tools/validate-shared-spec.py --self-test
+
       - name: Stdlib validator — structure, keywords, verdicts
         run: python3 tools/validate-shared-spec.py
 

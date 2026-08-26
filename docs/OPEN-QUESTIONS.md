@@ -857,36 +857,54 @@ read by it, here or in CI, because nothing has been pushed.
   that step blocks, they are verified on one platform out of two, and the spec
   requires both.
 
-### OQ-045 — Three gate scripts have no negative test · **Gap**
+### OQ-045 — Four gate scripts had no negative test · **Settled**
 
-`tools/check-doc-links.py`, `check-dependency-denylist.py`,
-`gen-third-party/gen-third-party.py` and now `check-hardening.py` each carry a
-`--self-test` that plants the defect the script exists to catch and requires it to
-be caught. `check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` and
-`validate-shared-spec.py` do not.
-
-All four currently report "no violations" over a tree that contains none, and that
-sentence is indistinguishable from what a script with an inverted condition, an
-unanchored pattern or an empty file list would print. `check-sql-safety.py` is the
-clearest case: there is no SQL anywhere in the tree, so its pass has never once
-depended on its matching logic being correct.
+`check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` and
+`validate-shared-spec.py` each reported "no violations" over a tree that contains
+none, and that sentence is indistinguishable from what a script with an inverted
+condition, an unanchored pattern or an empty file list would print.
+`check-sql-safety.py` was the clearest case: there is no SQL anywhere in the tree,
+so its pass had never once depended on its matching logic being correct.
 
 - **Correction of record.** `README.md` said of the three source-level gates
   "Each has a negative test proving it catches real violations." None of them had
-  one. The sentence has been replaced with what is true, and this entry exists so
-  the gap is countable rather than a claim that quietly stopped being made.
-- **Assumption in force:** that the four scripts work, on the evidence that they
-  were written against real rules and that `check-layers.py` did fail while the
-  layer list was being developed. That is weaker evidence than a self-test, which
-  is the point of the entry.
-- **Proposed answer:** each grows a `--self-test` that runs its real checking
-  function over synthetic in-memory inputs — a domain file including an adapter
-  header, a query built with `+`, a `/// RT-SAFE:` function calling `new`, a
-  fixture whose claimed verdict is wrong — asserting both directions, with no
-  committed fixtures to keep the planted defects out of the tree the gates scan.
-- **Consequence if unfixed:** four of the green checks in the table below carry no
-  evidence that they can go red, and `REQ-TST-024` treats a gate as part of the
-  test suite.
+  one. The claim is now true, but it was written before the tests existed, and
+  this entry keeps that visible rather than letting the sentence quietly become
+  correct.
+- **Resolved:** all four grew a `--self-test`, and they run in CI *before* the
+  gates they belong to — the instruments are checked, then the measurement is
+  taken. `desktop-ci.yml`'s `gates` job runs the first three in one step;
+  `spec-ci.yml` runs the fourth ahead of both validators. Every gate script under
+  `tools/` now has one.
+- **How each gets synthetic input, and why they differ.** The shape of the input
+  follows from how the script reads the tree, so uniformity would have cost
+  fidelity:
+
+  | Script | Synthetic input | Assertions |
+  |---|---|---|
+  | `check-layers.py` | throwaway trees under `/tmp`; the four checks now take their roots as arguments | 29 trees, 16 planted violations |
+  | `check-sql-safety.py` | a `scan_lines(name, lines)` core split out of `scan(path)` | 10 injection sites, 8 safe constructs, 1 pinned blind spot |
+  | `check-rt-safety.py` | the same split, plus a direct assertion on the brace-matching span finder | 11 false RT-SAFE claims, 7 legitimate constructs, 2 spans |
+  | `validate-shared-spec.py` | a copy of `shared-spec/` with one defect planted, re-run as a subprocess via `--spec-root` | 14 planted defects, each matched to its complaint, 1 control |
+
+- **Both directions, deliberately.** A gate that flags everything is as useless as
+  one that flags nothing, so the negatives are the cases most likely to be
+  false-flagged: a header named `Queue.h` (not Qt), `" limit=" + n` in prose (not
+  SQL), placement `new` (not an allocation), `androidx/` (not `android/`), ALSA
+  inside `audio/sink/` where it belongs, and an exemption comment on the line
+  above the one it exempts.
+- **One blind spot is pinned rather than fixed.** `check-sql-safety.py` matches
+  uppercase SQL keywords only, so lowercase SQL evades it. That is what buys
+  silence on prose like `" limit=" + n`. The self-test asserts the lowercase case
+  is *not* flagged, so making the matcher case-insensitive fails the test and
+  forces the trade-off to be re-decided rather than discovered.
+- **What is still not proven.** These tests exercise the checking logic, not the
+  file discovery: `check-sql-safety.py` and `check-rt-safety.py` self-test their
+  `scan_lines` core, so a bug in which paths `main()` walks would still pass. The
+  three "N file(s) scanned" counts in their real output are the only evidence
+  there, and `check-layers.py` — whose synthetic trees go through the real
+  `iter_sources`/`includes_of` — is the only one of the three where discovery is
+  covered.
 
 ---
 
@@ -909,6 +927,11 @@ to let them imply that nothing has been run.
 | `desktop/tests/fuzz/make-seeds.py --check` | pass — 49 committed seeds byte-identical to the generator |
 | `-Werror` with the strict warning set | clean |
 | `tools/check-layers.py`, `check-sql-safety.py`, `check-rt-safety.py` | pass |
+| `tools/check-layers.py --self-test` | pass — 29 synthetic trees over all four checks, 16 of them planted violations |
+| `tools/check-sql-safety.py --self-test` | pass — 10 injection sites caught, 8 safe constructs left alone, 1 documented blind spot still blind |
+| `tools/check-rt-safety.py --self-test` | pass — 11 false RT-SAFE claims caught, 7 legitimate constructs left alone, span finder bounds both bodies |
+| `tools/validate-shared-spec.py --self-test` | pass — 14 defects planted in a copy of `shared-spec/`, each caught with the right complaint, control run clean |
+| the same, with one mutation replaced by a no-op and one complaint misspelt | fails, naming both — 2 of 2, so the harness is not vacuous |
 | `tools/check-hardening.py --self-test` | pass — 31 assertions over synthetic ELF and PE binaries, 22 of them planted defects that must be caught |
 | `tools/check-hardening.py build/linux-release` | pass — 7 binaries: PIE, RELRO, `BIND_NOW`, non-exec stack, `__stack_chk_fail`, fortified entry points in 5 of 7 |
 | the same, before `eclipse_set_hardening` was wired in | **failed 4 of 7** — the fuzz replay drivers had only partial RELRO; that is why the gate exists |

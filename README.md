@@ -125,10 +125,13 @@ The last of those reads the ELF or PE headers of the linked binaries, because
 the build files — and the function that sets them had been called by nothing for
 several commits, so the build files would have answered yes.
 
-Four of the scripts under `tools/` carry a `--self-test` that plants the defect
-they exist to catch and requires it to be caught; the three source-level gates
-above do not have one yet, which is [OQ-045](docs/OPEN-QUESTIONS.md). An earlier
-version of this line claimed all of them did.
+Every gate script under `tools/` carries a `--self-test` that plants the defect
+it exists to catch and requires it to be caught — over synthetic input, so the
+planted defects never enter the tree the gates scan. `check-sql-safety.py`
+needed it most: there is no SQL in the repository yet, so until
+[OQ-045](docs/OPEN-QUESTIONS.md) was closed, its green run had never once
+depended on its matcher being correct. An earlier version of this line claimed
+those tests existed before they did.
 
 ## Design references
 

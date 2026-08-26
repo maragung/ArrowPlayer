@@ -23,13 +23,23 @@ What it enforces:
 Exit status is 0 only when every check passes. Full JSON Schema draft-2020-12 validation
 runs in .github/workflows/spec-ci.yml; this script is deliberately the subset that can run
 anywhere, and it reports what it did NOT check rather than implying full coverage.
+
+`--self-test` copies shared-spec/ to a temporary directory, plants one defect in the copy,
+runs this same script against it and requires the specific complaint — fourteen times, once
+per defect, plus one control run over the unmutated copy. It is end-to-end rather than
+unit-level because what OQ-045 doubts is the wiring: the corpus is entirely valid today, so
+a clean run is also what an inverted comparison or a never-taken branch would print.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -61,6 +71,286 @@ def load(path: str):
 
 def rel(path: str) -> str:
     return os.path.relpath(path, ROOT)
+
+
+# ----------------------------------------------------------------- self-test
+# Each mutation returns True when it managed to plant its defect. A mutation that
+# cannot find anything to break is reported as a self-test failure, not skipped:
+# it means the corpus no longer contains the shape the check was written for.
+
+def _load(path: str):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _store(path: str, doc) -> bool:
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, indent=2)
+        f.write("\n")
+    return True
+
+
+def _corpus_index(root: str) -> str:
+    return os.path.join(root, "conformance", "theme-validation-cases", "index.json")
+
+
+ACCEPTING = ("accept", "accept-with-warning", "table")
+
+
+def _flip_theme_verdict(root: str, *, to_reject: bool) -> bool:
+    """Claim the schema rejects something it accepts, or the reverse."""
+    path = _corpus_index(root)
+    index = _load(path)
+    for case in index.get("cases", []):
+        if not case.get("schema"):
+            continue
+        fixture = os.path.join(os.path.dirname(path), case.get("file", ""))
+        if not os.path.exists(fixture):
+            continue
+        effective = case.get("schemaVerdict", case.get("verdict"))
+        if to_reject and effective in ACCEPTING:
+            case["schemaVerdict"] = "reject"
+            return _store(path, index)
+        if not to_reject and effective == "reject":
+            case["schemaVerdict"] = "accept"
+            return _store(path, index)
+    return False
+
+
+def _flip_playlist_claim(root: str, *, to_invalid: bool) -> bool:
+    path = os.path.join(root, "conformance", "smart-playlist-cases.json")
+    doc = _load(path)
+    for case in doc.get("cases", []):
+        if case.get("schemaValid") is (True if to_invalid else False):
+            case["schemaValid"] = not to_invalid
+            return _store(path, doc)
+    return False
+
+
+def _drop_schema_id(root: str) -> bool:
+    path = os.path.join(root, "schemas", "theme-schema.json")
+    doc = _load(path)
+    return doc.pop("$id", None) is not None and _store(path, doc)
+
+
+def _break_a_ref(root: str) -> bool:
+    schema_dir = os.path.join(root, "schemas")
+    for name in sorted(os.listdir(schema_dir)):
+        if not name.endswith(".json"):
+            continue
+        path = os.path.join(schema_dir, name)
+        doc = _load(path)
+        broke = False
+
+        def walk(node):
+            nonlocal broke
+            if broke:
+                return
+            if isinstance(node, dict):
+                if isinstance(node.get("$ref"), str) and node["$ref"].startswith("#"):
+                    node["$ref"] = "#/$defs/__planted_missing__"
+                    broke = True
+                    return
+                for value in node.values():
+                    walk(value)
+            elif isinstance(node, list):
+                for value in node:
+                    walk(value)
+
+        walk(doc)
+        if broke:
+            return _store(path, doc)
+    return False
+
+
+def _add_unsupported_keyword(root: str) -> bool:
+    path = os.path.join(root, "schemas", "theme-schema.json")
+    doc = _load(path)
+    # Outside jsonschema_mini's allowlist, so it must be a hard error rather than
+    # a keyword quietly treated as satisfied.
+    doc["unevaluatedProperties"] = False
+    return _store(path, doc)
+
+
+def _add_orphan_fixture(root: str) -> bool:
+    path = os.path.join(root, "conformance", "theme-validation-cases",
+                        "_planted-orphan.json")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("{}\n")
+    return True
+
+
+def _miscount_readme(root: str) -> bool:
+    path = os.path.join(root, "README.md")
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+    bumped, count = re.subn(r"(\d+)( EFS cases)",
+                            lambda m: f"{int(m.group(1)) + 1}{m.group(2)}",
+                            text, count=1)
+    if not count:
+        return False
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(bumped)
+    return True
+
+
+def _shrink_efs_corpus(root: str) -> bool:
+    path = os.path.join(root, "conformance", "efs-cases.json")
+    doc = _load(path)
+    cases = doc.get("cases")
+    if not isinstance(cases, list) or len(cases) < 150:
+        return False
+    doc["cases"] = cases[:149]
+    return _store(path, doc)
+
+
+def _drop_a_settings_default(root: str) -> bool:
+    path = os.path.join(root, "schemas", "settings.schema.json")
+    schema = _load(path)
+
+    def resolve(node):
+        if isinstance(node, dict) and isinstance(node.get("$ref"), str):
+            target = schema
+            for part in node["$ref"].lstrip("#/").split("/"):
+                if isinstance(target, dict) and part in target:
+                    target = target[part]
+                else:
+                    return node
+            return target
+        return node
+
+    groups = schema.get("$defs", {}).get("settings", {}).get("properties", {})
+    for _, group in sorted(groups.items()):
+        for _, key in sorted(resolve(group).get("properties", {}).items()):
+            node = resolve(key)
+            if isinstance(node, dict) and "default" in node and "const" not in node:
+                node.pop("default")
+                return _store(path, schema)
+    return False
+
+
+def _make_telemetry_mutable(root: str) -> bool:
+    path = os.path.join(root, "schemas", "settings.schema.json")
+    schema = _load(path)
+    groups = schema.get("$defs", {}).get("settings", {}).get("properties", {})
+    tel = groups.get("privacy", {}).get("properties", {}).get("telemetryEnabled")
+    if not isinstance(tel, dict) or "const" not in tel:
+        return False
+    # A default of false is not the same promise as a const of false, and
+    # REQ-SET-010 asks for the second one.
+    tel.pop("const")
+    tel["default"] = False
+    return _store(path, schema)
+
+
+def _splice_sql_literal(root: str) -> bool:
+    path = os.path.join(root, "conformance", "smart-playlist-cases.json")
+    doc = _load(path)
+    for case in doc.get("cases", []):
+        sql = case.get("expectSql")
+        if case.get("schemaValid") and isinstance(sql, dict) and "where" in sql:
+            sql["where"] = f"{sql['where']} AND artist = 'Boards of Canada'"
+            return _store(path, doc)
+    return False
+
+
+def _remove_companion_doc(root: str) -> bool:
+    path = os.path.join(root, "sync-protocol.md")
+    if not os.path.exists(path):
+        return False
+    os.remove(path)
+    return True
+
+
+# (label, mutation, the complaint the run must make)
+MUTATIONS = [
+    ("a case claims the schema rejects what it accepts",
+     lambda r: _flip_theme_verdict(r, to_reject=True), "but it validated cleanly"),
+    ("a case claims the schema accepts what it rejects",
+     lambda r: _flip_theme_verdict(r, to_reject=False), "but validation reported"),
+    ("a rule claims schema-invalid but validates",
+     lambda r: _flip_playlist_claim(r, to_invalid=True),
+     "claims schema-invalid but it validated cleanly"),
+    ("a rule claims schema-valid but does not validate",
+     lambda r: _flip_playlist_claim(r, to_invalid=False),
+     "claims schemaValid but validation reported"),
+    ("a schema loses its $id", _drop_schema_id, "off-domain $id"),
+    ("a local $ref points at nothing", _break_a_ref, "$ref does not resolve"),
+    ("a schema uses an unimplemented keyword", _add_unsupported_keyword,
+     "outside the implemented subset"),
+    ("a fixture is on disk but unlisted", _add_orphan_fixture,
+     "absent from index.json"),
+    ("the README overstates the case count", _miscount_readme, "cases; there are"),
+    ("the EFS corpus falls below its stated minimum", _shrink_efs_corpus,
+     "at least 150 cases"),
+    ("a settings key loses its documented default", _drop_a_settings_default,
+     "no documented default"),
+    ("telemetry becomes a mutable default", _make_telemetry_mutable,
+     "telemetryEnabled must be"),
+    ("a literal is spliced into expected SQL", _splice_sql_literal,
+     "quoted literal"),
+    ("a companion document goes missing", _remove_companion_doc,
+     "sync-protocol.md: missing"),
+]
+
+
+def _run_against(spec_root: str) -> tuple[int, str]:
+    proc = subprocess.run(
+        [sys.executable, os.path.abspath(__file__), "--spec-root", spec_root],
+        capture_output=True, text=True, check=False)
+    return proc.returncode, proc.stdout + proc.stderr
+
+
+def self_test() -> int:
+    failures: list[str] = []
+    source = os.path.join(ROOT, "shared-spec")
+    with tempfile.TemporaryDirectory(prefix="eclipse-spec-") as tmp:
+        pristine = os.path.join(tmp, "pristine")
+        shutil.copytree(source, pristine)
+
+        # The control run. Without it, fourteen red runs would be equally
+        # consistent with a copy step that breaks the tree on its own.
+        code, output = _run_against(pristine)
+        if code != 0:
+            failures.append("the unmutated copy did not pass, so every failure "
+                            f"below is suspect:\n{output.strip()[:800]}")
+
+        for number, (label, mutate, expected) in enumerate(MUTATIONS, start=1):
+            work = os.path.join(tmp, f"case{number:02d}")
+            shutil.copytree(pristine, work)
+            if not mutate(work):
+                failures.append(f"{label}: nothing in the corpus had the shape this "
+                                "mutation needs, so the check went unexercised")
+                continue
+            code, output = _run_against(work)
+            if code == 0:
+                failures.append(f"{label}: the mutated tree still passed")
+            elif expected not in output:
+                failures.append(f"{label}: it failed, but not about that — "
+                                f"{expected!r} is absent from the output")
+
+    if failures:
+        print(f"shared-spec self-test: {len(failures)} failure(s)", file=sys.stderr)
+        for f in failures:
+            print(f"  \u2717 {f}", file=sys.stderr)
+        return 1
+    print(f"shared-spec self-test: {len(MUTATIONS)} planted defect(s), each caught with "
+          f"the right complaint, over an unmutated control that passes")
+    return 0
+
+
+# ------------------------------------------------------------------- arguments
+_parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+_parser.add_argument("--spec-root", default=None,
+                     help="validate a different tree (used by --self-test)")
+_parser.add_argument("--self-test", action="store_true",
+                     help="plant defects in a copy of shared-spec/ and require each "
+                          "to be caught")
+_args = _parser.parse_args()
+if _args.self_test:
+    raise SystemExit(self_test())
+if _args.spec_root:
+    SPEC = os.path.abspath(_args.spec_root)
 
 
 # --------------------------------------------------------------------- 1. parse
