@@ -51,7 +51,7 @@ enum class LifecycleState {
 /// start() and shutdown() from different threads without external
 /// synchronisation is a data race.
 class Lifecycle {
-public:
+  public:
     /// Bring a subsystem up. Returning an error aborts startup.
     using StartFn = std::function<Status()>;
 
@@ -87,25 +87,26 @@ public:
     Status shutdown();
 
     [[nodiscard]] LifecycleState state() const noexcept { return state_; }
-    [[nodiscard]] std::size_t    step_count() const noexcept { return steps_.size(); }
+
+    [[nodiscard]] std::size_t step_count() const noexcept { return steps_.size(); }
 
     /// Names of the steps currently started, in start order. Cleared by a
     /// successful shutdown and by the unwind of a failed start, so it is also
     /// the assertion a test uses to prove nothing was left running.
     [[nodiscard]] const std::vector<std::string>& started() const noexcept { return started_; }
 
-private:
+  private:
     struct Step {
         std::string name;
-        StartFn     start;
-        StopFn      stop;
+        StartFn start;
+        StopFn stop;
     };
 
     void unwind() noexcept;
 
-    std::vector<Step>        steps_;
+    std::vector<Step> steps_;
     std::vector<std::string> started_;
-    LifecycleState           state_{LifecycleState::Created};
+    LifecycleState state_{LifecycleState::Created};
 };
 
 }  // namespace eclipse::app

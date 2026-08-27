@@ -8,8 +8,6 @@
 // and "a failed start left the two before it running" is not a bug anyone finds
 // by reading.
 
-#include <gtest/gtest.h>
-
 #include <string>
 #include <vector>
 
@@ -18,6 +16,8 @@
 #include "app/app_info.hpp"
 #include "app/application.hpp"
 #include "app/lifecycle.hpp"
+
+#include <gtest/gtest.h>
 
 using eclipse::ErrorCode;
 using eclipse::app::AppInfo;
@@ -45,11 +45,13 @@ TEST(AppInfo, CurrentMatchesTheGeneratedHeader) {
 }
 
 TEST(AppInfo, LogStringCarriesEverythingABugReportNeeds) {
-    const AppInfo info{.name    = "Eclipse Player",
+    const AppInfo info{.name = "Eclipse Player",
                        .version = "1.2.3",
                        .git_sha = "abcdef123456",
                        .git_dirty = false,
-                       .major = 1, .minor = 2, .patch = 3};
+                       .major = 1,
+                       .minor = 2,
+                       .patch = 3};
     const std::string s = info.to_log_string();
     EXPECT_NE(s.find("Eclipse Player"), std::string::npos);
     EXPECT_NE(s.find("1.2.3"), std::string::npos);
@@ -86,14 +88,22 @@ TEST(Lifecycle, StepsStartInOrderAndStopInReverse) {
         const std::string step{name};
         ASSERT_TRUE(lc.add_step(
             step,
-            [&trace, step] { trace.push_back("start:" + step); return eclipse::ok(); },
+            [&trace, step] {
+                trace.push_back("start:" + step);
+                return eclipse::ok();
+            },
             [&trace, step] { trace.push_back("stop:" + step); }));
     }
     ASSERT_TRUE(lc.start());
     EXPECT_EQ(lc.started(), (std::vector<std::string>{"first", "second", "third"}));
     ASSERT_TRUE(lc.shutdown());
-    EXPECT_EQ(trace, (std::vector<std::string>{"start:first", "start:second", "start:third",
-                                               "stop:third", "stop:second", "stop:first"}));
+    EXPECT_EQ(trace,
+              (std::vector<std::string>{"start:first",
+                                        "start:second",
+                                        "start:third",
+                                        "stop:third",
+                                        "stop:second",
+                                        "stop:first"}));
     EXPECT_TRUE(lc.started().empty());
 }
 
@@ -109,18 +119,26 @@ TEST(Lifecycle, AStepMayOmitItsTeardown) {
 TEST(Lifecycle, FailedStartUnwindsOnlyWhatStarted) {
     std::vector<std::string> trace;
     Lifecycle lc;
-    ASSERT_TRUE(lc.add_step("ok-one",
-                            [&trace] { trace.push_back("start:ok-one"); return eclipse::ok(); },
-                            [&trace] { trace.push_back("stop:ok-one"); }));
-    ASSERT_TRUE(lc.add_step("ok-two",
-                            [&trace] { trace.push_back("start:ok-two"); return eclipse::ok(); },
-                            [&trace] { trace.push_back("stop:ok-two"); }));
+    ASSERT_TRUE(lc.add_step(
+        "ok-one",
+        [&trace] {
+            trace.push_back("start:ok-one");
+            return eclipse::ok();
+        },
+        [&trace] { trace.push_back("stop:ok-one"); }));
+    ASSERT_TRUE(lc.add_step(
+        "ok-two",
+        [&trace] {
+            trace.push_back("start:ok-two");
+            return eclipse::ok();
+        },
+        [&trace] { trace.push_back("stop:ok-two"); }));
     ASSERT_TRUE(lc.add_step(
         "broken",
         [&trace] {
             trace.push_back("start:broken");
-            return eclipse::Status{eclipse::err(ErrorCode::DeviceNotFound,
-                                                "No audio device was found.", "no sink")};
+            return eclipse::Status{eclipse::err(
+                ErrorCode::DeviceNotFound, "No audio device was found.", "no sink")};
         },
         [&trace] { trace.push_back("stop:broken"); }));
 
@@ -132,8 +150,10 @@ TEST(Lifecycle, FailedStartUnwindsOnlyWhatStarted) {
     EXPECT_EQ(lc.state(), LifecycleState::Failed);
     EXPECT_TRUE(lc.started().empty());
     // 'broken' never reported a successful start, so its teardown must not run.
-    EXPECT_EQ(trace, (std::vector<std::string>{"start:ok-one", "start:ok-two", "start:broken",
-                                               "stop:ok-two", "stop:ok-one"}));
+    EXPECT_EQ(
+        trace,
+        (std::vector<std::string>{
+            "start:ok-one", "start:ok-two", "start:broken", "stop:ok-two", "stop:ok-one"}));
 }
 
 TEST(Lifecycle, FailedIsTerminal) {
@@ -197,9 +217,12 @@ TEST(Lifecycle, RejectsASecondShutdownAndARestart) {
 
 TEST(Lifecycle, EveryStateHasAName) {
     // A log line reading "state: unknown" is a log line that cannot be acted on.
-    for (const LifecycleState state :
-         {LifecycleState::Created, LifecycleState::Starting, LifecycleState::Running,
-          LifecycleState::ShuttingDown, LifecycleState::Stopped, LifecycleState::Failed}) {
+    for (const LifecycleState state : {LifecycleState::Created,
+                                       LifecycleState::Starting,
+                                       LifecycleState::Running,
+                                       LifecycleState::ShuttingDown,
+                                       LifecycleState::Stopped,
+                                       LifecycleState::Failed}) {
         EXPECT_NE(eclipse::app::to_string(state), "unknown");
     }
 }

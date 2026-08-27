@@ -16,40 +16,34 @@ namespace {
 /// MPEG-1 Layer III bitrates, indexed by the 4-bit bitrate index. Index 0 is
 /// "free" and 15 is reserved; both are rejected.
 constexpr std::array<std::uint32_t, 16> kBitrateMpeg1L3 = {
-    0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0
-};
+    0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0};
 /// MPEG-2 / 2.5 Layer III bitrates.
 constexpr std::array<std::uint32_t, 16> kBitrateMpeg2L3 = {
-    0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0
-};
+    0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0};
 /// MPEG-1 Layer II bitrates (we parse the header even though we only use L3).
 constexpr std::array<std::uint32_t, 16> kBitrateMpeg1L2 = {
-    0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0
-};
+    0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0};
 constexpr std::array<std::uint32_t, 16> kBitrateMpeg1L1 = {
-    0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0
-};
+    0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0};
 
-constexpr std::array<std::uint32_t, 4> kRateMpeg1  = {44100, 48000, 32000, 0};
-constexpr std::array<std::uint32_t, 4> kRateMpeg2  = {22050, 24000, 16000, 0};
-constexpr std::array<std::uint32_t, 4> kRateMpeg25 = {11025, 12000,  8000, 0};
+constexpr std::array<std::uint32_t, 4> kRateMpeg1 = {44100, 48000, 32000, 0};
+constexpr std::array<std::uint32_t, 4> kRateMpeg2 = {22050, 24000, 16000, 0};
+constexpr std::array<std::uint32_t, 4> kRateMpeg25 = {11025, 12000, 8000, 0};
 
 /// Big-endian readers. Every one is bounds-checked by the caller.
 constexpr std::uint32_t be32(const std::uint8_t* p) noexcept {
-    return (static_cast<std::uint32_t>(p[0]) << 24) |
-           (static_cast<std::uint32_t>(p[1]) << 16) |
-           (static_cast<std::uint32_t>(p[2]) << 8)  |
-            static_cast<std::uint32_t>(p[3]);
+    return (static_cast<std::uint32_t>(p[0]) << 24) | (static_cast<std::uint32_t>(p[1]) << 16) |
+           (static_cast<std::uint32_t>(p[2]) << 8) | static_cast<std::uint32_t>(p[3]);
 }
+
 constexpr std::uint16_t le16(const std::uint8_t* p) noexcept {
     return static_cast<std::uint16_t>(static_cast<std::uint32_t>(p[0]) |
-                                     (static_cast<std::uint32_t>(p[1]) << 8));
+                                      (static_cast<std::uint32_t>(p[1]) << 8));
 }
+
 constexpr std::uint32_t le32(const std::uint8_t* p) noexcept {
-    return  static_cast<std::uint32_t>(p[0]) |
-           (static_cast<std::uint32_t>(p[1]) << 8)  |
-           (static_cast<std::uint32_t>(p[2]) << 16) |
-           (static_cast<std::uint32_t>(p[3]) << 24);
+    return static_cast<std::uint32_t>(p[0]) | (static_cast<std::uint32_t>(p[1]) << 8) |
+           (static_cast<std::uint32_t>(p[2]) << 16) | (static_cast<std::uint32_t>(p[3]) << 24);
 }
 
 /// CRC-16 as used by the LAME tag: polynomial 0x8005, init 0x0000, MSB-first.
@@ -63,7 +57,8 @@ std::uint16_t lame_crc16(std::span<const std::uint8_t> data) noexcept {
                 crc = static_cast<std::uint16_t>(
                     ((static_cast<std::uint32_t>(crc) << 1) ^ 0x8005u) & 0xFFFFu);
             } else {
-                crc = static_cast<std::uint16_t>((static_cast<std::uint32_t>(crc) << 1) & 0xFFFFu);
+                crc = static_cast<std::uint16_t>((static_cast<std::uint32_t>(crc) << 1) &
+                                                 0xFFFFu);
             }
         }
     }
@@ -74,20 +69,26 @@ std::uint16_t lame_crc16(std::span<const std::uint8_t> data) noexcept {
 
 std::string_view to_string(GaplessSource s) noexcept {
     switch (s) {
-        case GaplessSource::None:     return "none";
-        case GaplessSource::Native:   return "native";
-        case GaplessSource::XingLame: return "xing-lame";
-        case GaplessSource::ITunSMPB: return "itunsmpb";
-        case GaplessSource::OpusHead: return "opushead";
-        case GaplessSource::Granule:  return "granule";
+        case GaplessSource::None:
+            return "none";
+        case GaplessSource::Native:
+            return "native";
+        case GaplessSource::XingLame:
+            return "xing-lame";
+        case GaplessSource::ITunSMPB:
+            return "itunsmpb";
+        case GaplessSource::OpusHead:
+            return "opushead";
+        case GaplessSource::Granule:
+            return "granule";
     }
     return "none";
 }
 
 std::uint64_t GaplessInfo::playable_frames() const noexcept {
     if (valid_frames == kUnknownFrames) return kUnknownFrames;
-    const std::uint64_t trim =
-        static_cast<std::uint64_t>(skip_start_frames) + static_cast<std::uint64_t>(skip_end_frames);
+    const std::uint64_t trim = static_cast<std::uint64_t>(skip_start_frames) +
+                               static_cast<std::uint64_t>(skip_end_frames);
     return trim >= valid_frames ? 0u : valid_frames - trim;
 }
 
@@ -124,39 +125,54 @@ Result<MpegFrameHeader> parse_mpeg_frame_header(std::span<const std::uint8_t> da
     // Version: bits 4-3 of byte 1.  00 = MPEG-2.5, 01 = reserved,
     //                               10 = MPEG-2,   11 = MPEG-1
     switch ((data[1] >> 3) & 0x03u) {
-        case 0: h.version = MpegVersion::Mpeg25; break;
-        case 1: return err(ErrorCode::MalformedHeader,
-                           "This MP3 file uses a reserved MPEG version.",
-                           "version bits = 01");
-        case 2: h.version = MpegVersion::Mpeg2;  break;
-        default: h.version = MpegVersion::Mpeg1; break;
+        case 0:
+            h.version = MpegVersion::Mpeg25;
+            break;
+        case 1:
+            return err(ErrorCode::MalformedHeader,
+                       "This MP3 file uses a reserved MPEG version.",
+                       "version bits = 01");
+        case 2:
+            h.version = MpegVersion::Mpeg2;
+            break;
+        default:
+            h.version = MpegVersion::Mpeg1;
+            break;
     }
 
     // Layer: bits 2-1 of byte 1.  01 = Layer III, 10 = II, 11 = I, 00 reserved.
     switch ((data[1] >> 1) & 0x03u) {
-        case 0: return err(ErrorCode::MalformedHeader,
-                           "This MP3 file uses a reserved layer.", "layer bits = 00");
-        case 1: h.layer = 3; break;
-        case 2: h.layer = 2; break;
-        default: h.layer = 1; break;
+        case 0:
+            return err(ErrorCode::MalformedHeader,
+                       "This MP3 file uses a reserved layer.",
+                       "layer bits = 00");
+        case 1:
+            h.layer = 3;
+            break;
+        case 2:
+            h.layer = 2;
+            break;
+        default:
+            h.layer = 1;
+            break;
     }
 
-    h.has_crc = ((data[1] & 0x01u) == 0);   // bit is "protection absent"
+    h.has_crc = ((data[1] & 0x01u) == 0);  // bit is "protection absent"
 
     const auto bitrate_index = static_cast<std::size_t>((data[2] >> 4) & 0x0Fu);
-    const auto rate_index    = static_cast<std::size_t>((data[2] >> 2) & 0x03u);
-    h.padded  = ((data[2] >> 1) & 0x01u) != 0;
+    const auto rate_index = static_cast<std::size_t>((data[2] >> 2) & 0x03u);
+    h.padded = ((data[2] >> 1) & 0x01u) != 0;
 
     // Channel mode: bits 7-6 of byte 3. 11 = single channel.
     const unsigned mode = (data[3] >> 6) & 0x03u;
-    h.is_mono  = (mode == 3);
+    h.is_mono = (mode == 3);
     h.channels = h.is_mono ? 1 : 2;
 
     // Bitrate.
     if (h.version == MpegVersion::Mpeg1) {
-        h.bitrate_kbps = (h.layer == 3) ? kBitrateMpeg1L3[bitrate_index]
-                       : (h.layer == 2) ? kBitrateMpeg1L2[bitrate_index]
-                                        : kBitrateMpeg1L1[bitrate_index];
+        h.bitrate_kbps = (h.layer == 3)   ? kBitrateMpeg1L3[bitrate_index]
+                         : (h.layer == 2) ? kBitrateMpeg1L2[bitrate_index]
+                                          : kBitrateMpeg1L1[bitrate_index];
     } else {
         h.bitrate_kbps = kBitrateMpeg2L3[bitrate_index];
     }
@@ -168,9 +184,15 @@ Result<MpegFrameHeader> parse_mpeg_frame_header(std::span<const std::uint8_t> da
 
     // Sample rate.
     switch (h.version) {
-        case MpegVersion::Mpeg1:  h.sample_rate_hz = kRateMpeg1[rate_index];  break;
-        case MpegVersion::Mpeg2:  h.sample_rate_hz = kRateMpeg2[rate_index];  break;
-        case MpegVersion::Mpeg25: h.sample_rate_hz = kRateMpeg25[rate_index]; break;
+        case MpegVersion::Mpeg1:
+            h.sample_rate_hz = kRateMpeg1[rate_index];
+            break;
+        case MpegVersion::Mpeg2:
+            h.sample_rate_hz = kRateMpeg2[rate_index];
+            break;
+        case MpegVersion::Mpeg25:
+            h.sample_rate_hz = kRateMpeg25[rate_index];
+            break;
     }
     if (h.sample_rate_hz == 0) {
         return err(ErrorCode::MalformedHeader,
@@ -191,7 +213,8 @@ Result<MpegFrameHeader> parse_mpeg_frame_header(std::span<const std::uint8_t> da
     if (h.layer == 1) {
         h.frame_bytes = (12u * h.bitrate_kbps * 1000u / h.sample_rate_hz + pad) * 4u;
     } else {
-        h.frame_bytes = (h.samples_per_frame / 8u) * h.bitrate_kbps * 1000u / h.sample_rate_hz + pad;
+        h.frame_bytes =
+            (h.samples_per_frame / 8u) * h.bitrate_kbps * 1000u / h.sample_rate_hz + pad;
     }
 
     // Layer III side-information size: this is what determines where the Xing
@@ -241,7 +264,7 @@ Result<XingLameTag> parse_xing_lame(std::span<const std::uint8_t> data) {
     if (std::memcmp(p, "Xing", 4) == 0) {
         tag.is_info_magic = false;
     } else if (std::memcmp(p, "Info", 4) == 0) {
-        tag.is_info_magic = true;   // CBR variant; same layout
+        tag.is_info_magic = true;  // CBR variant; same layout
     } else {
         return err(ErrorCode::MalformedHeader,
                    "This MP3 file has no gapless information.",
@@ -250,40 +273,42 @@ Result<XingLameTag> parse_xing_lame(std::span<const std::uint8_t> data) {
 
     const std::uint32_t flags = be32(p + 4);
     tag.has_frame_count = (flags & 0x0001u) != 0;
-    tag.has_byte_count  = (flags & 0x0002u) != 0;
-    tag.has_toc         = (flags & 0x0004u) != 0;
-    tag.has_quality     = (flags & 0x0008u) != 0;
+    tag.has_byte_count = (flags & 0x0002u) != 0;
+    tag.has_toc = (flags & 0x0004u) != 0;
+    tag.has_quality = (flags & 0x0008u) != 0;
 
     // Walk the optional fields in their fixed order, bounds-checking each.
     std::size_t cursor = offset + 8;
-    const auto need = [&](std::size_t bytes) -> bool {
-        return data.size() >= cursor + bytes;
-    };
+    const auto need = [&](std::size_t bytes) -> bool { return data.size() >= cursor + bytes; };
 
     if (tag.has_frame_count) {
-        if (!need(4)) return err(ErrorCode::UnexpectedEnd,
-                                 "This MP3 file's gapless information is truncated.",
-                                 "frame count field");
+        if (!need(4))
+            return err(ErrorCode::UnexpectedEnd,
+                       "This MP3 file's gapless information is truncated.",
+                       "frame count field");
         tag.frame_count = be32(data.data() + cursor);
         cursor += 4;
     }
     if (tag.has_byte_count) {
-        if (!need(4)) return err(ErrorCode::UnexpectedEnd,
-                                 "This MP3 file's gapless information is truncated.",
-                                 "byte count field");
+        if (!need(4))
+            return err(ErrorCode::UnexpectedEnd,
+                       "This MP3 file's gapless information is truncated.",
+                       "byte count field");
         tag.byte_count = be32(data.data() + cursor);
         cursor += 4;
     }
     if (tag.has_toc) {
-        if (!need(100)) return err(ErrorCode::UnexpectedEnd,
-                                   "This MP3 file's gapless information is truncated.",
-                                   "table of contents");
+        if (!need(100))
+            return err(ErrorCode::UnexpectedEnd,
+                       "This MP3 file's gapless information is truncated.",
+                       "table of contents");
         cursor += 100;
     }
     if (tag.has_quality) {
-        if (!need(4)) return err(ErrorCode::UnexpectedEnd,
-                                 "This MP3 file's gapless information is truncated.",
-                                 "quality field");
+        if (!need(4))
+            return err(ErrorCode::UnexpectedEnd,
+                       "This MP3 file's gapless information is truncated.",
+                       "quality field");
         cursor += 4;
     }
 
@@ -319,7 +344,10 @@ Result<XingLameTag> parse_xing_lame(std::span<const std::uint8_t> data) {
     bool printable = true;
     for (std::size_t i = 0; i < 4; ++i) {
         const std::uint8_t c = lame[i];
-        if (c < 0x20 || c > 0x7E) { printable = false; break; }
+        if (c < 0x20 || c > 0x7E) {
+            printable = false;
+            break;
+        }
     }
     if (!printable) return tag;
 
@@ -333,10 +361,10 @@ Result<XingLameTag> parse_xing_lame(std::span<const std::uint8_t> data) {
     const std::uint8_t d0 = lame[kDelayFieldOffset + 0];
     const std::uint8_t d1 = lame[kDelayFieldOffset + 1];
     const std::uint8_t d2 = lame[kDelayFieldOffset + 2];
-    tag.encoder_delay   = (static_cast<std::uint32_t>(d0) << 4) |
-                          (static_cast<std::uint32_t>(d1) >> 4);
-    tag.encoder_padding = ((static_cast<std::uint32_t>(d1) & 0x0Fu) << 8) |
-                           static_cast<std::uint32_t>(d2);
+    tag.encoder_delay =
+        (static_cast<std::uint32_t>(d0) << 4) | (static_cast<std::uint32_t>(d1) >> 4);
+    tag.encoder_padding =
+        ((static_cast<std::uint32_t>(d1) & 0x0Fu) << 8) | static_cast<std::uint32_t>(d2);
 
     // REQ-AUD-039: validate the CRC. The LAME specification describes this as
     // "CRC-16 of the first 190 bytes of the frame", but 190 is not a universal
@@ -362,7 +390,7 @@ Result<XingLameTag> parse_xing_lame(std::span<const std::uint8_t> data) {
     } else if (data.size() >= crc_coverage) {
         tag.lame_crc_ok = (lame_crc16(data.subspan(0, crc_coverage)) == stored_crc);
     } else {
-        tag.lame_crc_ok = false;                    // cannot verify -> distrust
+        tag.lame_crc_ok = false;  // cannot verify -> distrust
     }
 
     tag.has_lame = true;
@@ -375,8 +403,8 @@ GaplessInfo gapless_from_xing_lame(const XingLameTag& tag, std::uint32_t samples
     // REQ-AUD-039: a tag failing CRC must be ignored, not trusted.
     if (!tag.has_lame || !tag.lame_crc_ok) {
         info.skip_start_frames = kMp3DecoderDelay;
-        info.skip_end_frames   = 0;
-        info.source            = GaplessSource::None;
+        info.skip_end_frames = 0;
+        info.source = GaplessSource::None;
         if (tag.has_frame_count && samples_per_frame > 0) {
             info.valid_frames = static_cast<std::uint64_t>(tag.frame_count) *
                                 static_cast<std::uint64_t>(samples_per_frame);
@@ -388,9 +416,8 @@ GaplessInfo gapless_from_xing_lame(const XingLameTag& tag, std::uint32_t samples
     //   skip_start = encoder_delay + 529
     //   skip_end   = max(0, encoder_padding - 529)
     info.skip_start_frames = tag.encoder_delay + kMp3DecoderDelay;
-    info.skip_end_frames   = (tag.encoder_padding > kMp3DecoderDelay)
-                                 ? tag.encoder_padding - kMp3DecoderDelay
-                                 : 0u;
+    info.skip_end_frames =
+        (tag.encoder_padding > kMp3DecoderDelay) ? tag.encoder_padding - kMp3DecoderDelay : 0u;
     info.source = GaplessSource::XingLame;
 
     if (tag.has_frame_count && samples_per_frame > 0) {
@@ -402,8 +429,8 @@ GaplessInfo gapless_from_xing_lame(const XingLameTag& tag, std::uint32_t samples
                                    static_cast<std::uint64_t>(info.skip_end_frames);
         if (trim >= info.valid_frames) {
             info.skip_start_frames = kMp3DecoderDelay;
-            info.skip_end_frames   = 0;
-            info.source            = GaplessSource::None;
+            info.skip_end_frames = 0;
+            info.source = GaplessSource::None;
         }
     }
     return info;
@@ -414,8 +441,8 @@ GaplessInfo mp3_gapless_info(std::span<const std::uint8_t> first_frame) {
     // cannot fail — it degrades to the conservative default.
     GaplessInfo fallback;
     fallback.skip_start_frames = kMp3DecoderDelay;
-    fallback.skip_end_frames   = 0;
-    fallback.source            = GaplessSource::None;
+    fallback.skip_end_frames = 0;
+    fallback.source = GaplessSource::None;
 
     auto header = parse_mpeg_frame_header(first_frame);
     if (!header) return fallback;
@@ -464,8 +491,7 @@ Result<GaplessInfo> parse_itunsmpb(std::string_view value, std::uint64_t total_f
     }
 
     std::uint64_t priming = 0, padding = 0, total = 0;
-    if (!text::parse_hex(fields[1], priming) ||
-        !text::parse_hex(fields[2], padding) ||
+    if (!text::parse_hex(fields[1], priming) || !text::parse_hex(fields[2], padding) ||
         !text::parse_hex(fields[3], total)) {
         return err(ErrorCode::ParseError,
                    "This track's gapless information is invalid.",
@@ -485,7 +511,7 @@ Result<GaplessInfo> parse_itunsmpb(std::string_view value, std::uint64_t total_f
         return err(ErrorCode::OutOfRange,
                    "This track's gapless information is inconsistent.",
                    "priming+padding (" + std::to_string(priming + padding) +
-                   ") exceeds the sample count (" + std::to_string(total) + ")");
+                       ") exceeds the sample count (" + std::to_string(total) + ")");
     }
 
     // Cross-check against the real stream length when we know it.
@@ -496,26 +522,27 @@ Result<GaplessInfo> parse_itunsmpb(std::string_view value, std::uint64_t total_f
             return err(ErrorCode::OutOfRange,
                        "This track's gapless information does not match the audio.",
                        "tag says " + std::to_string(total) + " samples, stream has " +
-                       std::to_string(total_frames_hint));
+                           std::to_string(total_frames_hint));
         }
     }
 
     GaplessInfo info;
     info.skip_start_frames = static_cast<std::uint32_t>(priming);
-    info.skip_end_frames   = static_cast<std::uint32_t>(padding);
-    info.valid_frames      = (total > 0) ? total : kUnknownFrames;
-    info.source            = GaplessSource::ITunSMPB;
+    info.skip_end_frames = static_cast<std::uint32_t>(padding);
+    info.valid_frames = (total > 0) ? total : kUnknownFrames;
+    info.source = GaplessSource::ITunSMPB;
     return info;
 }
 
-GaplessInfo aac_fallback_gapless_info(std::uint32_t priming_frames, std::uint64_t total_frames) {
+GaplessInfo aac_fallback_gapless_info(std::uint32_t priming_frames,
+                                      std::uint64_t total_frames) {
     GaplessInfo info;
     info.skip_start_frames = priming_frames;
-    info.skip_end_frames   = 0;
-    info.valid_frames      = total_frames;
+    info.skip_end_frames = 0;
+    info.valid_frames = total_frames;
     // REQ-AUD-041: not authoritative, so the source stays None and the UI can
     // explain that this file lacks a gapless tag.
-    info.source            = GaplessSource::None;
+    info.source = GaplessSource::None;
     return info;
 }
 
@@ -535,7 +562,7 @@ Result<OpusHead> parse_opus_head(std::span<const std::uint8_t> data) {
         return err(ErrorCode::UnexpectedEnd,
                    "This Opus file's header is truncated.",
                    "need " + std::to_string(kMinBytes) + " bytes, have " +
-                   std::to_string(data.size()));
+                       std::to_string(data.size()));
     }
     if (std::memcmp(data.data(), "OpusHead", 8) != 0) {
         return err(ErrorCode::MalformedHeader,
@@ -556,13 +583,14 @@ Result<OpusHead> parse_opus_head(std::span<const std::uint8_t> data) {
     h.channel_count = data[9];
     if (h.channel_count == 0) {
         return err(ErrorCode::MalformedHeader,
-                   "This Opus file declares zero channels.", "channel_count=0");
+                   "This Opus file declares zero channels.",
+                   "channel_count=0");
     }
 
-    h.pre_skip             = le16(data.data() + 10);
+    h.pre_skip = le16(data.data() + 10);
     h.input_sample_rate_hz = le32(data.data() + 12);
-    h.output_gain_q7_8     = static_cast<std::int16_t>(le16(data.data() + 16));
-    h.channel_mapping      = data[18];
+    h.output_gain_q7_8 = static_cast<std::int16_t>(le16(data.data() + 16));
+    h.channel_mapping = data[18];
 
     // Mapping families 1 and 2 carry a channel mapping table; family 255 is
     // undefined ordering. Only validate that a table, if promised, is present.
@@ -589,13 +617,13 @@ GaplessInfo gapless_from_opus_head(const OpusHead& head,
     if (output_rate_hz != 0 && output_rate_hz != 48000) {
         skip = (skip * static_cast<std::uint64_t>(output_rate_hz) + 24000u) / 48000u;
     }
-    info.skip_start_frames = static_cast<std::uint32_t>(
-        skip > std::numeric_limits<std::uint32_t>::max()
-            ? std::numeric_limits<std::uint32_t>::max()
-            : skip);
+    info.skip_start_frames =
+        static_cast<std::uint32_t>(skip > std::numeric_limits<std::uint32_t>::max()
+                                       ? std::numeric_limits<std::uint32_t>::max()
+                                       : skip);
     info.skip_end_frames = 0;
-    info.valid_frames    = total_frames;
-    info.source          = GaplessSource::OpusHead;
+    info.valid_frames = total_frames;
+    info.source = GaplessSource::OpusHead;
     return info;
 }
 
@@ -606,9 +634,9 @@ GaplessInfo gapless_from_opus_head(const OpusHead& head,
 GaplessInfo native_gapless_info(std::uint64_t total_frames) noexcept {
     GaplessInfo info;
     info.skip_start_frames = 0;
-    info.skip_end_frames   = 0;
-    info.valid_frames      = total_frames;
-    info.source            = GaplessSource::Native;
+    info.skip_end_frames = 0;
+    info.valid_frames = total_frames;
+    info.source = GaplessSource::Native;
     return info;
 }
 

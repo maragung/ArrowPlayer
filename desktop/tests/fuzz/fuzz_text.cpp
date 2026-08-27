@@ -14,14 +14,14 @@
 ///   * `utf8_offset_of` never lands inside a sequence, and never past the end.
 ///   * `sort_key` and the case conversions return well-formed UTF-8 given it.
 
-#include "core/text.hpp"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <string_view>
+
+#include "core/text.hpp"
 
 namespace {
 

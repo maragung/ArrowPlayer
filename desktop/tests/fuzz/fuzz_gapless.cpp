@@ -19,8 +19,6 @@
 /// real atom tree. That target is about the tree; this one is about the value, and
 /// the value parser exists today.
 
-#include "audio/decode/gapless_info.hpp"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -29,6 +27,8 @@
 #include <limits>
 #include <span>
 #include <string_view>
+
+#include "audio/decode/gapless_info.hpp"
 
 namespace {
 
@@ -54,8 +54,8 @@ void check_common(const GaplessInfo& info, GaplessSource expected) {
         }
         const std::uint64_t trim = static_cast<std::uint64_t>(info.skip_start_frames) +
                                    static_cast<std::uint64_t>(info.skip_end_frames);
-        if (info.playable_frames() != (trim >= info.valid_frames ? 0u
-                                                                 : info.valid_frames - trim)) {
+        if (info.playable_frames() !=
+            (trim >= info.valid_frames ? 0u : info.valid_frames - trim)) {
             fail("playable_frames does not equal length minus trim");
         }
     }
@@ -177,7 +177,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     // ------------------------------------------------------------------
     // 3. Ogg granule — REQ-AUD-045.
     // ------------------------------------------------------------------
-    const auto final_granule  = static_cast<std::int64_t>(be64_at(input, 0));
+    const auto final_granule = static_cast<std::int64_t>(be64_at(input, 0));
     const auto initial_granule = static_cast<std::int64_t>(be64_at(input, 8));
 
     if (auto gran = gapless_from_granule(final_granule, initial_granule)) {
@@ -207,9 +207,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     // ------------------------------------------------------------------
     check_common(native_gapless_info(be64_at(input, 16)), GaplessSource::Native);
 
-    const GaplessInfo aac =
-        aac_fallback_gapless_info(static_cast<std::uint32_t>(be64_at(input, 8) & 0xFFFFFFFFu),
-                                  be64_at(input, 16));
+    const GaplessInfo aac = aac_fallback_gapless_info(
+        static_cast<std::uint32_t>(be64_at(input, 8) & 0xFFFFFFFFu), be64_at(input, 16));
     // REQ-AUD-041: the fallback is a guess, so it must not claim authority — and
     // a guess must never be spliced sample-exactly.
     check_common(aac, GaplessSource::None);

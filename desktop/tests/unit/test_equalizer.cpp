@@ -10,16 +10,16 @@
 //     impulse through the filter and taking a DFT              (§8.11 test 6)
 //   * a fully bypassed chain returns bit-identical samples      (§8.11 test 2)
 
-#include "audio/dsp/biquad.hpp"
-#include "audio/dsp/equalizer.hpp"
-
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cmath>
 #include <complex>
 #include <numbers>
 #include <vector>
+
+#include "audio/dsp/biquad.hpp"
+#include "audio/dsp/equalizer.hpp"
+
+#include <gtest/gtest.h>
 
 using namespace eclipse;
 using namespace eclipse::audio;
@@ -42,7 +42,8 @@ double measured_magnitude_db(BiquadCoeffs c, double freq_hz, double fs, std::siz
     std::complex<double> acc{0.0, 0.0};
     for (std::size_t k = 0; k < n; ++k) {
         const double angle = -w * static_cast<double>(k);
-        acc += static_cast<double>(h[k]) * std::complex<double>{std::cos(angle), std::sin(angle)};
+        acc +=
+            static_cast<double>(h[k]) * std::complex<double>{std::cos(angle), std::sin(angle)};
     }
     const double mag = std::abs(acc);
     return mag < 1e-12 ? -240.0 : 20.0 * std::log10(mag);
@@ -136,14 +137,15 @@ TEST(BiquadBypass, IdentityPassesSamplesBitExactly) {
     f.process_in_place(in);
     for (std::size_t i = 0; i < in.size(); ++i) {
         EXPECT_EQ(std::bit_cast<std::uint32_t>(in[i]),
-                  std::bit_cast<std::uint32_t>(original[i])) << "sample " << i;
+                  std::bit_cast<std::uint32_t>(original[i]))
+            << "sample " << i;
     }
 }
 
 TEST(BiquadBypass, DegenerateParametersYieldIdentity) {
-    EXPECT_TRUE(design(FilterType::Peaking, 1000.0,     0.0, 1.0,  6.0).is_identity());
-    EXPECT_TRUE(design(FilterType::Peaking,    0.0, 48000.0, 1.0,  6.0).is_identity());
-    EXPECT_TRUE(design(FilterType::Peaking, 1000.0, 48000.0, 0.0,  6.0).is_identity());
+    EXPECT_TRUE(design(FilterType::Peaking, 1000.0, 0.0, 1.0, 6.0).is_identity());
+    EXPECT_TRUE(design(FilterType::Peaking, 0.0, 48000.0, 1.0, 6.0).is_identity());
+    EXPECT_TRUE(design(FilterType::Peaking, 1000.0, 48000.0, 0.0, 6.0).is_identity());
     EXPECT_TRUE(design(FilterType::Peaking, 1000.0, 48000.0, -1.0, 6.0).is_identity());
     const double nan = std::nan("");
     EXPECT_TRUE(design(FilterType::Peaking, nan, 48000.0, 1.0, 6.0).is_identity());
@@ -163,7 +165,7 @@ TEST(BiquadNyquist, BandsAboveNinetyFivePercentAreBypassed) {
 
 TEST(BiquadNyquist, BoundaryIsExactlyNinetyFivePercent) {
     const double fs = 48000.0;
-    const double limit = fs * 0.5 * kMaxNyquistFraction;   // 22800
+    const double limit = fs * 0.5 * kMaxNyquistFraction;  // 22800
     EXPECT_TRUE(design(FilterType::Peaking, limit + 1.0, fs, 1.0, 6.0).is_identity());
     EXPECT_FALSE(design(FilterType::Peaking, limit - 1.0, fs, 1.0, 6.0).is_identity());
 }
@@ -203,8 +205,8 @@ TEST(BiquadResponse, AnalyticMatchesMeasuredAcrossSpectrum) {
     // The spec's acceptance criterion is +/-0.25 dB across 20 Hz - 20 kHz.
     const double fs = 48000.0;
     const auto c = design(FilterType::Peaking, 1000.0, fs, 1.4142, 9.0);
-    for (const double f : {20.0, 50.0, 100.0, 250.0, 500.0, 1000.0,
-                           2000.0, 5000.0, 10000.0, 16000.0, 20000.0}) {
+    for (const double f :
+         {20.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 16000.0, 20000.0}) {
         const double analytic = magnitude_db(c, f, fs);
         const double measured = measured_magnitude_db(c, f, fs);
         EXPECT_NEAR(analytic, measured, 0.25) << "f=" << f;
@@ -223,8 +225,8 @@ TEST(BiquadResponse, ShelvesReachTargetGainInTheirBand) {
     const double fs = 48000.0;
 
     const auto low = design(FilterType::LowShelf, 200.0, fs, 0.707, 8.0);
-    EXPECT_NEAR(magnitude_db(low, 20.0, fs), 8.0, 0.6);      // deep in the shelf
-    EXPECT_NEAR(magnitude_db(low, 8000.0, fs), 0.0, 0.3);    // above it
+    EXPECT_NEAR(magnitude_db(low, 20.0, fs), 8.0, 0.6);    // deep in the shelf
+    EXPECT_NEAR(magnitude_db(low, 8000.0, fs), 0.0, 0.3);  // above it
 
     const auto high = design(FilterType::HighShelf, 4000.0, fs, 0.707, 8.0);
     EXPECT_NEAR(magnitude_db(high, 20000.0, fs), 8.0, 0.6);
@@ -269,8 +271,8 @@ TEST(BiquadResponse, SymmetricBoostAndCutCancel) {
     // +6 dB then -6 dB at the same f/Q must return to flat: a good check that
     // the peaking coefficients are correctly reciprocal.
     const double fs = 48000.0;
-    const auto boost = design(FilterType::Peaking, 1000.0, fs, 1.4142,  6.0);
-    const auto cut   = design(FilterType::Peaking, 1000.0, fs, 1.4142, -6.0);
+    const auto boost = design(FilterType::Peaking, 1000.0, fs, 1.4142, 6.0);
+    const auto cut = design(FilterType::Peaking, 1000.0, fs, 1.4142, -6.0);
     for (const double f : {100.0, 500.0, 1000.0, 2000.0, 10000.0}) {
         EXPECT_NEAR(magnitude_db(boost, f, fs) + magnitude_db(cut, f, fs), 0.0, 0.02)
             << "f=" << f;
@@ -367,8 +369,8 @@ TEST(Cascade, OutOfRangeAccessIsSafe) {
     BiquadCascade casc;
     casc.resize(2);
     EXPECT_FALSE(casc.has_section(99));
-    EXPECT_TRUE(casc.coeffs(99).is_identity());      // safe default
-    casc.set_coeffs(99, BiquadCoeffs::identity());   // must not crash
+    EXPECT_TRUE(casc.coeffs(99).is_identity());     // safe default
+    casc.set_coeffs(99, BiquadCoeffs::identity());  // must not crash
 }
 
 // ===========================================================================
@@ -377,7 +379,7 @@ TEST(Cascade, OutOfRangeAccessIsSafe) {
 
 TEST(EqSettings, ClampsGainsIntoRange) {
     auto s = graphic_settings(EqMode::Graphic10, {99.0, -99.0, 0.0, 0, 0, 0, 0, 0, 0, 0});
-    EXPECT_FALSE(s.clamp_to_valid_ranges());       // it had to change something
+    EXPECT_FALSE(s.clamp_to_valid_ranges());  // it had to change something
     EXPECT_DOUBLE_EQ(s.graphic_gains_db[0], kGainMaxDb);
     EXPECT_DOUBLE_EQ(s.graphic_gains_db[1], kGainMinDb);
 }
@@ -412,10 +414,12 @@ TEST(EqSettings, LimitsParametricBandCount) {
 }
 
 TEST(EqSettings, NeutralDetection) {
-    EXPECT_TRUE(EqSettings{}.is_neutral());                                  // disabled
+    EXPECT_TRUE(EqSettings{}.is_neutral());  // disabled
     EXPECT_TRUE(graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0)).is_neutral());
-    EXPECT_FALSE(graphic_settings(EqMode::Graphic10, {0,0,0,0,0.5,0,0,0,0,0}).is_neutral());
-    EXPECT_FALSE(graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0), 3.0).is_neutral());
+    EXPECT_FALSE(
+        graphic_settings(EqMode::Graphic10, {0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0}).is_neutral());
+    EXPECT_FALSE(
+        graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0), 3.0).is_neutral());
 }
 
 TEST(EqSettings, NonGainBearingParametricFilterIsNeverNeutral) {
@@ -444,12 +448,16 @@ TEST(Equalizer, ConfigureRejectsInvalidArguments) {
 TEST(Equalizer, CreatesOneBandPerTableEntry) {
     Equalizer eq;
     ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, std::vector<double>(10, 1.0)),
-                             2, 48000.0).has_value());
+                             2,
+                             48000.0)
+                    .has_value());
     EXPECT_EQ(eq.band_count(), 10u);
     EXPECT_EQ(eq.channels(), 2u);
 
     ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic18, std::vector<double>(18, 1.0)),
-                             2, 48000.0).has_value());
+                             2,
+                             48000.0)
+                    .has_value());
     EXPECT_EQ(eq.band_count(), 18u);
 }
 
@@ -460,11 +468,15 @@ TEST(Equalizer, BypassedWhenDisabledOrNeutral) {
     EXPECT_TRUE(eq.is_bypassed());
 
     ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0)),
-                             2, 48000.0).has_value());
+                             2,
+                             48000.0)
+                    .has_value());
     EXPECT_TRUE(eq.is_bypassed());
 
-    ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, {6,0,0,0,0,0,0,0,0,0}),
-                             2, 48000.0).has_value());
+    ASSERT_TRUE(
+        eq.configure(
+              graphic_settings(EqMode::Graphic10, {6, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 2, 48000.0)
+            .has_value());
     EXPECT_FALSE(eq.is_bypassed());
 }
 
@@ -472,7 +484,9 @@ TEST(Equalizer, BypassIsBitExact) {
     // §8.11 test 2: the null test. A bypassed EQ must return the input bits.
     Equalizer eq;
     ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic18, std::vector<double>(18, 0.0)),
-                             2, 48000.0).has_value());
+                             2,
+                             48000.0)
+                    .has_value());
     ASSERT_TRUE(eq.is_bypassed());
 
     std::vector<float> l(1024), r(1024);
@@ -493,16 +507,22 @@ TEST(Equalizer, BypassIsBitExact) {
 
 TEST(Equalizer, PreampAloneIsNotBypassed) {
     Equalizer eq;
-    ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0), -6.0),
-                             1, 48000.0).has_value());
+    ASSERT_TRUE(
+        eq.configure(graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0), -6.0),
+                     1,
+                     48000.0)
+            .has_value());
     EXPECT_FALSE(eq.is_bypassed());
     EXPECT_NEAR(eq.magnitude_db(1000.0), -6.0, 1e-9);
 }
 
 TEST(Equalizer, PreampScalesSignal) {
     Equalizer eq;
-    ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0), -6.0206),
-                             1, 48000.0).has_value());
+    ASSERT_TRUE(
+        eq.configure(graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0), -6.0206),
+                     1,
+                     48000.0)
+            .has_value());
     std::vector<float> buf(64, 1.0f);
     eq.process_channel(0, buf);
     // -6.0206 dB is exactly a factor of 0.5.
@@ -512,15 +532,17 @@ TEST(Equalizer, PreampScalesSignal) {
 TEST(Equalizer, ResponseCurveIncludesPreampAndBands) {
     Equalizer eq;
     auto s = graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0), -3.0);
-    s.graphic_gains_db[5] = 6.0;                // 1 kHz
+    s.graphic_gains_db[5] = 6.0;  // 1 kHz
     ASSERT_TRUE(eq.configure(s, 2, 48000.0).has_value());
-    EXPECT_NEAR(eq.magnitude_db(1000.0), 3.0, 0.15);   // 6 - 3
+    EXPECT_NEAR(eq.magnitude_db(1000.0), 3.0, 0.15);  // 6 - 3
 }
 
 TEST(Equalizer, ResponseCurveIsLogSpacedAndCorrectLength) {
     Equalizer eq;
-    ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, {6,0,0,0,0,0,0,0,0,0}),
-                             1, 48000.0).has_value());
+    ASSERT_TRUE(
+        eq.configure(
+              graphic_settings(EqMode::Graphic10, {6, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 1, 48000.0)
+            .has_value());
     const auto curve = eq.response_curve_db(20.0, 20000.0, 200);
     EXPECT_EQ(curve.size(), 200u);
     for (const double v : curve) EXPECT_TRUE(std::isfinite(v));
@@ -536,7 +558,7 @@ TEST(Equalizer, MeasuredResponseMatchesAnalytic) {
     const double fs = 48000.0;
     Equalizer eq;
     auto s = graphic_settings(EqMode::Graphic10, std::vector<double>(10, 0.0));
-    s.graphic_gains_db[5] = 9.0;                       // 1 kHz band
+    s.graphic_gains_db[5] = 9.0;  // 1 kHz band
     ASSERT_TRUE(eq.configure(s, 1, fs).has_value());
 
     constexpr std::size_t kN = 32768;
@@ -559,10 +581,12 @@ TEST(Equalizer, MeasuredResponseMatchesAnalytic) {
 
 TEST(Equalizer, ChannelsAreIndependent) {
     Equalizer eq;
-    ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, {12,0,0,0,0,0,0,0,0,0}),
-                             2, 48000.0).has_value());
+    ASSERT_TRUE(
+        eq.configure(
+              graphic_settings(EqMode::Graphic10, {12, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 2, 48000.0)
+            .has_value());
     std::vector<float> l(512, 0.0f), r(512, 0.0f);
-    l[0] = 1.0f;                     // impulse on the left only
+    l[0] = 1.0f;  // impulse on the left only
     std::array<std::span<float>, 2> planes{std::span<float>{l}, std::span<float>{r}};
     eq.process(planes);
 
@@ -573,20 +597,24 @@ TEST(Equalizer, ChannelsAreIndependent) {
 
 TEST(Equalizer, ProcessToleratesFewerPlanesThanChannels) {
     Equalizer eq;
-    ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, {6,0,0,0,0,0,0,0,0,0}),
-                             4, 48000.0).has_value());
+    ASSERT_TRUE(
+        eq.configure(
+              graphic_settings(EqMode::Graphic10, {6, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 4, 48000.0)
+            .has_value());
     std::vector<float> a(32, 0.1f);
     std::array<std::span<float>, 1> planes{std::span<float>{a}};
-    eq.process(planes);                 // must not read past the provided planes
+    eq.process(planes);  // must not read past the provided planes
     EXPECT_TRUE(std::isfinite(a[0]));
 }
 
 TEST(Equalizer, ProcessChannelOutOfRangeIsSafe) {
     Equalizer eq;
-    ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, {6,0,0,0,0,0,0,0,0,0}),
-                             2, 48000.0).has_value());
+    ASSERT_TRUE(
+        eq.configure(
+              graphic_settings(EqMode::Graphic10, {6, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 2, 48000.0)
+            .has_value());
     std::vector<float> buf(16, 0.5f);
-    eq.process_channel(99, buf);        // must be a no-op, not a crash
+    eq.process_channel(99, buf);  // must be a no-op, not a crash
     EXPECT_FLOAT_EQ(buf[0], 0.5f);
 }
 
@@ -606,8 +634,10 @@ TEST(Equalizer, ParametricModeUsesOnlyEnabledBands) {
 
 TEST(Equalizer, ResetClearsState) {
     Equalizer eq;
-    ASSERT_TRUE(eq.configure(graphic_settings(EqMode::Graphic10, {12,0,0,0,0,0,0,0,0,0}),
-                             1, 48000.0).has_value());
+    ASSERT_TRUE(
+        eq.configure(
+              graphic_settings(EqMode::Graphic10, {12, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 1, 48000.0)
+            .has_value());
     std::vector<float> burst(128, 1.0f);
     eq.process_channel(0, burst);
     eq.reset();
@@ -622,10 +652,21 @@ TEST(Equalizer, ResetClearsState) {
 
 TEST(EqPresets, AllRequiredPresetsExist) {
     // REQ-AUD-087 names these as the minimum set.
-    for (const char* name : {"Flat", "Rock", "Pop", "Jazz", "Classical", "Dance",
-                             "Hip-Hop", "Metal", "Acoustic", "Vocal Boost",
-                             "Bass Boost", "Treble Boost", "Loudness",
-                             "Small Speakers", "Headphones"}) {
+    for (const char* name : {"Flat",
+                             "Rock",
+                             "Pop",
+                             "Jazz",
+                             "Classical",
+                             "Dance",
+                             "Hip-Hop",
+                             "Metal",
+                             "Acoustic",
+                             "Vocal Boost",
+                             "Bass Boost",
+                             "Treble Boost",
+                             "Loudness",
+                             "Small Speakers",
+                             "Headphones"}) {
         EXPECT_NE(find_builtin_preset(name), nullptr) << "missing preset: " << name;
     }
 }

@@ -23,10 +23,10 @@ void Value::reset() noexcept {
 void Value::copy_from(const Value& other) {
     type_ = other.type_;
     bool_ = other.bool_;
-    num_  = other.num_;
-    str_  = other.str_;
-    arr_  = other.arr_ ? std::make_unique<Array>(*other.arr_) : nullptr;
-    obj_  = other.obj_ ? std::make_unique<Object>(*other.obj_) : nullptr;
+    num_ = other.num_;
+    str_ = other.str_;
+    arr_ = other.arr_ ? std::make_unique<Array>(*other.arr_) : nullptr;
+    obj_ = other.obj_ ? std::make_unique<Object>(*other.obj_) : nullptr;
 }
 
 bool Value::is_integer() const noexcept {
@@ -79,9 +79,9 @@ const Value* Value::at(std::size_t index) const noexcept {
 }
 
 std::size_t Value::size() const noexcept {
-    if (type_ == Type::Array && arr_)  return arr_->size();
+    if (type_ == Type::Array && arr_) return arr_->size();
     if (type_ == Type::Object && obj_) return obj_->size();
-    if (type_ == Type::String)         return str_.size();
+    if (type_ == Type::String) return str_.size();
     return 0;
 }
 
@@ -97,8 +97,15 @@ const Value* Value::pointer(std::string_view ptr) const noexcept {
         while (i < ptr.size() && ptr[i] != '/') {
             // RFC 6901 escapes: ~1 -> '/', ~0 -> '~'
             if (ptr[i] == '~' && i + 1 < ptr.size()) {
-                if (ptr[i + 1] == '1')      { token.push_back('/'); i += 2; continue; }
-                else if (ptr[i + 1] == '0') { token.push_back('~'); i += 2; continue; }
+                if (ptr[i + 1] == '1') {
+                    token.push_back('/');
+                    i += 2;
+                    continue;
+                } else if (ptr[i + 1] == '0') {
+                    token.push_back('~');
+                    i += 2;
+                    continue;
+                }
             }
             token.push_back(ptr[i]);
             ++i;
@@ -130,13 +137,27 @@ std::string escape(std::string_view s) {
     while (pos < s.size()) {
         const char32_t cp = text::decode_utf8(s, pos);
         switch (cp) {
-            case U'"':  out += "\\\""; break;
-            case U'\\': out += "\\\\"; break;
-            case U'\b': out += "\\b";  break;
-            case U'\f': out += "\\f";  break;
-            case U'\n': out += "\\n";  break;
-            case U'\r': out += "\\r";  break;
-            case U'\t': out += "\\t";  break;
+            case U'"':
+                out += "\\\"";
+                break;
+            case U'\\':
+                out += "\\\\";
+                break;
+            case U'\b':
+                out += "\\b";
+                break;
+            case U'\f':
+                out += "\\f";
+                break;
+            case U'\n':
+                out += "\\n";
+                break;
+            case U'\r':
+                out += "\\r";
+                break;
+            case U'\t':
+                out += "\\t";
+                break;
             default:
                 if (cp < 0x20u) {
                     static constexpr char kHex[] = "0123456789abcdef";
@@ -155,7 +176,10 @@ std::string escape(std::string_view s) {
 namespace {
 
 void format_number(double v, std::string& out) {
-    if (!std::isfinite(v)) { out += "null"; return; }  // JSON has no Inf/NaN
+    if (!std::isfinite(v)) {
+        out += "null";
+        return;
+    }  // JSON has no Inf/NaN
     double int_part = 0.0;
     if (std::modf(v, &int_part) == 0.0 && std::abs(v) < 1e15) {
         out += std::to_string(static_cast<std::int64_t>(v));
@@ -174,13 +198,24 @@ void dump_into(const Value& v, int indent, int level, std::string& out) {
     };
 
     switch (v.type()) {
-        case Type::Null:   out += "null"; break;
-        case Type::Bool:   out += v.as_bool() ? "true" : "false"; break;
-        case Type::Number: format_number(v.as_double(), out); break;
-        case Type::String: out += escape(v.as_string()); break;
+        case Type::Null:
+            out += "null";
+            break;
+        case Type::Bool:
+            out += v.as_bool() ? "true" : "false";
+            break;
+        case Type::Number:
+            format_number(v.as_double(), out);
+            break;
+        case Type::String:
+            out += escape(v.as_string());
+            break;
         case Type::Array: {
             const auto& a = v.as_array();
-            if (a.empty()) { out += "[]"; break; }
+            if (a.empty()) {
+                out += "[]";
+                break;
+            }
             out.push_back('[');
             for (std::size_t i = 0; i < a.size(); ++i) {
                 if (i) out.push_back(',');
@@ -193,7 +228,10 @@ void dump_into(const Value& v, int indent, int level, std::string& out) {
         }
         case Type::Object: {
             const auto& o = v.as_object();
-            if (o.empty()) { out += "{}"; break; }
+            if (o.empty()) {
+                out += "{}";
+                break;
+            }
             out.push_back('{');
             bool first = true;
             for (const auto& [key, val] : o) {
@@ -227,35 +265,40 @@ std::string Value::dump(int indent) const {
 namespace {
 
 class Parser {
-public:
-    Parser(std::string_view input, const Limits& limits)
-        : src_{input}, lim_{limits} {}
+  public:
+    Parser(std::string_view input, const Limits& limits) : src_{input}, lim_{limits} {}
 
     Result<Value> run() {
         skip_trivia();
         auto root = parse_value(0);
         if (!root) return root;
         skip_trivia();
-        if (pos_ != src_.size()) return fail(ErrorCode::UnexpectedToken,
-                                             "Unexpected content after the JSON value.");
+        if (pos_ != src_.size())
+            return fail(ErrorCode::UnexpectedToken, "Unexpected content after the JSON value.");
         return root;
     }
 
-private:
+  private:
     std::string_view src_;
-    Limits           lim_;
-    std::size_t      pos_{0};
-    std::size_t      line_{1};
-    std::size_t      col_{1};
-    std::size_t      elements_{0};
+    Limits lim_;
+    std::size_t pos_{0};
+    std::size_t line_{1};
+    std::size_t col_{1};
+    std::size_t elements_{0};
 
     [[nodiscard]] bool eof() const noexcept { return pos_ >= src_.size(); }
+
     [[nodiscard]] char peek() const noexcept { return eof() ? '\0' : src_[pos_]; }
 
     char advance() noexcept {
         if (eof()) return '\0';
         const char c = src_[pos_++];
-        if (c == '\n') { ++line_; col_ = 1; } else { ++col_; }
+        if (c == '\n') {
+            ++line_;
+            col_ = 1;
+        } else {
+            ++col_;
+        }
         return c;
     }
 
@@ -268,13 +311,17 @@ private:
     void skip_trivia() noexcept {
         while (!eof()) {
             const char c = peek();
-            if (c == ' ' || c == '\t' || c == '\n' || c == '\r') { advance(); continue; }
+            if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+                advance();
+                continue;
+            }
             // UTF-8 BOM, tolerated only at the very start.
-            if (pos_ == 0 && src_.size() >= 3 &&
-                static_cast<unsigned char>(src_[0]) == 0xEF &&
+            if (pos_ == 0 && src_.size() >= 3 && static_cast<unsigned char>(src_[0]) == 0xEF &&
                 static_cast<unsigned char>(src_[1]) == 0xBB &&
                 static_cast<unsigned char>(src_[2]) == 0xBF) {
-                advance(); advance(); advance();
+                advance();
+                advance();
+                advance();
                 continue;
             }
             if (lim_.allow_comments && c == '/' && pos_ + 1 < src_.size()) {
@@ -283,10 +330,12 @@ private:
                     continue;
                 }
                 if (src_[pos_ + 1] == '*') {
-                    advance(); advance();
+                    advance();
+                    advance();
                     while (!eof()) {
                         if (peek() == '*' && pos_ + 1 < src_.size() && src_[pos_ + 1] == '/') {
-                            advance(); advance();
+                            advance();
+                            advance();
                             break;
                         }
                         advance();
@@ -300,27 +349,31 @@ private:
 
     Result<Value> parse_value(std::size_t depth) {
         if (depth > lim_.max_depth)
-            return fail(ErrorCode::NestingTooDeep,
-                        "The document is nested too deeply.");
+            return fail(ErrorCode::NestingTooDeep, "The document is nested too deeply.");
         if (++elements_ > lim_.max_elements)
-            return fail(ErrorCode::InputTooLarge,
-                        "The document contains too many values.");
+            return fail(ErrorCode::InputTooLarge, "The document contains too many values.");
 
         skip_trivia();
         if (eof()) return fail(ErrorCode::UnexpectedEnd, "Unexpected end of input.");
 
         switch (peek()) {
-            case '{': return parse_object(depth);
-            case '[': return parse_array(depth);
+            case '{':
+                return parse_object(depth);
+            case '[':
+                return parse_array(depth);
             case '"': {
                 auto s = parse_string();
                 if (!s) return std::move(s).error();
                 return Value{std::move(s).value()};
             }
-            case 't': return parse_literal("true",  Value{true});
-            case 'f': return parse_literal("false", Value{false});
-            case 'n': return parse_literal("null",  Value{});
-            default:  return parse_number();
+            case 't':
+                return parse_literal("true", Value{true});
+            case 'f':
+                return parse_literal("false", Value{false});
+            case 'n':
+                return parse_literal("null", Value{});
+            default:
+                return parse_number();
         }
     }
 
@@ -335,7 +388,10 @@ private:
         advance();  // '{'
         Object obj;
         skip_trivia();
-        if (peek() == '}') { advance(); return Value{std::move(obj)}; }
+        if (peek() == '}') {
+            advance();
+            return Value{std::move(obj)};
+        }
 
         while (true) {
             skip_trivia();
@@ -371,7 +427,10 @@ private:
                 }
                 continue;
             }
-            if (peek() == '}') { advance(); return Value{std::move(obj)}; }
+            if (peek() == '}') {
+                advance();
+                return Value{std::move(obj)};
+            }
             return fail(ErrorCode::UnexpectedToken, "Expected ',' or '}'.");
         }
     }
@@ -380,7 +439,10 @@ private:
         advance();  // '['
         Array arr;
         skip_trivia();
-        if (peek() == ']') { advance(); return Value{std::move(arr)}; }
+        if (peek() == ']') {
+            advance();
+            return Value{std::move(arr)};
+        }
 
         while (true) {
             auto val = parse_value(depth + 1);
@@ -399,7 +461,10 @@ private:
                 }
                 continue;
             }
-            if (peek() == ']') { advance(); return Value{std::move(arr)}; }
+            if (peek() == ']') {
+                advance();
+                return Value{std::move(arr)};
+            }
             return fail(ErrorCode::UnexpectedToken, "Expected ',' or ']'.");
         }
     }
@@ -410,7 +475,17 @@ private:
         while (true) {
             if (eof()) return fail(ErrorCode::UnexpectedEnd, "Unterminated string.");
             const char c = advance();
-            if (c == '"') return out;
+            if (c == '"') {
+                // RFC 8259 §8.1: JSON text MUST be UTF-8. The parser must not
+                // accept bytes it cannot represent: dump() re-encodes every
+                // string through text::encode_utf8, so a raw malformed byte
+                // would come back as U+FFFD and two distinct keys could
+                // collapse into one — a round-trip failure the fuzzer's
+                // dump()/parse() invariant exists to catch.
+                if (!text::is_valid_utf8(out))
+                    return fail(ErrorCode::UnexpectedToken, "String contains invalid UTF-8.");
+                return out;
+            }
 
             if (c != '\\') {
                 // Raw control characters are invalid in a JSON string.
@@ -423,22 +498,40 @@ private:
 
             if (eof()) return fail(ErrorCode::UnexpectedEnd, "Unterminated escape.");
             switch (advance()) {
-                case '"':  out.push_back('"');  break;
-                case '\\': out.push_back('\\'); break;
-                case '/':  out.push_back('/');  break;
-                case 'b':  out.push_back('\b'); break;
-                case 'f':  out.push_back('\f'); break;
-                case 'n':  out.push_back('\n'); break;
-                case 'r':  out.push_back('\r'); break;
-                case 't':  out.push_back('\t'); break;
+                case '"':
+                    out.push_back('"');
+                    break;
+                case '\\':
+                    out.push_back('\\');
+                    break;
+                case '/':
+                    out.push_back('/');
+                    break;
+                case 'b':
+                    out.push_back('\b');
+                    break;
+                case 'f':
+                    out.push_back('\f');
+                    break;
+                case 'n':
+                    out.push_back('\n');
+                    break;
+                case 'r':
+                    out.push_back('\r');
+                    break;
+                case 't':
+                    out.push_back('\t');
+                    break;
                 case 'u': {
                     auto cp = parse_hex4();
                     if (!cp) return std::move(cp).error();
                     char32_t code = cp.value();
                     // Surrogate pair.
                     if (code >= 0xD800u && code <= 0xDBFFu) {
-                        if (pos_ + 1 < src_.size() && src_[pos_] == '\\' && src_[pos_ + 1] == 'u') {
-                            advance(); advance();
+                        if (pos_ + 1 < src_.size() && src_[pos_] == '\\' &&
+                            src_[pos_ + 1] == 'u') {
+                            advance();
+                            advance();
                             auto low = parse_hex4();
                             if (!low) return std::move(low).error();
                             if (low.value() >= 0xDC00u && low.value() <= 0xDFFFu) {
@@ -451,7 +544,7 @@ private:
                             code = 0xFFFDu;
                         }
                     } else if (code >= 0xDC00u && code <= 0xDFFFu) {
-                        code = 0xFFFDu;          // lone low surrogate
+                        code = 0xFFFDu;  // lone low surrogate
                     }
                     text::encode_utf8(code, out);
                     break;
@@ -488,8 +581,7 @@ private:
         if (peek() == '0') {
             advance();
             if (!eof() && peek() >= '0' && peek() <= '9')
-                return fail(ErrorCode::UnexpectedToken,
-                            "Numbers must not have leading zeros.");
+                return fail(ErrorCode::UnexpectedToken, "Numbers must not have leading zeros.");
         } else {
             while (!eof() && peek() >= '0' && peek() <= '9') advance();
         }
@@ -497,7 +589,10 @@ private:
         if (!eof() && peek() == '.') {
             advance();
             bool frac_digit = false;
-            while (!eof() && peek() >= '0' && peek() <= '9') { advance(); frac_digit = true; }
+            while (!eof() && peek() >= '0' && peek() <= '9') {
+                advance();
+                frac_digit = true;
+            }
             if (!frac_digit)
                 return fail(ErrorCode::UnexpectedToken,
                             "Expected a digit after the decimal point.");
@@ -507,7 +602,10 @@ private:
             advance();
             if (!eof() && (peek() == '+' || peek() == '-')) advance();
             bool exp_digit = false;
-            while (!eof() && peek() >= '0' && peek() <= '9') { advance(); exp_digit = true; }
+            while (!eof() && peek() >= '0' && peek() <= '9') {
+                advance();
+                exp_digit = true;
+            }
             if (!exp_digit)
                 return fail(ErrorCode::UnexpectedToken, "Malformed number exponent.");
         }

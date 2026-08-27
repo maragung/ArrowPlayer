@@ -26,11 +26,8 @@ double q_for_bandwidth_octaves(double octaves) noexcept {
     return std::sqrt(p) / denom;
 }
 
-BiquadCoeffs design(FilterType type,
-                    double f0_hz,
-                    double sample_rate_hz,
-                    double q,
-                    double gain_db) noexcept {
+BiquadCoeffs design(
+    FilterType type, double f0_hz, double sample_rate_hz, double q, double gain_db) noexcept {
     // Guard rails first. Any degenerate request yields a true identity so the
     // caller can skip the section entirely (REQ-AUD-005).
     if (!(sample_rate_hz > 0.0) || !(f0_hz > 0.0) || !(q > 0.0)) {
@@ -47,14 +44,13 @@ BiquadCoeffs design(FilterType type,
     }
 
     // Gain-bearing types at 0 dB are exact no-ops.
-    const bool gain_bearing = (type == FilterType::Peaking ||
-                               type == FilterType::LowShelf ||
+    const bool gain_bearing = (type == FilterType::Peaking || type == FilterType::LowShelf ||
                                type == FilterType::HighShelf);
     if (gain_bearing && negligible_gain(gain_db)) {
         return BiquadCoeffs::identity();
     }
 
-    const double w0    = 2.0 * kPi * f0_hz / sample_rate_hz;
+    const double w0 = 2.0 * kPi * f0_hz / sample_rate_hz;
     const double cosw0 = std::cos(w0);
     const double sinw0 = std::sin(w0);
     const double alpha = sinw0 / (2.0 * q);
@@ -77,73 +73,73 @@ BiquadCoeffs design(FilterType type,
             break;
         }
         case FilterType::LowShelf: {
-            const double A         = std::pow(10.0, gain_db / 40.0);
-            const double sqrtA     = std::sqrt(A);
+            const double A = std::pow(10.0, gain_db / 40.0);
+            const double sqrtA = std::sqrt(A);
             const double two_sqrtA_alpha = 2.0 * sqrtA * alpha;
-            b0 =        A * ((A + 1.0) - (A - 1.0) * cosw0 + two_sqrtA_alpha);
-            b1 =  2.0 * A * ((A - 1.0) - (A + 1.0) * cosw0);
-            b2 =        A * ((A + 1.0) - (A - 1.0) * cosw0 - two_sqrtA_alpha);
-            a0 =             (A + 1.0) + (A - 1.0) * cosw0 + two_sqrtA_alpha;
-            a1 =      -2.0 * ((A - 1.0) + (A + 1.0) * cosw0);
-            a2 =             (A + 1.0) + (A - 1.0) * cosw0 - two_sqrtA_alpha;
+            b0 = A * ((A + 1.0) - (A - 1.0) * cosw0 + two_sqrtA_alpha);
+            b1 = 2.0 * A * ((A - 1.0) - (A + 1.0) * cosw0);
+            b2 = A * ((A + 1.0) - (A - 1.0) * cosw0 - two_sqrtA_alpha);
+            a0 = (A + 1.0) + (A - 1.0) * cosw0 + two_sqrtA_alpha;
+            a1 = -2.0 * ((A - 1.0) + (A + 1.0) * cosw0);
+            a2 = (A + 1.0) + (A - 1.0) * cosw0 - two_sqrtA_alpha;
             break;
         }
         case FilterType::HighShelf: {
-            const double A         = std::pow(10.0, gain_db / 40.0);
-            const double sqrtA     = std::sqrt(A);
+            const double A = std::pow(10.0, gain_db / 40.0);
+            const double sqrtA = std::sqrt(A);
             const double two_sqrtA_alpha = 2.0 * sqrtA * alpha;
-            b0 =        A * ((A + 1.0) + (A - 1.0) * cosw0 + two_sqrtA_alpha);
+            b0 = A * ((A + 1.0) + (A - 1.0) * cosw0 + two_sqrtA_alpha);
             b1 = -2.0 * A * ((A - 1.0) + (A + 1.0) * cosw0);
-            b2 =        A * ((A + 1.0) + (A - 1.0) * cosw0 - two_sqrtA_alpha);
-            a0 =             (A + 1.0) - (A - 1.0) * cosw0 + two_sqrtA_alpha;
-            a1 =       2.0 * ((A - 1.0) - (A + 1.0) * cosw0);
-            a2 =             (A + 1.0) - (A - 1.0) * cosw0 - two_sqrtA_alpha;
+            b2 = A * ((A + 1.0) + (A - 1.0) * cosw0 - two_sqrtA_alpha);
+            a0 = (A + 1.0) - (A - 1.0) * cosw0 + two_sqrtA_alpha;
+            a1 = 2.0 * ((A - 1.0) - (A + 1.0) * cosw0);
+            a2 = (A + 1.0) - (A - 1.0) * cosw0 - two_sqrtA_alpha;
             break;
         }
         case FilterType::LowPass: {
             b0 = (1.0 - cosw0) * 0.5;
-            b1 =  1.0 - cosw0;
+            b1 = 1.0 - cosw0;
             b2 = (1.0 - cosw0) * 0.5;
-            a0 =  1.0 + alpha;
+            a0 = 1.0 + alpha;
             a1 = -2.0 * cosw0;
-            a2 =  1.0 - alpha;
+            a2 = 1.0 - alpha;
             break;
         }
         case FilterType::HighPass: {
-            b0 =  (1.0 + cosw0) * 0.5;
+            b0 = (1.0 + cosw0) * 0.5;
             b1 = -(1.0 + cosw0);
-            b2 =  (1.0 + cosw0) * 0.5;
-            a0 =   1.0 + alpha;
-            a1 =  -2.0 * cosw0;
-            a2 =   1.0 - alpha;
+            b2 = (1.0 + cosw0) * 0.5;
+            a0 = 1.0 + alpha;
+            a1 = -2.0 * cosw0;
+            a2 = 1.0 - alpha;
             break;
         }
         case FilterType::BandPass: {
             // Constant 0 dB peak gain.
-            b0 =  alpha;
-            b1 =  0.0;
+            b0 = alpha;
+            b1 = 0.0;
             b2 = -alpha;
-            a0 =  1.0 + alpha;
+            a0 = 1.0 + alpha;
             a1 = -2.0 * cosw0;
-            a2 =  1.0 - alpha;
+            a2 = 1.0 - alpha;
             break;
         }
         case FilterType::Notch: {
-            b0 =  1.0;
+            b0 = 1.0;
             b1 = -2.0 * cosw0;
-            b2 =  1.0;
-            a0 =  1.0 + alpha;
+            b2 = 1.0;
+            a0 = 1.0 + alpha;
             a1 = -2.0 * cosw0;
-            a2 =  1.0 - alpha;
+            a2 = 1.0 - alpha;
             break;
         }
         case FilterType::AllPass: {
-            b0 =  1.0 - alpha;
+            b0 = 1.0 - alpha;
             b1 = -2.0 * cosw0;
-            b2 =  1.0 + alpha;
-            a0 =  1.0 + alpha;
+            b2 = 1.0 + alpha;
+            a0 = 1.0 + alpha;
             a1 = -2.0 * cosw0;
-            a2 =  1.0 - alpha;
+            a2 = 1.0 - alpha;
             break;
         }
     }
@@ -170,17 +166,17 @@ double magnitude_db(const BiquadCoeffs& c, double freq_hz, double sample_rate_hz
     if (!(sample_rate_hz > 0.0) || freq_hz < 0.0) return 0.0;
 
     const double w = 2.0 * kPi * freq_hz / sample_rate_hz;
-    const std::complex<double> z1{std::cos(-w), std::sin(-w)};   // z^-1
-    const std::complex<double> z2 = z1 * z1;                     // z^-2
+    const std::complex<double> z1{std::cos(-w), std::sin(-w)};  // z^-1
+    const std::complex<double> z2 = z1 * z1;                    // z^-2
 
     const std::complex<double> num = c.b0 + c.b1 * z1 + c.b2 * z2;
-    const std::complex<double> den = 1.0  + c.a1 * z1 + c.a2 * z2;
+    const std::complex<double> den = 1.0 + c.a1 * z1 + c.a2 * z2;
 
     const double dmag = std::abs(den);
     if (dmag < 1e-30) return 0.0;
 
     const double mag = std::abs(num) / dmag;
-    if (mag < 1e-12) return -240.0;          // floor, avoids -inf in plots
+    if (mag < 1e-12) return -240.0;  // floor, avoids -inf in plots
     return 20.0 * std::log10(mag);
 }
 

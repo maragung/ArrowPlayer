@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: MPL-2.0
 // Tests for core/error.hpp — spec §22.1 (REQ-GEN-060 .. REQ-GEN-063).
 
+#include <string>
+
 #include "core/error.hpp"
 
 #include <gtest/gtest.h>
 
-#include <string>
-
 using namespace eclipse;
 
 TEST(Error, CarriesCodeMessageAndSeverity) {
-    const Error e{ErrorCode::FileNotFound, "That file could not be found.",
-                  "/music/a.flac", Severity::Warning, RecoveryAction::Rescan};
+    const Error e{ErrorCode::FileNotFound,
+                  "That file could not be found.",
+                  "/music/a.flac",
+                  Severity::Warning,
+                  RecoveryAction::Rescan};
     EXPECT_EQ(e.code(), ErrorCode::FileNotFound);
     EXPECT_EQ(e.user_message(), "That file could not be found.");
     EXPECT_EQ(e.technical_detail(), "/music/a.flac");
@@ -31,26 +34,38 @@ TEST(Error, UserMessageNeverContainsANumericCode) {
 TEST(Error, EveryCodeHasAStableStableName) {
     // A log or bug report must never contain "UNKNOWN" for a code we defined.
     const ErrorCode codes[] = {
-        ErrorCode::Ok, ErrorCode::InvalidArgument, ErrorCode::Cancelled,
+        ErrorCode::Ok,
+        ErrorCode::InvalidArgument,
+        ErrorCode::Cancelled,
         ErrorCode::InvalidState,
-        ErrorCode::FileNotFound, ErrorCode::PathTraversal,
-        ErrorCode::UnsupportedFormat, ErrorCode::CorruptStream,
-        ErrorCode::DeviceInUse, ErrorCode::ExclusiveModeUnavailable,
-        ErrorCode::BitPerfectUnavailable, ErrorCode::BufferUnderrun,
-        ErrorCode::ParseError, ErrorCode::MalformedTimestamp,
-        ErrorCode::OutputCapExceeded, ErrorCode::NestingTooDeep,
-        ErrorCode::SchemaViolation, ErrorCode::ContrastBelowFloor,
-        ErrorCode::ZipSlipDetected, ErrorCode::ZipBombDetected,
-        ErrorCode::UnsafeSvg, ErrorCode::ResourceBudgetExceeded,
-        ErrorCode::DatabaseCorrupt, ErrorCode::MigrationFailed,
-        ErrorCode::NetworkDisabled, ErrorCode::RateLimited,
+        ErrorCode::FileNotFound,
+        ErrorCode::PathTraversal,
+        ErrorCode::UnsupportedFormat,
+        ErrorCode::CorruptStream,
+        ErrorCode::DeviceInUse,
+        ErrorCode::ExclusiveModeUnavailable,
+        ErrorCode::BitPerfectUnavailable,
+        ErrorCode::BufferUnderrun,
+        ErrorCode::ParseError,
+        ErrorCode::MalformedTimestamp,
+        ErrorCode::OutputCapExceeded,
+        ErrorCode::NestingTooDeep,
+        ErrorCode::SchemaViolation,
+        ErrorCode::ContrastBelowFloor,
+        ErrorCode::ZipSlipDetected,
+        ErrorCode::ZipBombDetected,
+        ErrorCode::UnsafeSvg,
+        ErrorCode::ResourceBudgetExceeded,
+        ErrorCode::DatabaseCorrupt,
+        ErrorCode::MigrationFailed,
+        ErrorCode::NetworkDisabled,
+        ErrorCode::RateLimited,
     };
     for (const ErrorCode c : codes) {
         const auto name = to_string(c);
         EXPECT_FALSE(name.empty());
         if (c != ErrorCode::Unknown) {
-            EXPECT_NE(name, "UNKNOWN") << "missing to_string for code "
-                                       << static_cast<int>(c);
+            EXPECT_NE(name, "UNKNOWN") << "missing to_string for code " << static_cast<int>(c);
         }
     }
 }
@@ -73,7 +88,8 @@ TEST(Error, PositionInformationForParsers) {
 }
 
 TEST(Error, LogStringIncludesCodeAndSeverity) {
-    const Error e{ErrorCode::DeviceLost, "The audio device was disconnected.",
+    const Error e{ErrorCode::DeviceLost,
+                  "The audio device was disconnected.",
                   "wasapi: AUDCLNT_E_DEVICE_INVALIDATED"};
     const auto log = e.to_log_string();
     EXPECT_NE(log.find("DEVICE_LOST"), std::string::npos);
@@ -84,8 +100,8 @@ TEST(Error, LogStringIncludesCodeAndSeverity) {
 TEST(Error, BuilderMethodsChain) {
     Error e = err(ErrorCode::BufferUnderrun, "Audio playback stuttered.");
     e.with_severity(Severity::Notice)
-     .with_recovery(RecoveryAction::IncreaseBuffer)
-     .with_detail("underruns=4 window=10s");
+        .with_recovery(RecoveryAction::IncreaseBuffer)
+        .with_detail("underruns=4 window=10s");
     EXPECT_EQ(e.severity(), Severity::Notice);
     EXPECT_EQ(e.recovery(), RecoveryAction::IncreaseBuffer);
     EXPECT_EQ(e.technical_detail(), "underruns=4 window=10s");

@@ -24,13 +24,13 @@ namespace eclipse::app {
 /// string literal with static storage duration, or a scalar. Safe to copy onto
 /// any thread, including one that must not allocate.
 struct AppInfo {
-    std::string_view name;       ///< eclipse::version::kName
-    std::string_view version;    ///< eclipse::version::kString  ("0.1.0")
-    std::string_view git_sha;    ///< eclipse::version::kGitSha  (short hash)
-    bool             git_dirty{false};  ///< the tree had uncommitted changes
-    int              major{0};
-    int              minor{0};
-    int              patch{0};
+    std::string_view name;     ///< eclipse::version::kName
+    std::string_view version;  ///< eclipse::version::kString  ("0.1.0")
+    std::string_view git_sha;  ///< eclipse::version::kGitSha  (short hash)
+    bool git_dirty{false};     ///< the tree had uncommitted changes
+    int major{0};
+    int minor{0};
+    int patch{0};
 
     /// The identity of the running binary.
     [[nodiscard]] static AppInfo current() noexcept;
