@@ -26,7 +26,7 @@
 namespace {
 
 [[noreturn]] void fail(const char* what) {
-    std::fprintf(stderr, "fuzz_text: invariant violated: %s\n", what);
+    (void)std::fprintf(stderr, "fuzz_text: invariant violated: %s\n", what);
     std::abort();
 }
 

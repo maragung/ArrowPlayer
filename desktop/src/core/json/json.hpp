@@ -31,10 +31,13 @@ namespace eclipse::json {
 /// Parser limits. Defaults are the values the spec mandates for skin packages;
 /// callers handling larger trusted documents may raise them explicitly.
 struct Limits {
-    std::size_t max_bytes = 8u * 1024u * 1024u;  ///< 8 MiB (REQ-THM-017)
-    std::size_t max_depth = 64;                  ///< nesting guard
-    std::size_t max_elements = 200'000;          ///< total nodes
-    bool allow_comments = true;                  ///< // and /* */ (JSONC)
+    // Widened before multiplying: the multiplication must not happen in 32-bit
+    // `unsigned int` and then be assigned to a 64-bit size (REQ-SEC-015 gate).
+    std::size_t max_bytes =
+        static_cast<std::size_t>(8u) * 1024u * 1024u;  ///< 8 MiB (REQ-THM-017)
+    std::size_t max_depth = 64;                        ///< nesting guard
+    std::size_t max_elements = 200'000;                ///< total nodes
+    bool allow_comments = true;                        ///< // and /* */ (JSONC)
     bool allow_trailing_commas = true;
 };
 

@@ -705,6 +705,7 @@ TEST(SourceNames, AreStable) {
 // ===========================================================================
 
 TEST(Robustness, RandomBuffersNeverCrashOrHang) {
+    // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed) — determinism
     std::mt19937 rng{0xC0FFEEu};  // fixed seed: reproducible
     std::uniform_int_distribution<int> byte{0, 255};
 
@@ -739,6 +740,7 @@ TEST(Robustness, MutatedValidFramesNeverProduceAbsurdTrim) {
 }
 
 TEST(Robustness, RandomItunSmpbStringsAreSafe) {
+    // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed) — determinism
     std::mt19937 rng{0xBEEFu};
     std::uniform_int_distribution<int> ch{32, 126};
     for (int iter = 0; iter < 2000; ++iter) {

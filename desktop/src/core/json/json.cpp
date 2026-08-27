@@ -194,7 +194,7 @@ void dump_into(const Value& v, int indent, int level, std::string& out) {
     const auto newline_indent = [&](int lvl) {
         if (indent <= 0) return;
         out.push_back('\n');
-        out.append(static_cast<std::size_t>(indent * lvl), ' ');
+        out.append(static_cast<std::size_t>(indent) * static_cast<std::size_t>(lvl), ' ');
     };
 
     switch (v.type()) {

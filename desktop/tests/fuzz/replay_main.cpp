@@ -69,7 +69,7 @@ int feed(const std::vector<std::uint8_t>& data) {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::fprintf(stderr, "usage: %s <corpus-dir-or-file> ...\n", argv[0]);
+        (void)std::fprintf(stderr, "usage: %s <corpus-dir-or-file> ...\n", argv[0]);
         return 2;
     }
 
@@ -86,17 +86,17 @@ int main(int argc, char** argv) {
                 // An empty corpus directory is a defect, not a pass: REQ-SEC-011
                 // requires seeds to exist, and a silent zero-case run is exactly
                 // how a gate stops guarding anything.
-                std::fprintf(
+                (void)std::fprintf(
                     stderr, "replay: %s contains no corpus inputs\n", arg.string().c_str());
                 return 1;
             }
             for (const auto& file : files) {
                 const auto data = read_file(file);
-                std::fprintf(stderr,
-                             "replay: %s (%zu bytes)\n",
-                             file.filename().string().c_str(),
-                             data.size());
-                std::fflush(stderr);
+                (void)std::fprintf(stderr,
+                                   "replay: %s (%zu bytes)\n",
+                                   file.filename().string().c_str(),
+                                   data.size());
+                (void)std::fflush(stderr);
                 (void)feed(data);
                 ++inputs;
                 bytes += data.size();
@@ -105,18 +105,19 @@ int main(int argc, char** argv) {
         }
 
         if (!std::filesystem::exists(arg, ec)) {
-            std::fprintf(stderr, "replay: %s does not exist\n", arg.string().c_str());
+            (void)std::fprintf(stderr, "replay: %s does not exist\n", arg.string().c_str());
             return 1;
         }
         const auto data = read_file(arg);
-        std::fprintf(stderr, "replay: %s (%zu bytes)\n", arg.string().c_str(), data.size());
-        std::fflush(stderr);
+        (void)std::fprintf(
+            stderr, "replay: %s (%zu bytes)\n", arg.string().c_str(), data.size());
+        (void)std::fflush(stderr);
         (void)feed(data);
         ++inputs;
         bytes += data.size();
     }
 
-    std::fprintf(
+    (void)std::fprintf(
         stderr, "replay: %zu input(s), %zu byte(s), no invariant violated\n", inputs, bytes);
     return 0;
 }

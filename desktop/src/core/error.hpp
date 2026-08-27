@@ -130,6 +130,10 @@ enum class ErrorCode {
 [[nodiscard]] std::string_view to_string(Severity sev) noexcept;
 
 /// An error value. Cheap to move, safe to copy, always loggable.
+// NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign) — false positive: every member
+// carries a default initializer (code_ defaults to ErrorCode::Unknown), and the analyzer
+// mis-models `Error() = default` with NSDMI, reporting an uninitialized assignment that
+// cannot happen. Seen with the clang-generated compile database on the first green run.
 class Error {
   public:
     Error() = default;
