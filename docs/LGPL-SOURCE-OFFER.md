@@ -31,7 +31,7 @@ For every binary release of Eclipse Player published at
 
 **The request channel, stated exactly as it is.** Today the only channel the project can honestly promise to read is the maintainer's GitHub profile, @maragung ([https://github.com/maragung](https://github.com/maragung)), and the repository's issue tracker at [https://github.com/maragung/ArrowPlayer](https://github.com/maragung/ArrowPlayer).
 
-There is **no published postal address, no monitored mailbox, and no published PGP key** (OQ-013 in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)). That is a real limitation of routes 2 and 3 above and is recorded rather than papered over: a written offer whose only contact path is a platform account is an offer that a platform can revoke. It is why route 1 — equivalent access from the same place as the binary — is the primary compliance route here, and why OQ-013 is a 1.0.0 release blocker.
+Written requests: Eclipse Player Project, c/o @maragung on GitHub (https://github.com/maragung) — written offer valid on the same terms as the GitHub Releases page above, and the source archives are the tagged tarballs attached to each release.. Electronic requests: https://github.com/maragung/ArrowPlayer/issues/new.
 
 This document is a compliance record, not legal advice. Where it names a licence clause it names the clause the project relies on, so that a reader can check the reasoning against the licence text rather than take it on trust.
 
