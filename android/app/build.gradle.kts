@@ -26,7 +26,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // REQ-BLD-026: release one APK per supported ABI, never a universal APK.
+    // REQ-BLD-026: ship one APK per supported ABI rather than a single
+    // universal APK. AGP names the per-ABI artifacts as
+    // app-<abi>-release.apk (see developer.android.com/build/configure-apk-splits),
+    // which is the pattern the android-ci upload step globs for.
     splits {
         abi {
             isEnable = true
