@@ -13,7 +13,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class BuildConfigTest {
-
     @Test
     fun versionNameMatchesTheDeclaredVersion() {
         // Mirrors gradle.properties' eclipse.version (the single Android-side
