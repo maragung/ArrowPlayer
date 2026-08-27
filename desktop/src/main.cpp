@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <filesystem>
 #include <string_view>
@@ -58,6 +59,15 @@ int main(int argc, char** argv) {
         }
         if (eclipse::Status started = application.lifecycle().start(); !started) {
             return Application::exit_code_for(started.error());
+        }
+        // ECLIPSE_SMOKE_TEST is the release.yml seam: the binary must start
+        // its event loop and exit 0 with no audio playing, so the smoke
+        // step proves the linked executable opens a window rather than
+        // crashing on the first frame. The env-var check happens after
+        // startup so a failed lifecycle still produces a meaningful code.
+        if (const char* smoke = std::getenv("ECLIPSE_SMOKE_TEST"); smoke != nullptr) {
+            static_cast<void>(application.lifecycle().shutdown());
+            return Application::kExitOk;
         }
 #if defined(ECLIPSE_WITH_UI)
         const int code = eclipse::ui::run_shell(
