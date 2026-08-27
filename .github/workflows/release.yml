@@ -376,15 +376,15 @@ jobs:
     # produce an x86_64 binary under an arm64 name, and they MUST NOT
     # block the rest of the matrix from uploading. The other lanes
     # ship even when these do not.
-    continue-on-error: ${{ matrix.allow_failure == 'true' }}
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
         include:
           - { name: ubuntu-x86_64, os: ubuntu-24.04, preset: linux-release, cc: gcc-13, cxx: g++-13 }
-          - { name: ubuntu-arm64,   os: ubuntu-24.04, preset: linux-release-arm64, cc: aarch64-linux-gnu-gcc, cxx: aarch64-linux-gnu-g++, allow_failure: 'true' }
+          - { name: ubuntu-arm64,   os: ubuntu-24.04, preset: linux-release-arm64, cc: aarch64-linux-gnu-gcc, cxx: aarch64-linux-gnu-g++ }
           - { name: windows-x64,    os: windows-2022, preset: windows-release }
-          - { name: windows-arm64,  os: windows-2022, preset: windows-release-arm64, allow_failure: 'true' }
+          - { name: windows-arm64,  os: windows-2022, preset: windows-release-arm64 }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
