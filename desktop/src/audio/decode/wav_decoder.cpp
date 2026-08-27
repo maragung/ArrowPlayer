@@ -12,14 +12,14 @@ namespace {
 
 std::uint32_t u32(const std::array<char, 4>& b) {
     return static_cast<std::uint32_t>(static_cast<unsigned char>(b[0])) |
-           (static_cast<std::uint32_t>(static_cast<unsigned char>(b[1])) << 8U) |
-           (static_cast<std::uint32_t>(static_cast<unsigned char>(b[2])) << 16U) |
-           (static_cast<std::uint32_t>(static_cast<unsigned char>(b[3])) << 24U);
+           (static_cast<std::uint32_t>(static_cast<unsigned char>(b[1])) << 8) |
+           (static_cast<std::uint32_t>(static_cast<unsigned char>(b[2])) << 16) |
+           (static_cast<std::uint32_t>(static_cast<unsigned char>(b[3])) << 24);
 }
 
 std::uint16_t u16(const char* b) {
     return static_cast<std::uint16_t>(static_cast<unsigned char>(b[0])) |
-           (static_cast<std::uint16_t>(static_cast<unsigned char>(b[1])) << 8U);
+           (static_cast<std::uint16_t>(static_cast<unsigned char>(b[1])) << 8);
 }
 
 bool read_exact(std::ifstream& input, char* destination, std::streamsize size) {
