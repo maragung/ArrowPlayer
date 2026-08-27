@@ -384,6 +384,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build ${{ matrix.cxx }} \
             libsqlite3-dev zlib1g-dev pkg-config
+          # Qt 6.8's Gui config hard-requires WrapOpenGL, XKB and Vulkan headers
+          # at find_package time; without them the artifact build silently
+          # produces a UI-less binary and the smoke step fails (same fix as
+          # desktop-ci.yml's Qt lane).
+          sudo apt-get install -y \
+            libgl1-mesa-dev libglvnd-dev libxkbcommon-dev libvulkan-dev
 
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'

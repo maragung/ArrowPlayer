@@ -99,6 +99,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build ${{ matrix.cxx }} \
             libsqlite3-dev zlib1g-dev pkg-config
+          # Qt 6.8's Gui config hard-requires WrapOpenGL, XKB and Vulkan headers
+          # at find_package time (Qt6GuiDependencies.cmake). Without them
+          # configure silently reports Qt OFF and exit gate 1 fails confusingly;
+          # these are mandatory because the UI lane is the gate. The vcpkg lane
+          # installs the same OpenGL pair for projectm.
+          sudo apt-get install -y \
+            libgl1-mesa-dev libglvnd-dev libxkbcommon-dev libvulkan-dev
           # Optional adapter dependencies. Failure here must not fail the build:
           # the adapters are dependency-gated by design.
           sudo apt-get install -y \
@@ -637,7 +644,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build clang-tidy-18 clang-format-18 \
-            cppcheck libsqlite3-dev zlib1g-dev pkg-config
+            clang-18 cppcheck libsqlite3-dev zlib1g-dev pkg-config
 
       - name: clang-format (REQ-BLD-004)
         run: |
@@ -645,15 +652,28 @@ jobs:
             \( -name '*.cpp' -o -name '*.hpp' \) -print0 \
             | xargs -0 clang-format-18 --dry-run --Werror
 
+      # The compile database must be produced by the compiler clang-tidy is,
+      # not by GCC. Configured with GCC, the DB carries GCC-only flags
+      # (-Wduplicated-cond, -Wlogical-op, ...) and every file then starts with
+      # "unknown warning option" errors, drowning the findings the gate exists
+      # to surface. First push of this workflow proved it.
       - name: Configure for compile database
+        env:
+          CC: clang-18
+          CXX: clang++-18
         run: cmake --preset linux-debug
         working-directory: desktop
 
+      # No --warnings-as-errors='*' here: .clang-tidy's WarningsAsErrors names
+      # the families REQ-SEC-015 makes fatal (bugprone, cert, clang-analyzer),
+      # and the tree carries a decade-worth of style suggestions in the other
+      # enabled families that the config deliberately treats as warnings. The
+      # override was written before this job ever executed (OQ-026); first run
+      # showed it turns ~900 non-required style notes into build failures.
       - name: clang-tidy (REQ-SEC-015)
         run: |
           find src tests -name '*.cpp' -print0 \
-            | xargs -0 -P 4 -n 1 clang-tidy-18 \
-                -p "../build/linux-debug" --warnings-as-errors='*'
+            | xargs -0 -P 4 -n 1 clang-tidy-18 -p "../build/linux-debug"
         working-directory: desktop
 
       - name: cppcheck
