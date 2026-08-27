@@ -130,12 +130,13 @@ enum class ErrorCode {
 [[nodiscard]] std::string_view to_string(Severity sev) noexcept;
 
 /// An error value. Cheap to move, safe to copy, always loggable.
-// NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign) — false positive: every member
-// carries a default initializer (code_ defaults to ErrorCode::Unknown), and the analyzer
-// mis-models `Error() = default` with NSDMI, reporting an uninitialized assignment that
-// cannot happen. Seen with the clang-generated compile database on the first green run.
 class Error {
   public:
+    // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign) — false positive: every
+    // member carries a default initializer (code_ defaults to ErrorCode::Unknown), and the
+    // analyzer mis-models `Error() = default` with NSDMI, reporting an uninitialized
+    // assignment that cannot happen. The diagnostic lands on this line, which is why the
+    // suppression lives here and not on the class declaration.
     Error() = default;
 
     Error(ErrorCode code, std::string user_message)

@@ -440,6 +440,11 @@ jobs:
           # Same mapping as Linux: `win64_msvc2022_64` extracts to `msvc2022_64`.
           "CMAKE_PREFIX_PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64" `
             | Out-File -FilePath $env:GITHUB_ENV -Append
+          # Qt is dynamically linked (REQ-GEN-013); Windows resolves those DLLs
+          # from PATH, so test_ui (and the app during smoke) needs the Qt bin
+          # directory there or it exits 0xc0000135 (DLL not found).
+          "PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64\bin;$env:PATH" `
+            | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # Same vcpkg-guard as desktop-ci.yml: the windows-2022 runner sets
       # VCPKG_ROOT to Visual Studio's bundled vcpkg, which would auto-activate

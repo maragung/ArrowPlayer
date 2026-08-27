@@ -184,6 +184,12 @@ jobs:
           # a `msvc2022_64` directory.
           "CMAKE_PREFIX_PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64" `
             | Out-File -FilePath $env:GITHUB_ENV -Append
+          # Qt is dynamically linked (REQ-GEN-013), and Windows resolves those
+          # DLLs from PATH, not from an rpath. Without this, test_ui exits
+          # 0xc0000135 (DLL not found) even though it linked and the smoke test
+          # cannot start. The smoke step inherits the same PATH.
+          "PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64\bin;$env:PATH" `
+            | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # The windows-2022 runner preinstalls Visual Studio's own vcpkg and sets
       # VCPKG_ROOT, which would auto-activate manifest mode with the default
@@ -645,6 +651,35 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build clang-tidy-18 clang-format-18 \
             clang-18 cppcheck libsqlite3-dev zlib1g-dev pkg-config
+          # Qt 6.8's Gui config hard-requires WrapOpenGL, XKB and Vulkan at
+          # find_package time (same packages as the build lane, same reason):
+          # without them configure reports Qt OFF and the UI sources leave the
+          # compile database, silently dropping shell.cpp and the UI tests from
+          # REQ-SEC-015's scope.
+          sudo apt-get install -y \
+            libgl1-mesa-dev libglvnd-dev libxkbcommon-dev libvulkan-dev
+
+      - name: Cache Qt (REQ-BLD-022)
+        id: qt-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.tool_cache }}/Qt
+          key: qt-${{ runner.os }}-${{ hashFiles('desktop/qt-version.txt') }}
+
+      - name: Install Qt
+        working-directory: desktop
+        run: |
+          set -euo pipefail
+          qtver="$(cat qt-version.txt)"
+          if [ -d "$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" ]; then
+            echo "Qt $qtver already on disk — cache hit, not installing."
+          else
+            python3 -m pip install --quiet "aqtinstall==3.*"
+            aqt install-qt linux desktop "$qtver" linux_gcc_64 \
+              -m qtshadertools \
+              -O "$RUNNER_TOOL_CACHE/Qt"
+          fi
+          echo "CMAKE_PREFIX_PATH=$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" >> "$GITHUB_ENV"
 
       - name: clang-format (REQ-BLD-004)
         run: |
@@ -670,10 +705,21 @@ jobs:
       # enabled families that the config deliberately treats as warnings. The
       # override was written before this job ever executed (OQ-026); first run
       # showed it turns ~900 non-required style notes into build failures.
+      #
+      # The file list comes from the compile database, not `find src tests`:
+      # this job configures without Qt (the UI lane is the build job's), so the
+      # DB has no entry for tests/ui/*.cpp, and clang-tidy on a file with no DB
+      # entry uses bare defaults — first such run failed on 'QString' file not
+      # found. Analyzing exactly what the database describes also self-scopes
+      # the check to what the build would build.
       - name: clang-tidy (REQ-SEC-015)
         run: |
-          find src tests -name '*.cpp' -print0 \
-            | xargs -0 -P 4 -n 1 clang-tidy-18 -p "../build/linux-debug"
+          python3 -c "
+          import json
+          db = json.load(open('../build/linux-debug/compile_commands.json'))
+          for e in db:
+              print(e['file'])
+          " | xargs -P 4 -n 1 clang-tidy-18 -p "../build/linux-debug"
         working-directory: desktop
 
       - name: cppcheck
