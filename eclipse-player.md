@@ -3784,6 +3784,21 @@ ctest --preset linux-release --output-on-failure
 
 ## 25 · CI/CD
 
+### 25.0 Release artifact contract (REQ-BLD-026)
+
+A release is published by GitHub Actions from an annotated or lightweight tag matching `vX.Y.Z` and matching `desktop/version.txt`. The release matrix MUST produce these independently named artifacts:
+
+| Platform | Required artifacts |
+|---|---|
+| Linux | `linux-x86_64` and `linux-arm64` tarballs |
+| Windows | `windows-x64` and `windows-arm64` ZIPs |
+| Android | Three unsigned APKs: `arm64-v8a`, `armeabi-v7a`, and `x86_64` |
+
+Android MUST set `splits.abi.isUniversalApk = false`; a universal APK is not a substitute for the three ABI artifacts. Every binary has a sibling `.sha256` file. The workflow MUST grant `contents: write` only to the publish job, create the GitHub Release idempotently, and upload all artifacts to that one release.
+
+The current release workflow is intentionally blocked for Linux arm64 until a Qt 6.8 arm64 package/toolchain is available. It MUST fail rather than silently package an x86_64 binary under an arm64 filename. Windows arm64 and Android ABI splits remain separate jobs/artifacts.
+
+
 ### 25.1 `android-ci.yml`
 
 `REQ-BLD-020` `[v1.0]` Triggers on push and pull request touching `android/**`, `shared-spec/**`, or the workflow itself.
