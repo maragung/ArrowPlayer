@@ -23,9 +23,14 @@ class FakeDecoder final : public IDecoder {
         if (!opened) {
             return err(ErrorCode::InvalidState, "decoder closed");
         }
-        const auto count = std::min<std::size_t>(destination.frames, samples.size() - position);
+        // The IDecoder contract is uint64_t; the underlying std::array
+        // is indexed by size_t. The narrowing happens implicitly here
+        // because the fake only ever holds 4 samples; an explicit cast
+        // would be -Wuseless-cast on LP64 where the two types coincide.
+        const auto count = std::min<std::size_t>(
+            destination.frames, samples.size() - static_cast<std::size_t>(position));
         for (std::size_t i = 0; i < count; ++i) {
-            destination.planes[0][i] = samples[position + i];
+            destination.planes[0][i] = samples[static_cast<std::size_t>(position) + i];
         }
         position += count;
         return count;
@@ -35,25 +40,17 @@ class FakeDecoder final : public IDecoder {
         if (frame > samples.size()) {
             return err(ErrorCode::OutOfRange, "seek outside stream");
         }
-        // The IDecoder contract takes uint64_t; this fake stores its own
-        // position as std::size_t for arithmetic. The explicit cast is
-        // deliberately permissive across platforms where the two types
-        // happen to coincide (LP64).
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuseless-cast"
-#endif
-        position = static_cast<std::size_t>(frame);
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
+        position = frame;
         return ok();
     }
 
     void close() noexcept override { opened = false; }
 
     std::array<float, 4> samples{1.0F, 2.0F, 3.0F, 4.0F};
-    std::size_t position{0};
+    // The position matches the IDecoder contract's uint64_t so seek/read
+    // arithmetic is one consistent width and the type matches the
+    // interface even on platforms where size_t is wider.
+    std::uint64_t position{0};
     bool opened{false};
 };
 
