@@ -136,16 +136,18 @@ jobs:
       # Qt 6.8+ in the online repository bundles Qt Declarative, Qt Svg and
       # Qt Tools into the base package (the repository restructured), and aqt
       # 3.x lists the Linux arch as `linux_gcc_64`. So the only add-on this
-      # build needs is qtshadertools, and the arch is the full name. Both were
-      # learned the hard way: the first CI run failed with "packages were not
-      # found while parsing XML" for the old module list.
+      # build needs is qtshadertools. Both were learned the hard way: the first
+      # CI run failed with "packages were not found while parsing XML" for the
+      # old module list. One trap remains: the arch *argument* and the install
+      # *directory* differ (linux_gcc_64 extracts into gcc_64), so every path
+      # below uses the directory name, not the argument name.
       - name: Install Qt (Linux)
         if: runner.os == 'Linux'
         working-directory: desktop
         run: |
           set -euo pipefail
           qtver="$(cat qt-version.txt)"
-          if [ -d "$RUNNER_TOOL_CACHE/Qt/$qtver/linux_gcc_64" ]; then
+          if [ -d "$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" ]; then
             echo "Qt $qtver already on disk — cache hit, not installing."
           else
             python3 -m pip install --quiet "aqtinstall==3.*"
@@ -153,7 +155,9 @@ jobs:
               -m qtshadertools \
               -O "$RUNNER_TOOL_CACHE/Qt"
           fi
-          echo "CMAKE_PREFIX_PATH=$RUNNER_TOOL_CACHE/Qt/$qtver/linux_gcc_64" >> "$GITHUB_ENV"
+          # aqt's arch *argument* is `linux_gcc_64`, but the directory it
+          # extracts into is `gcc_64` (metadata.py maps one to the other).
+          echo "CMAKE_PREFIX_PATH=$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" >> "$GITHUB_ENV"
 
       - name: Install Qt (Windows)
         if: runner.os == 'Windows'
@@ -161,7 +165,7 @@ jobs:
         working-directory: desktop
         run: |
           $qtver = Get-Content qt-version.txt
-          if (Test-Path "$env:RUNNER_TOOL_CACHE\Qt\$qtver\win64_msvc2022_64") {
+          if (Test-Path "$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64") {
             Write-Output "Qt $qtver already on disk — cache hit, not installing."
           } else {
             python3 -m pip install --quiet "aqtinstall==3.*"
@@ -169,14 +173,28 @@ jobs:
               -m qtshadertools `
               -O "$env:RUNNER_TOOL_CACHE\Qt"
           }
-          "CMAKE_PREFIX_PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\win64_msvc2022_64" `
+          # Same mapping as Linux: the `win64_msvc2022_64` argument extracts to
+          # a `msvc2022_64` directory.
+          "CMAKE_PREFIX_PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64" `
             | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      # The windows-2022 runner preinstalls Visual Studio's own vcpkg and sets
+      # VCPKG_ROOT, which would auto-activate manifest mode with the default
+      # x64-windows triplet — and vcpkg's ffmpeg port (7.1.2#5) fails there with
+      # "LNK1181: cannot open input file 'zlib.lib'" (an upstream port bug).
+      # This matrix lane deliberately builds Qt + the vendored gtest and lets
+      # the dedicated `vcpkg` job own manifest mode with the eclipse triplet.
+      # Forcing an empty toolchain file keeps the vcpkg branch in CMakeLists.txt
+      # from firing while leaving every optional adapter dependency-gated off.
       - name: Configure
+        shell: bash  # Git Bash ships on windows-2022; RUNNER_OS is case-sensitively 'Windows'
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
-        run: cmake --preset ${{ matrix.preset }}
+        run: |
+          extra=""
+          [ "$RUNNER_OS" = "Windows" ] && extra="-DCMAKE_TOOLCHAIN_FILE="
+          cmake --preset ${{ matrix.preset }} $extra
         working-directory: desktop
 
       - name: Build
@@ -341,7 +359,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build gcc-13 g++-13 pkg-config \
-            autoconf automake libtool nasm
+            autoconf automake libtool nasm \
+            libgl1-mesa-dev libglvnd-dev   # projectm needs OpenGL headers/libs
 
       # The key is everything that changes what gets built: the manifest, the
       # overlay triplets, and the baseline the manifest pins. Not the commit —

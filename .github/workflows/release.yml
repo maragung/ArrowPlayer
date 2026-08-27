@@ -410,13 +410,14 @@ jobs:
         run: |
           set -euo pipefail
           qtver="$(cat qt-version.txt)"
-          if [ ! -d "$RUNNER_TOOL_CACHE/Qt/$qtver/linux_gcc_64" ]; then
+          if [ ! -d "$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" ]; then
             python3 -m pip install --quiet "aqtinstall==3.*"
             aqt install-qt linux desktop "$qtver" linux_gcc_64 \
               -m qtshadertools \
               -O "$RUNNER_TOOL_CACHE/Qt"
           fi
-          echo "CMAKE_PREFIX_PATH=$RUNNER_TOOL_CACHE/Qt/$qtver/linux_gcc_64" >> "$GITHUB_ENV"
+          # aqt's arch argument (`linux_gcc_64`) extracts into a `gcc_64` dir.
+          echo "CMAKE_PREFIX_PATH=$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" >> "$GITHUB_ENV"
 
       - name: Install Qt (Windows)
         if: runner.os == 'Windows'
@@ -424,20 +425,30 @@ jobs:
         working-directory: desktop
         run: |
           $qtver = Get-Content qt-version.txt
-          if (-not (Test-Path "$env:RUNNER_TOOL_CACHE\Qt\$qtver\win64_msvc2022_64")) {
+          if (-not (Test-Path "$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64")) {
             python3 -m pip install --quiet "aqtinstall==3.*"
             aqt install-qt windows desktop $qtver win64_msvc2022_64 `
               -m qtshadertools `
               -O "$env:RUNNER_TOOL_CACHE\Qt"
           }
-          "CMAKE_PREFIX_PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\win64_msvc2022_64" `
+          # Same mapping as Linux: `win64_msvc2022_64` extracts to `msvc2022_64`.
+          "CMAKE_PREFIX_PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64" `
             | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      # Same vcpkg-guard as desktop-ci.yml: the windows-2022 runner sets
+      # VCPKG_ROOT to Visual Studio's bundled vcpkg, which would auto-activate
+      # manifest mode with the default x64-windows triplet and hit the upstream
+      # ffmpeg zlib.lib port bug. The empty toolchain file keeps the vcpkg
+      # branch in CMakeLists.txt off; this lane builds Qt + vendored gtest.
       - name: Configure
+        shell: bash  # Git Bash ships on windows-2022; RUNNER_OS is case-sensitively 'Windows'
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
-        run: cmake --preset ${{ matrix.preset }}
+        run: |
+          extra=""
+          [ "$RUNNER_OS" = "Windows" ] && extra="-DCMAKE_TOOLCHAIN_FILE="
+          cmake --preset ${{ matrix.preset }} $extra
         working-directory: desktop
 
       - name: Build
@@ -466,7 +477,7 @@ jobs:
           set -euo pipefail
           version="$(tr -d '[:space:]' < desktop/version.txt)"
           qtver="$(cat desktop/qt-version.txt)"
-          qtprefix="$RUNNER_TOOL_CACHE/Qt/$qtver/linux_gcc_64"
+          qtprefix="$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64"
           staging="$RUNNER_TEMP/pkg"
           rm -rf "$staging"; mkdir -p "$staging/bin" "$staging/lib" \
             "$staging/plugins" "$staging/share/doc/eclipse-player"
@@ -499,7 +510,7 @@ jobs:
         run: |
           $version = (Get-Content desktop/version.txt).Trim()
           $qtver = Get-Content desktop/qt-version.txt
-          $qtbin = "$env:RUNNER_TOOL_CACHE\Qt\$qtver\win64_msvc2022_64\bin"
+          $qtbin = "$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64\bin"
           $staging = "$env:RUNNER_TEMP\pkg"
           New-Item -ItemType Directory -Force -Path $staging | Out-Null
           Copy-Item build/windows-release/eclipse-player.exe $staging
