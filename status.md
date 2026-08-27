@@ -7,10 +7,11 @@ Dokumen ini deskriptif, bukan rencana. Rencana ada di `docs/ROADMAP.md`; hal-hal
 yang masih menggantung ada di `docs/OPEN-QUESTIONS.md`.
 
 - Diperbarui: 2026-08-27
-- Commit di `main`: 47
-- **Belum pernah di-push.** Konsekuensinya penting dan diulang di beberapa tempat
-  di bawah: **tidak satu pun dari lima workflow CI pernah dieksekusi.** Semua
-  klaim "hijau" di bawah adalah hasil menjalankan gate secara lokal.
+- Commit di `main`: 48+
+- **Belum pernah di-push** pada saat dokumen ini ditulis. Konsekuensinya penting
+  dan diulang di beberapa tempat di bawah: **tidak satu pun dari enam workflow
+  CI pernah dieksekusi.** Semua klaim "hijau" di bawah adalah hasil menjalankan
+  gate secara lokal.
 
 ---
 
@@ -32,9 +33,11 @@ yang masih menggantung ada di `docs/OPEN-QUESTIONS.md`.
 §28 melarang memulai fase N+1 sebelum gate fase N hijau, jadi urutan di atas
 bukan pilihan.
 
-**Android dibatalkan dari cakupan** oleh [ADR 0011](docs/adr/0011-desktop-first-sequencing.md):
-`android/` dan `android-ci.yml` tidak ada, dan exit gate 2 Fase 0 tidak akan
-pernah hijau di repositori ini sampai keputusan itu dicabut.
+**Android kembali ke cakupan.** [ADR 0012](docs/adr/0012-restore-android.md)
+mencabut [ADR 0011](docs/adr/0011-desktop-first-sequencing.md): `android/`
+(scaffold Gradle + Kotlin + Compose) dan `android-ci.yml` sekarang ada, tetapi
+exit gate 2 Fase 0 belum pernah hijau — tidak ada satu pun run CI yang pernah
+exsekusi.
 
 ---
 
@@ -118,9 +121,9 @@ lengkap dan divalidasi. Tidak ada kode terkompilasi di dalamnya (§7.2 aturan 4)
 
 ### Dokumentasi
 
-13 dokumen di `docs/` + 11 ADR + `README.md`, `CONTRIBUTING.md`, `SECURITY.md`,
-`CODE_OF_CONDUCT.md`, `CHANGELOG.md`, dan `.github/` (5 workflow, template PR,
-3 form issue). markdownlint bersih: 33 berkas, 0 masalah.
+13 dokumen di `docs/` + 12 ADR + `README.md`, `CONTRIBUTING.md`, `SECURITY.md`,
+`CODE_OF_CONDUCT.md`, `CHANGELOG.md`, dan `.github/` (6 workflow, template PR,
+3 form issue). markdownlint bersih: 35 berkas, 0 masalah.
 
 `docs/OPEN-QUESTIONS.md`: **55 entri** — 24 `Settled`, 22 `Gap`, 9 `Open`.
 
@@ -130,17 +133,19 @@ lengkap dan divalidasi. Tidak ada kode terkompilasi di dalamnya (§7.2 aturan 4)
 
 | # | Gate | Status |
 |---|---|---|
-| 1 | `desktop-ci.yml` hijau di 3 platform, **jendela terbuka**, `ctest` jalan | **Belum.** `ctest` jalan (210 lulus) tetapi belum ada jendela, dan workflow belum pernah dieksekusi |
-| 2 | `android-ci.yml` hijau | **Dibatalkan** oleh ADR 0011 |
+| 1 | `desktop-ci.yml` hijau di 3 platform, **jendela terbuka**, `ctest` jalan | **Belum.** Jendela Qt ditulis (shell + dialog About + tes off-screen + lane Qt di CI), tapi belum pernah dikompilasi — Qt tidak ada di mesin ini (OQ-017) — dan workflow belum pernah dieksekusi |
+| 2 | `android-ci.yml` hijau | **Belum.** Workflow ada (ADR 0012 mencabut ADR 0011); scaffold build-able di atas kertas, belum ada run CI |
 | 3 | `spec-ci.yml` hijau — `theme-schema.json` valid | **Sebagian.** Validasi lulus lokal; workflow belum pernah jalan |
-| 4 | Warnings-as-errors; `clang-format` + `ktlint` ditegakkan | **Sebagian.** `-Werror` aktif dan terbukti; `clang-format` **tidak terpasang di mesin ini**, jadi hanya CI yang bisa membuktikannya; `ktlint` N/A |
-| 5 | Cache biner vcpkg **dan cache Qt** terbukti bekerja | **Belum.** Lane vcpkg sudah ditulis dengan akuntansi yang gagal saat senyap; **lane Qt belum ditulis** (OQ-026) |
-| 6 | Skrip penegak aturan layer ada dan lulus (`REQ-GEN-051`) | **Terpenuhi** (lokal). Aturan 1, 2, 3, 4 ditegakkan; aturan 5 milik Android, di luar cakupan. OQ-031 ditutup; OQ-055 mencatat inversi penomoran §7.1 yang ditemukan saat menutupnya |
-| 7 | String versi dari git tampil di **About** | **Sebagian.** String versi digenerate dari git, dibaca satu kali oleh `AppInfo`, dan dicetak oleh binari; **dialog About belum ada** |
+| 4 | Warnings-as-errors; `clang-format` + `ktlint` ditegakkan | **Sebagian.** `-Werror` aktif dan terbukti; `clang-format` **tidak terpasang di mesin ini** dan `ktlint` **tidak bisa dijalankan tanpa Gradle**, jadi hanya CI yang bisa membuktikannya |
+| 5 | Cache biner vcpkg **dan cache Qt** terbukti bekerja | **Belum.** Kedua lane sudah ditulis (vcpkg dengan akuntansi yang gagal saat senyap; Qt dicache per-version di `desktop-ci.yml`); bukti warm-run menunggu run CI kedua (OQ-026) |
+| 6 | Skrip penegak aturan layer ada dan lulus (`REQ-GEN-051`) | **Terpenuhi** (lokal). Aturan 1, 2, 3, 4 ditegakkan; aturan 5 menunggu modul `feature-*` pertama di `android/` (ADR 0012). OQ-031 ditutup; OQ-055 mencatat inversi penomoran §7.1 |
+| 7 | String versi dari git tampil di **About** | **Sebagian.** Versi digenerate dari git, dibaca sekali oleh `AppInfo`, dan dialog About yang menampilkannya **sudah ditulis** (desktop + Android) tapi belum pernah dikompilasi (OQ-017) |
 
-Jadi Fase 0 belum boleh ditutup, dan alasannya bukan satu hal besar melainkan
-tiga hal kecil: jendela Qt, lane cache Qt, dan dialog About — ditambah satu hal
-yang tidak bisa dikerjakan di mesin ini, yaitu menjalankan CI itu sendiri.
+Jadi Fase 0 belum boleh ditutup, dan alasannya bukan lagi satu hal besar
+melainkan hal yang tidak bisa dikerjakan di mesin ini: **menjalankan CI** —
+kompilasi Qt pertama, run Android pertama, bukti warm-cache pertama. Semua
+komponennya sudah ditulis (jendela Qt, lane cache Qt, dialog About, scaffold
+Android, release pipeline); pembuktiannya menunggu push.
 
 ---
 
@@ -150,11 +155,10 @@ yang tidak bisa dikerjakan di mesin ini, yaitu menjalankan CI itu sendiri.
 |---|---|---|
 | A — layer aplikasi | `src/app/`, `main.cpp`, `test_app` | **Selesai** — commit `f03b5b3` |
 | A2 — aturan layer 1 | Peta direktori→layer + assertion include di `check-layers.py` | **Selesai** — commit `1084ac4` |
-| B — shell Qt | `desktop/ui/`, dialog About, `.qrc`, `.ts` untuk `en`+`id`, tes UI off-screen | Berjalan; baru `ui/include/eclipse/ui/shell.hpp` yang ada di disk |
-| C — lane Qt di CI | Instalasi + cache Qt di `desktop-ci.yml`, akuntansi cold/warm | Belum |
-
-Belum di-commit saat dokumen ini ditulis: hanya `desktop/ui/` (unit B) dan
-pembaruan `status.md` ini sendiri.
+| B — shell Qt | `desktop/ui/` (shell.cpp, MainWindow, dialog About), `.ts` en+id, tes off-screen | **Ditulis, belum pernah dikompilasi** — CI yang akan mengompilasinya (OQ-017) |
+| C — lane Qt di CI | Instalasi + cache Qt di `desktop-ci.yml` dan `release.yml` | **Ditulis, belum pernah jalan** |
+| D — Android scaffold | `android/` (Gradle, Kotlin, Compose, About), `android-ci.yml` | **Ditulis, belum pernah di-build** — menunggu run CI pertama (ADR 0012, OQ-018) |
+| E — release pipeline | Packaging + upload artifact Windows/Ubuntu/APK ke GitHub Release | **Ditulis, belum pernah dieksekusi** — release unsigned (REQ-SEC-016, Phase 9) |
 
 ---
 
@@ -167,10 +171,17 @@ Bukan daftar keinginan — ini bagian spesifikasi yang belum punya kode:
   `IMediaSession`, `IPluginHost` — sepuluh antarmuka, nol implementasi.
 - **Seluruh layer 1 (ADAPTERS)**: FFmpeg, WASAPI/ALSA/PulseAudio, TagLib,
   SQLite, Qt, SMTC/MPRIS, projectM, Chromaprint.
-- **Layer 5 (PRESENTATION)**: satu header, tanpa implementasi.
+- **Layer 5 (PRESENTATION)**: shell Qt ditulis (`desktop/ui/`, dialog About,
+  tes off-screen) tapi belum pernah dikompilasi — Qt tidak ada di mesin ini
+  (OQ-017).
 - **Engine tema, empat tema, engine skin, `tools/theme-validate`.**
-- **Pipeline i18n** (`lupdate`/`lrelease`, `.ts`, `.qm`) — Fase 3.
-- **Packaging, signing, installer, SBOM release** — Fase 9.
+- **Pipeline i18n lengkap** (lupdate/lrelease terjadwal, `.ts`/`.qm` untuk
+  semua locale) — Fase 3; Phase 0 hanya en+id.
+- **Android**: hanya scaffold Phase 0 (satu modul `:app`, layar About Compose).
+  `core-*`, `feature-*`, `auto/` (Android Auto), `benchmark/`, dan validator
+  conformance (`REQ-GEN-031`) belum ada — OQ-018.
+- **Signing + installer penuh** (`.msi`, `.deb` berdependensi benar, AppImage,
+  AAB signed) — Fase 9. Release saat ini unsigned (REQ-SEC-016).
 - **`docs/PLUGIN-AUTHORING.md`** — satu-satunya deliverable §27 yang masih absen.
 - Suite integrasi, UI, soak, dan chaos (`REQ-TST-023`…`026`).
 
