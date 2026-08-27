@@ -2,6 +2,12 @@
 #include <filesystem>
 #include <fstream>
 
+#if defined(__unix__) || defined(__APPLE__)
+#include <unistd.h>
+#elif defined(_WIN32)
+#include <process.h>
+#endif
+
 #include "library/filesystem_scanner.hpp"
 #include "library/library_database.hpp"
 #include "library/library_importer.hpp"
@@ -14,7 +20,17 @@ namespace {
 class LibraryDatabaseTest : public ::testing::Test {
   protected:
     void SetUp() override {
-        path = std::filesystem::temp_directory_path() / "eclipse-player-library-test.sqlite";
+        // Each test instance gets its own path so the parallel ctest run
+        // (--parallel 4) does not race on the same sqlite file. The base
+        // name carries the test id, and a per-pid suffix keeps parallel
+        // gtest binaries from colliding when several test executables are
+        // themselves scheduled in parallel.
+        const auto base =
+            std::filesystem::temp_directory_path() / "eclipse-player-library-test";
+        path = base.string() + "-" + ::testing::UnitTest::GetInstance()
+                                       ->current_test_info()
+                                       ->name() +
+               "-" + std::to_string(static_cast<long>(getpid())) + ".sqlite";
         std::filesystem::remove(path);
     }
 
