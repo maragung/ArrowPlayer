@@ -322,20 +322,11 @@ jobs:
     needs: gates
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    # VCPKG_BINARY_SOURCES lives on the install step, not here: the `runner`
+    # context is unavailable in job-level env, and this expression was exactly
+    # that — written before anything had ever run, it would have failed the
+    # workflow at parse time on its first push.
     env:
-      # A `files` provider under RUNNER_TEMP, persisted by actions/cache.
-      #
-      # NOT x-gha. The first draft of this job used it, because that is what
-      # every tutorial still shows. The pinned baseline resolves vcpkg-tool
-      # release 2026-07-27, and that release's own message catalogue contains
-      # GhaBinaryCacheDeprecated: "The 'x-gha' binary caching backend has been
-      # removed." Configuring a removed backend is how a mandatory cache becomes
-      # a job that compiles everything and still reports success.
-      #
-      # `clear` first so nothing inherits vcpkg's default local cache: on a
-      # runner that is a fresh empty directory, and a provider that can only
-      # ever miss is indistinguishable from no provider at all.
-      VCPKG_BINARY_SOURCES: 'clear;files,${{ runner.temp }}/vcpkg-cache,readwrite'
       VCPKG_DISABLE_METRICS: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -383,6 +374,19 @@ jobs:
         env:
           CC: gcc-13
           CXX: g++-13
+          # A `files` provider under RUNNER_TEMP, persisted by actions/cache.
+          #
+          # NOT x-gha. The first draft of this job used it, because that is what
+          # every tutorial still shows. The pinned baseline resolves vcpkg-tool
+          # release 2026-07-27, and that release's own message catalogue contains
+          # GhaBinaryCacheDeprecated: "The 'x-gha' binary caching backend has been
+          # removed." Configuring a removed backend is how a mandatory cache
+          # becomes a job that compiles everything and still reports success.
+          #
+          # `clear` first so nothing inherits vcpkg's default local cache: on a
+          # runner that is a fresh empty directory, and a provider that can only
+          # ever miss is indistinguishable from no provider at all.
+          VCPKG_BINARY_SOURCES: 'clear;files,${{ runner.temp }}/vcpkg-cache,readwrite'
         working-directory: desktop
         run: |
           set -euo pipefail

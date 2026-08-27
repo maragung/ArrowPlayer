@@ -105,6 +105,9 @@ jobs:
         run: gradle assembleDebug --no-daemon
         working-directory: android
 
+      # No working-directory here: a step that runs an action (`uses`) cannot
+      # carry one, which the first push of this file proved at parse time. The
+      # script paths are therefore absolute from the workspace root.
       - name: Boot an emulator and install + launch the APK
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
@@ -112,13 +115,12 @@ jobs:
           arch: x86_64
           target: google_apis
           script: |
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -n io.github.eclipseplayer.app/.MainActivity
             sleep 8
             # The process must be alive after launch — "installs and launches"
             # is what gate 2 asks, and pidof answering is the launch evidence.
             adb shell pidof io.github.eclipseplayer.app
-        working-directory: android
 
   # -------------------------------------------------------------------------
   #  §25.1: "On a version tag: build … per-ABI APKs … and upload to the
