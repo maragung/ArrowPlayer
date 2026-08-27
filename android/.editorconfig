@@ -1,0 +1,11 @@
+# ktlint rules — spec §24.1's ktlint enforcement (Phase 0 exit gate 4).
+# This file is named `.editorconfig` on purpose: ktlint discovers editorconfig
+# files by walking up from each source file, so `android/config/ktlint.editorconfig`
+# would never have been read. Detekt's config keeps the `config/` convention
+# (`config/detekt.yml`), but ktlint needs the real filename.
+[*.{kt,kts}]
+max_line_length = 100
+# Compose composables are PascalCase by convention; the function-naming rule
+# would flag every @Composable function. ktlint's standard opt-out for this
+# (Compose's own convention) is to ignore functions annotated @Composable.
+ktlint_function_naming_ignore_when_annotated_with = Composable

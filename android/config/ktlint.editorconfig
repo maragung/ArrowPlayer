@@ -1,3 +1,0 @@
-# ktlint rules — spec §24.1's ktlint enforcement (Phase 0 exit gate 4).
-[*.{kt,kts}]
-max_line_length = 100

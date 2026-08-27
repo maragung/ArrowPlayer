@@ -429,13 +429,13 @@ eclipse-player/
 ├── commitlint.config.js            # conventional-commit enforcement
 │
 ├── android/                        # Native Android app — self-contained Gradle build
+│   ├── .editorconfig               # ktlint rules — named `.editorconfig` so ktlint discovers it
 │   ├── settings.gradle.kts
 │   ├── build.gradle.kts
 │   ├── gradle.properties
 │   ├── gradle/libs.versions.toml   # single version catalog — no inline versions anywhere
 │   ├── config/
-│   │   ├── detekt.yml
-│   │   └── ktlint.editorconfig
+│   │   └── detekt.yml
 │   ├── app/                        # thin shell: DI wiring, navigation, manifest
 │   ├── core-common/                # Result types, dispatchers, logging facade, test utils
 │   ├── core-model/                 # pure domain entities — no Android imports
