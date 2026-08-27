@@ -165,12 +165,16 @@ jobs:
           version="${VERSION#v}"
           out_dir="$RUNNER_TEMP/apks"
           mkdir -p "$out_dir"
-          for apk in android/app/build/outputs/apk/release/app-release-*.apk; do
-            abi=$(basename "$apk" | sed -E 's/app-release-([a-z0-9-]+)\.apk/\1/')
+          shopt -s nullglob
+          # AGP names per-ABI release APKs as app-<abi>-release.apk
+          # (developer.android.com/build/configure-apk-splits).
+          for apk in android/app/build/outputs/apk/release/app-*-release.apk; do
+            abi=$(basename "$apk" | sed -E 's/^app-([a-z0-9-]+)-release\.apk$/\1/')
             dest="$out_dir/eclipse-player-$version-android-$abi.apk"
             cp "$apk" "$dest"
             sha256sum "$dest" > "$dest.sha256"
           done
+          ls -la "$out_dir"
           gh release upload "$TAG" "$out_dir"/eclipse-player-*.apk "$out_dir"/eclipse-player-*.sha256 --clobber
           echo "::notice::Release APKs are unsigned. REQ-SEC-016 needs a signing"
           echo "::notice::identity, which is Phase 9 work; see docs/OPEN-QUESTIONS.md."
