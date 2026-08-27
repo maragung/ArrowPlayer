@@ -233,7 +233,15 @@ endif()
 #  window can open rather than exiting 0 in silence.
 # ---------------------------------------------------------------------------
 add_executable(eclipse-player "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-target_link_libraries(eclipse-player PRIVATE eclipse-app eclipse-audio-wav eclipse-audio-null)
+target_link_libraries(eclipse-player PRIVATE eclipse-app eclipse-audio-wav)
+if(ECLIPSE_HAVE_ALSA)
+    # The factory's compilation unit lives in eclipse-audio-alsa when ALSA is
+    # on, so the executable must link that library explicitly to resolve
+    # make_sink() and the AlsaSink vtable.
+    target_link_libraries(eclipse-player PRIVATE eclipse-audio-alsa)
+else()
+    target_link_libraries(eclipse-player PRIVATE eclipse-audio-null)
+endif()
 eclipse_set_warnings(eclipse-player)
 eclipse_set_sanitizers(eclipse-player)
 eclipse_set_hardening(eclipse-player)   # REQ-SEC-018
