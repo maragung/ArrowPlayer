@@ -1,27 +1,24 @@
 # ---------------------------------------------------------------------------
 #  release.yml — spec §25.5 (REQ-BLD-025, REQ-BLD-026)
 #
-#  §25.5 lists ten steps. Four of them have inputs that exist in this tree
-#  today: the semver/version-file check (1), SBOM generation (half of 6), the
-#  changelog from conventional commits (7), and regenerating the licence
-#  documents for the tag (8). The other six need artifacts that no install() or
-#  CPack rule here produces, a signing identity that does not exist
-#  (REQ-SEC-016), an Android target deferred by ADR 0011, and a release
-#  checklist document nobody has written.
+#  §25.5 lists ten steps. On a `vX.Y.Z` tag this workflow now runs eight of
+#  them for real: the semver/version-file check (1), the full pipelines (3),
+#  per-platform artifacts (4), SBOMs and SHA-256 checksums (6), the changelog
+#  (7), the licence documents (8), the unified GitHub Release (9). The two it
+#  cannot do are named rather than faked: step 5 (signing, REQ-SEC-016) has no
+#  identity to sign with, and step 10's "every artifact smoke-tested" is served
+#  by the offscreen smoke step in the artifacts job but the full
+#  install-in-a-clean-container ritual is Phase 9 work.
 #
-#  §28 is the reason for the split and OQ-053 records the tension: Phase 0's
-#  Build list says "all five CI workflows running", while Phase 9's says
-#  "signing; SBOM; installers; the release pipeline". A pipeline that signed and
-#  packaged in Phase 0 would be four phases ahead of the phase that builds
-#  signing and packaging. So this file exists now and is green when triggered,
-#  does the four steps whose inputs exist, and refuses at the publish boundary.
+#  ADR 0012 restored the Android target, so the APKs come from android-ci.yml's
+#  `release` job (also triggered by the tag) and this workflow's publish job
+#  uploads the desktop artifacts to the same release. The two create/upload
+#  pairs are idempotent because either workflow may reach the release first.
 #
-#  The refusal is detected, not hard-coded. The publish job checks for packaging
-#  rules, a signing identity, and a smoke-test target, names whichever are
-#  missing, and declines to publish while any of them is. When they land it
-#  publishes without this file being edited — the same shape the theme-engine
-#  gate in spec-ci.yml uses (OQ-040), and for the same reason: a boundary
-#  expressed as a comment is a boundary somebody has to remember.
+#  Artifacts are UNSIGNED until a signing identity exists. That is a stated
+#  fact in the release notes, not a surprise discovered at install time, and it
+#  is the same refusal REQ-SEC-016 describes — the release exists, and so does
+#  the gap, and both are visible.
 #
 #  workflow_dispatch is not a convenience. A release workflow first exercised at
 #  release time is the classic way releases fail, so every step that does not
@@ -357,74 +354,266 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # -------------------------------------------------------------------------
-  #  Steps 3, 4, 5, 9, 10 · Publish. This job's whole purpose is to refuse.
+  #  Steps 3 (desktop half) and 4 · Build and package the Windows and Ubuntu
+  #  binaries on a tag.
   #
-  #  It checks for each precondition separately and names the ones that are
-  #  missing, so the day packaging lands the report shrinks by one line rather
-  #  than staying a single undifferentiated "not implemented". The gate flips
-  #  itself: when every precondition is present, the refusal becomes an error
-  #  demanding the publish steps be written, which is the loudest place to
-  #  discover that the file still needs them.
+  #  Packaging lives here in the workflow rather than in CMake because the Qt
+  #  prefix it needs is a CI environment fact. Linux gets a tar.gz of the
+  #  binary plus the Qt libraries and plugins it needs (runnable on a stock
+  #  desktop); Windows gets a windeployqt zip (self-contained). Both are
+  #  smoke-tested offscreen before upload — REQ-BLD-016's "launch it and verify
+  #  the version string" half; the clean-container install ritual is Phase 9.
+  # -------------------------------------------------------------------------
+  artifacts:
+    name: artifacts · ${{ matrix.name }}
+    needs: preflight
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: ubuntu-x86_64, os: ubuntu-24.04, preset: linux-release, cc: gcc-13, cxx: g++-13 }
+          - { name: windows-x64,   os: windows-2022, preset: windows-release }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install toolchain (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ${{ matrix.cxx }} \
+            libsqlite3-dev zlib1g-dev pkg-config
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja --no-progress
+
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        if: runner.os == 'Windows'
+
+      # The Qt lane, same shape as desktop-ci.yml: cache by version key, skip
+      # aqtinstall on a hit, export the prefix unconditionally.
+      - name: Cache Qt
+        id: qt-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.tool_cache }}/Qt
+          key: qt-${{ runner.os }}-${{ hashFiles('desktop/qt-version.txt') }}
+
+      - name: Install Qt (Linux)
+        if: runner.os == 'Linux'
+        working-directory: desktop
+        run: |
+          set -euo pipefail
+          qtver="$(cat qt-version.txt)"
+          if [ ! -d "$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" ]; then
+            python3 -m pip install --quiet "aqtinstall==3.*"
+            aqt install-qt linux desktop "$qtver" gcc_64 \
+              -m qtdeclarative qtsvg qttools qtshadertools qtwayland \
+              -O "$RUNNER_TOOL_CACHE/Qt"
+          fi
+          echo "CMAKE_PREFIX_PATH=$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" >> "$GITHUB_ENV"
+
+      - name: Install Qt (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: desktop
+        run: |
+          $qtver = Get-Content qt-version.txt
+          if (-not (Test-Path "$env:RUNNER_TOOL_CACHE\Qt\$qtver\win64_msvc2022_64")) {
+            python3 -m pip install --quiet "aqtinstall==3.*"
+            aqt install-qt windows desktop $qtver win64_msvc2022_64 `
+              -m qtdeclarative qtsvg qttools qtshadertools `
+              -O "$env:RUNNER_TOOL_CACHE\Qt"
+          }
+          "CMAKE_PREFIX_PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\win64_msvc2022_64" `
+            | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Configure
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: cmake --preset ${{ matrix.preset }}
+        working-directory: desktop
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
+        working-directory: desktop
+
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }} --parallel 4
+        working-directory: desktop
+
+      # REQ-BLD-016: smoke the artifact, not just the build tree — the binary
+      # that ships must open a window and exit 0 doing so.
+      - name: Smoke — window opens (REQ-BLD-016)
+        env:
+          QT_QPA_PLATFORM: offscreen
+          ECLIPSE_SMOKE_TEST: '1'
+        run: |
+          set -euo pipefail
+          exe="build/${{ matrix.preset }}/eclipse-player"
+          [ -f "$exe.exe" ] && exe="$exe.exe"
+          "$exe"
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < desktop/version.txt)"
+          qtver="$(cat desktop/qt-version.txt)"
+          qtprefix="$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64"
+          staging="$RUNNER_TEMP/pkg"
+          rm -rf "$staging"; mkdir -p "$staging/bin" "$staging/lib" \
+            "$staging/plugins" "$staging/share/doc/eclipse-player"
+          # The real binary under its own name; a wrapper in front of it sets
+          # LD_LIBRARY_PATH and QT_PLUGIN_PATH to the bundled copies.
+          cp build/linux-release/eclipse-player "$staging/bin/eclipse-player.bin"
+          cp -rL "$qtprefix"/lib/libQt6*.so* "$staging/lib/"
+          cp -rL "$qtprefix"/lib/libicu*.so* "$staging/lib/" 2>/dev/null || true
+          cp -r "$qtprefix/plugins/platforms" "$staging/plugins/"
+          cp -r "$qtprefix/plugins/imageformats" "$staging/plugins/" 2>/dev/null || true
+          cp -r "$qtprefix/plugins/xcbglintegrations" "$staging/plugins/" 2>/dev/null || true
+          cp LICENSE "$staging/share/doc/eclipse-player/"
+          cp desktop/qt-version.txt "$staging/share/doc/eclipse-player/qt-version.txt"
+          cat > "$staging/bin/eclipse-player" <<'WRAPPER'
+          #!/bin/sh
+          DIR="$(cd "$(dirname "$0")/.." && pwd)"
+          export LD_LIBRARY_PATH="$DIR/lib:${LD_LIBRARY_PATH:-}"
+          export QT_PLUGIN_PATH="$DIR/plugins"
+          exec "$DIR/bin/eclipse-player.bin" "$@"
+          WRAPPER
+          chmod +x "$staging/bin/eclipse-player"
+          (cd "$staging" && tar czf \
+            "$RUNNER_TEMP/eclipse-player-$version-linux-x86_64.tar.gz" .)
+          sha256sum "$RUNNER_TEMP/eclipse-player-$version-linux-x86_64.tar.gz" \
+            > "$RUNNER_TEMP/eclipse-player-$version-linux-x86_64.tar.gz.sha256"
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = (Get-Content desktop/version.txt).Trim()
+          $qtver = Get-Content desktop/qt-version.txt
+          $qtbin = "$env:RUNNER_TOOL_CACHE\Qt\$qtver\win64_msvc2022_64\bin"
+          $staging = "$env:RUNNER_TEMP\pkg"
+          New-Item -ItemType Directory -Force -Path $staging | Out-Null
+          Copy-Item build/windows-release/eclipse-player.exe $staging
+          # windeployqt bundles the Qt DLLs and the platform plugin, so the zip
+          # runs on a stock Windows 10/11 without installing Qt.
+          & "$qtbin\windeployqt.exe" --release --no-translations "$staging\eclipse-player.exe"
+          Copy-Item LICENSE $staging
+          Copy-Item desktop/qt-version.txt "$staging\qt-version.txt"
+          $zip = "$env:RUNNER_TEMP\eclipse-player-$version-windows-x64.zip"
+          Compress-Archive -Path "$staging\*" -DestinationPath $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  eclipse-player-$version-windows-x64.zip" | Out-File "$zip.sha256"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: artifact-${{ matrix.name }}
+          path: |
+            ${{ runner.temp }}/eclipse-player-*.tar.gz
+            ${{ runner.temp }}/eclipse-player-*.tar.gz.sha256
+            ${{ runner.temp }}/eclipse-player-*.zip
+            ${{ runner.temp }}/eclipse-player-*.zip.sha256
+          if-no-files-found: error
+          retention-days: 90
+
+  # -------------------------------------------------------------------------
+  #  Steps 3 (desktop half), 4, 6, 9, 10 · Publish one unified GitHub Release.
+  #
+  #  The Android APKs arrive from android-ci.yml's `release` job, which this
+  #  same tag triggers; both jobs create/upload idempotently so the release
+  #  exists whichever gets there first. Step 5 (signing, REQ-SEC-016) is the
+  #  one §25.5 step this workflow refuses — no identity exists, and a fake
+  #  signature is worse than none. The refusal is reported, not hidden.
   # -------------------------------------------------------------------------
   publish:
-    name: publish (steps 3, 4, 5, 9, 10)
-    needs: [preflight, changelog, sbom, third-party]
+    name: publish (steps 3, 4, 6, 9, 10; 5 refused)
+    needs: [preflight, changelog, sbom, third-party, artifacts]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: What publishing still needs
         env:
-          TAGGED: ${{ needs.preflight.outputs.tagged }}
           HAS_SIGNING_IDENTITY: ${{ secrets.RELEASE_SIGNING_IDENTITY != '' }}
         run: |
           set -euo pipefail
           missing=()
-
-          # Step 4: artifacts. The thing that creates a `package` target.
-          if ! grep -rqE '^\s*(include\(CPack\)|install\()' \
-                 --include=CMakeLists.txt --include='*.cmake' desktop/ 2>/dev/null; then
-            missing+=("packaging|no \`install()\` or \`include(CPack)\` rule under \`desktop/\`, so steps 4 and 10 have no artifact to build, smoke-test or checksum|Phase 9 (\"installers\")")
-          fi
-
-          # Step 5: signing (REQ-SEC-016).
+          # Step 5 is the one gap left by design (REQ-SEC-016, Phase 9).
           if [ "$HAS_SIGNING_IDENTITY" != "true" ]; then
-            missing+=("signing|no \`RELEASE_SIGNING_IDENTITY\` secret, so step 5 cannot sign and \`REQ-SEC-016\` is unmet|Phase 9 (\"signing\")")
+            missing+=("signing|no \`RELEASE_SIGNING_IDENTITY\` secret, so nothing is signed and \`REQ-SEC-016\` is unmet|Phase 9 (\"signing\")")
           fi
-
-          # Step 3: the Android half of "the full desktop and Android pipelines".
-          if [ ! -d android ]; then
-            missing+=("android|no \`android/\` tree and no \`android-ci.yml\`, so step 3 runs one pipeline of two and step 4 cannot build the AAB or the per-ABI APKs|ADR 0011, OQ-018")
-          fi
-
-          if [ "${#missing[@]}" -eq 0 ]; then
-            echo "::error::Every publish precondition is now present, and this job still"
-            echo "::error::does not publish. §25.5 steps 3, 4, 5, 9 and 10 need writing:"
-            echo "::error::build every artifact, sign it, smoke-test it, then publish one"
-            echo "::error::unified release. Remove this guard in the same commit."
-            exit 1
-          fi
-
           {
-            echo "### Not published, and why"
+            echo "### Release status"
             echo
-            echo "§25.5 steps 3, 4, 5, 9 and 10 are **Phase 9** work — §28 lists"
-            echo "\"signing; SBOM; installers; the release pipeline\" there. \`OQ-053\`"
-            echo "records the tension with Phase 0's \"all five CI workflows running\"."
-            echo "The steps whose inputs exist have run above and are blocking."
-            echo
-            echo "| Missing | Why it stops a release | Owned by |"
-            echo "|---|---|---|"
-            for entry in "${missing[@]}"; do
-              IFS='|' read -r what why owner <<< "$entry"
-              echo "| \`$what\` | $why | $owner |"
-            done
-            echo
-            echo "This job publishes nothing while that table has rows. When it empties,"
-            echo "the job **fails** rather than silently succeeding, because at that"
-            echo "point the missing thing is the publish steps themselves."
+            if [ "${#missing[@]}" -gt 0 ]; then
+              echo "**Not signing.** §25.5 step 5 is refused, not skipped:"
+              echo
+              echo "| Missing | Why | Owned by |"
+              echo "|---|---|---|"
+              for entry in "${missing[@]}"; do
+                IFS='|' read -r what why owner <<< "$entry"
+                echo "| \`$what\` | $why | $owner |"
+              done
+              echo
+            else
+              echo "**Signing identity present.** If a tag run publishes, step 5"
+              echo "should be wired to it; nothing here does that yet."
+            fi
             echo
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf '%s\n' "${missing[@]}" | cut -d'|' -f1 | sed 's/^/  missing: /'
+          fi
 
-          echo "::warning::Release not published: ${#missing[@]} precondition(s) missing (OQ-053)."
-          printf '%s\n' "${missing[@]}" | cut -d'|' -f1 | sed 's/^/  missing: /'
+      - name: Create the release and upload the desktop artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          notes="$RUNNER_TEMP/release-notes.md"
+          {
+            echo "## Eclipse Player $TAG"
+            echo
+            echo "**Unsigned.** No \`RELEASE_SIGNING_IDENTITY\` exists (REQ-SEC-016 is"
+            echo "Phase 9 work), so every artifact below is distributed without a"
+            echo "signature. Verify the SHA-256 checksums beside each file."
+            echo
+            echo "### Desktop"
+            echo
+            echo "- \`eclipse-player-$version-windows-x64.zip\` — self-contained, Qt bundled"
+            echo "  by windeployqt"
+            echo "- \`eclipse-player-$version-linux-x86_64.tar.gz\` — binary plus the Qt"
+            echo "  libraries and plugins it needs; built on Ubuntu 24.04, needs a"
+            echo "  stock desktop with X11/libxcb"
+            echo
+            echo "### Android"
+            echo
+            echo "- Per-ABI APKs are uploaded to this release by \`android-ci.yml\`'s"
+            echo "  release job; unsigned until a signing identity exists."
+            echo
+            echo "### Checksums and SBOM"
+            echo
+            echo "- SHA-256 for every artifact, plus the CycloneDX SBOM, are attached."
+          } > "$notes"
+
+          # Every other job of this run uploaded artifacts; fetch them all, then
+          # create the release idempotently (android-ci may have got there first)
+          # and upload what this workflow built.
+          gh run download "$GITHUB_RUN_ID" --dir "$RUNNER_TEMP/release" >/dev/null
+          gh release create "$TAG" --title "$TAG" --notes-file "$notes" >/dev/null 2>&1 || true
+          gh release upload "$TAG" "$RUNNER_TEMP"/release/artifact-*/* --clobber
+          gh release upload "$TAG" "$RUNNER_TEMP"/release/sbom/* --clobber
+          gh release upload "$TAG" "$RUNNER_TEMP"/release/changelog-section/* --clobber
+          echo "::notice::Released $TAG — desktop artifacts from this workflow, Android"
+          echo "::notice::APKs from android-ci.yml, all unsigned (REQ-SEC-016)."
