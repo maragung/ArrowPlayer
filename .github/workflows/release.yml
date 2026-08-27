@@ -369,14 +369,22 @@ jobs:
     needs: preflight
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.os }}
+    # §25.5 / REQ-BLD-026: Linux arm64 is intentionally blocked until a Qt
+    # 6.8 arm64 toolchain is available, and Windows arm64 depends on
+    # cross-targeting a Visual Studio install the windows-2022 runner
+    # does not provide. Those lanes MUST fail rather than silently
+    # produce an x86_64 binary under an arm64 name, and they MUST NOT
+    # block the rest of the matrix from uploading. The other lanes
+    # ship even when these do not.
+    continue-on-error: ${{ matrix.allow_failure == 'true' }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - { name: ubuntu-x86_64, os: ubuntu-24.04, preset: linux-release, cc: gcc-13, cxx: g++-13 }
-          - { name: ubuntu-arm64,   os: ubuntu-24.04, preset: linux-release-arm64, cc: aarch64-linux-gnu-gcc, cxx: aarch64-linux-gnu-g++ }
+          - { name: ubuntu-arm64,   os: ubuntu-24.04, preset: linux-release-arm64, cc: aarch64-linux-gnu-gcc, cxx: aarch64-linux-gnu-g++, allow_failure: 'true' }
           - { name: windows-x64,    os: windows-2022, preset: windows-release }
-          - { name: windows-arm64,  os: windows-2022, preset: windows-release-arm64 }
+          - { name: windows-arm64,  os: windows-2022, preset: windows-release-arm64, allow_failure: 'true' }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -560,6 +568,7 @@ jobs:
           "$hash  eclipse-player-$version-windows-$arch.zip" | Out-File "$zip.sha256"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: success() || matrix.allow_failure != 'true'
         with:
           name: artifact-${{ matrix.name }}
           path: |
@@ -567,7 +576,7 @@ jobs:
             ${{ runner.temp }}/eclipse-player-*.tar.gz.sha256
             ${{ runner.temp }}/eclipse-player-*.zip
             ${{ runner.temp }}/eclipse-player-*.zip.sha256
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
 
   # -------------------------------------------------------------------------
@@ -658,11 +667,22 @@ jobs:
 
           # Every other job of this run uploaded artifacts; fetch them all, then
           # create the release idempotently (android-ci may have got there first)
-          # and upload what this workflow built.
+          # and upload what this workflow built. The arm64 lanes are
+          # intentionally blocked (REQ-BLD-026 / §25.5) so the artifact
+          # directory may be missing some subfolders; the shell glob with
+          # `shopt -s nullglob` is the difference between skipping a missing
+          # file and crashing the publish job on the empty glob.
           gh run download "$GITHUB_RUN_ID" --dir "$RUNNER_TEMP/release" >/dev/null
           gh release create "$TAG" --title "$TAG" --notes-file "$notes" >/dev/null 2>&1 || true
-          gh release upload "$TAG" "$RUNNER_TEMP"/release/artifact-*/* --clobber
-          gh release upload "$TAG" "$RUNNER_TEMP"/release/sbom/* --clobber
-          gh release upload "$TAG" "$RUNNER_TEMP"/release/changelog-section/* --clobber
+          shopt -s nullglob
+          for f in "$RUNNER_TEMP"/release/artifact-*/*; do
+            gh release upload "$TAG" "$f" --clobber
+          done
+          for f in "$RUNNER_TEMP"/release/sbom/*; do
+            gh release upload "$TAG" "$f" --clobber
+          done
+          for f in "$RUNNER_TEMP"/release/changelog-section/*; do
+            gh release upload "$TAG" "$f" --clobber
+          done
           echo "::notice::Released $TAG — desktop artifacts from this workflow, Android"
           echo "::notice::APKs from android-ci.yml, all unsigned (REQ-SEC-016)."
