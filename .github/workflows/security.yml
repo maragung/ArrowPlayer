@@ -15,11 +15,11 @@ name: security
 #                   chaining a 60-minute fuzzing job behind CodeQL would delay
 #                   every other verdict without changing any of them. Where an
 #                   order is real it is a `needs:`. See OQ-052.
-#   "(C++, Kotlin)" Kotlin is absent from this repository by decision, not by
-#                   oversight: ADR 0011 defers the Android target, so there is no
-#                   Kotlin to analyse. The CodeQL job says so in its summary
-#                   rather than quietly analysing one language and reporting
-#                   success for the step.
+#   "(C++, Kotlin)" the Android app is a scaffold (ADR 0012 restored the
+#                   target ADR 0011 had deferred), so Kotlin exists but only in
+#                   android/app; the CodeQL job analyses what is there and says
+#                   so in its summary rather than claiming a language that has
+#                   no code to analyse.
 #
 # Nothing here has ever executed. No workflow in this repository has: the remote
 # has never been pushed to. Every number quoted in a comment below was measured
@@ -74,7 +74,7 @@ jobs:
           | Language | Analysed | Why |
           |---|---|---|
           | C++ | yes | `desktop/`, the whole implementation |
-          | Kotlin | **no — none exists** | ADR 0011 defers the Android target, so `android/` is absent. §25.4 names Kotlin; this is a scope decision on record, not a skipped step. |
+          | Kotlin | **yes — scaffold only** | ADR 0012 restored the target, so `android/` exists; the Kotlin in it is the Phase 0 scaffold (one activity), which is what CodeQL analyses. The engine, Auto surface and library land in their phases. |
 
           SUMMARY
 

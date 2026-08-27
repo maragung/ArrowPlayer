@@ -8,11 +8,12 @@ name: spec-ci
 #   3. a schema change is accompanied by a fixture change
 #   4. the desktop and Android conformance results agree (REQ-GEN-031)
 #
-# On (4): android/ does not exist yet — see docs/adr/0011-desktop-first-sequencing.md
-# and OQ-018. The agreement job is written and runs; with one implementation
-# present it reports that it compared one verdict set against none, and says so
-# in those words. It is NOT skipped and NOT reported as passing, because a green
-# check mark next to "both platforms agree" would be a lie until there are two.
+# On (4): the Android implementation does not exist yet — ADR 0012 restored
+# the target, so android/ exists but its validator is unwritten (see OQ-018).
+# The agreement job is written and runs; with one implementation present it
+# reports that it compared one verdict set against none, and says so in those
+# words. It is NOT skipped and NOT reported as passing, because a green check
+# mark next to "both platforms agree" would be a lie until there are two.
 
 on:
   push:

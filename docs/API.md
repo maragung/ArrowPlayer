@@ -547,8 +547,8 @@ no header to document:
 | Theme and skin loader | §11 | Not written |
 | Application objects, Qt shell | §7.1 layers 4 and 5 | Not written |
 
-`docs/ROADMAP.md` has the sequencing and [ADR
-0011](adr/0011-desktop-first-sequencing.md) has the scope decision behind it. When
-each of those lands, its public header is added here in the same commit — which is
-the discipline [OQ-032](OPEN-QUESTIONS.md) exists to make mechanical rather than
-remembered.
+`docs/ROADMAP.md` has the sequencing, [ADR
+0011](adr/0011-desktop-first-sequencing.md) the original scope decision, and [ADR
+0012](adr/0012-restore-android.md) the reversal of it. When each module lands, its
+public header is added here in the same commit — which is the discipline
+[OQ-032](OPEN-QUESTIONS.md) exists to make mechanical rather than remembered.

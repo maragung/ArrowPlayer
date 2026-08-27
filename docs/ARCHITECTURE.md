@@ -5,8 +5,10 @@ The document `eclipse-player.md` §27 requires: *five layers, threads, data flow
 the specification defines it **and** as the repository currently enforces it, and
 it is explicit about the difference wherever one exists.
 
-Scope: the desktop implementation. The Android half of the same five layers is
-deferred — see [ADR 0011](adr/0011-desktop-first-sequencing.md).
+Scope: the desktop implementation. The Android half of the same five layers
+restarted with a Phase 0 scaffold when [ADR 0012](adr/0012-restore-android.md)
+superseded [ADR 0011](adr/0011-desktop-first-sequencing.md); the Gradle module
+map below is therefore mostly empty until the phases that own it land.
 
 - [Why Qt, FFmpeg, and our own sink layer](#why-qt-ffmpeg-and-our-own-sink-layer)
 - [The five layers](#the-five-layers)
@@ -150,7 +152,7 @@ costs to break, today:
 | 2 · Domain imports no Qt/FFmpeg/SQLite/adapter | `check_domain_purity()` + the CMake include-path partition | enforced |
 | 3 · Adapters reachable only through their port | `check_adapter_confinement()` | enforced |
 | 4 · `android/**` ⇄ `desktop/**` never cross; `shared-spec/**` holds no code | `check_android_isolation()`, `check_shared_spec_has_no_code()` | enforced |
-| 5 · Android feature modules depend only on `core-*` | Gradle assertion test | not applicable — no `android/` (ADR 0011) |
+| 5 · Android feature modules depend only on `core-*` | Gradle assertion test | not applicable yet — the scaffold has a single `:app` module (ADR 0012); the assertion test arrives with the first `feature-*` module |
 
 ### Rule 1 — direction
 
@@ -379,6 +381,7 @@ every adapter — is scaffolding that has not been written yet. The layer gates 
 because the rules hold, not because there is nothing to check: the domain library
 is real, it compiles, and it is where every rule in this document has teeth first.
 
-For the sequencing, see [ADR 0011](adr/0011-desktop-first-sequencing.md) and
+For the sequencing, see [ADR 0011](adr/0011-desktop-first-sequencing.md)
+(superseded by [ADR 0012](adr/0012-restore-android.md)) and
 [`docs/ROADMAP.md`](ROADMAP.md). For what is proven where, and by what,
 [`docs/OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) §5 is the honest register.

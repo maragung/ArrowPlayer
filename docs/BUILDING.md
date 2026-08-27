@@ -238,8 +238,9 @@ Four triplets exist, matching the §3.1 target matrix: `x64-linux-eclipse`,
 
 REQ-BLD-022 makes binary caching mandatory rather than optional; without it
 every CI job rebuilds every dependency. Locally, vcpkg caches to
-`~/.cache/vcpkg/archives` by default and needs no configuration. CI sets
-`VCPKG_BINARY_SOURCES=clear;x-gha,readwrite`.
+`~/.cache/vcpkg/archives` by default and needs no configuration. CI sets a
+`files` provider under the runner temp and persists it with `actions/cache` —
+not `x-gha`, which the pinned vcpkg-tool release has removed (OQ-026).
 
 ## Optional components
 
@@ -268,6 +269,28 @@ python3 tools/check-hardening.py build/linux-release  # REQ-SEC-018, in the bina
 
 The last one needs a build to have happened; the other three read source. It
 also has a `--self-test` that runs without one.
+
+## Android
+
+[ADR 0012](adr/0012-restore-android.md) restored the Android target; the app
+lives in `android/` and is a self-contained Gradle build that never imports
+desktop code (§5). It is a Phase 0 scaffold — one Compose module, an About
+screen — not yet the full §5 module list.
+
+Requirements: JDK 21, Android SDK with platform 35, Gradle 8.9 (the wrapper
+properties pin the same version; generate the wrapper jar with `gradle wrapper`
+if you do not have it — CI uses `gradle/actions/setup-gradle` instead).
+
+```bash
+cd android
+gradle ktlintCheck detekt assembleDebug testDebugUnitTest
+# APK: app/build/outputs/apk/debug/app-debug.apk
+```
+
+Version: `android/gradle.properties`'s `eclipse.version` is the single
+Android-side source (same-commit rule with `desktop/version.txt`, REQ-LIB-001);
+release CI stamps the tag version. All dependency versions live in
+`android/gradle/libs.versions.toml` — no inline versions anywhere (§5).
 
 ## Building without network access
 

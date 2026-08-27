@@ -518,10 +518,11 @@ def render(register: dict, mode: str, graph: dict | None, graph_source: str | No
     L.append("")
     L.append(
         "Scope: the **desktop** build. The Android half of the §4.2 register is listed "
-        "at the end for completeness and is **not in the current build** — the Android "
-        "app is deferred (see [ADR 0011](adr/0011-desktop-first-sequencing.md)). §0.1 "
-        "rule 2 forbids silently downgrading a requirement, so those entries are kept "
-        "and marked, not dropped."
+        "at the end for completeness and is **not in the current Android build** — the "
+        "app exists as a Phase 0 scaffold, but the NDK-level components below are not "
+        "in it yet, and the Gradle version catalog is reconciled with this half of the "
+        "register when they arrive (ADR 0012, OQ-018). §0.1 rule 2 forbids silently "
+        "downgrading a requirement, so those entries are kept and marked, not dropped."
     )
     L.append("")
 
