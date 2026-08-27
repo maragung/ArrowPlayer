@@ -7,7 +7,7 @@ Dokumen ini deskriptif, bukan rencana. Rencana ada di `docs/ROADMAP.md`; hal-hal
 yang masih menggantung ada di `docs/OPEN-QUESTIONS.md`.
 
 - Diperbarui: 2026-08-27
-- Commit di `main`: 45
+- Commit di `main`: 47
 - **Belum pernah di-push.** Konsekuensinya penting dan diulang di beberapa tempat
   di bawah: **tidak satu pun dari lima workflow CI pernah dieksekusi.** Semua
   klaim "hijau" di bawah adalah hasil menjalankan gate secara lokal.
@@ -96,7 +96,7 @@ jadi belum ada concurrency yang diuji. Ini dicatat sebagai OQ-018.
 
 | Skrip | Yang ditegakkan |
 |---|---|
-| `tools/check-layers.py` | §7.2 aturan 2, 3, 4 + `shared-spec` tanpa kode |
+| `tools/check-layers.py` | §7.2 aturan 1, 2, 3, 4 + `shared-spec` tanpa kode |
 | `tools/check-hardening.py` | `REQ-SEC-018` di binari nyata |
 | `tools/check-rt-safety.py` | §8.2 daftar larangan di jalur RT |
 | `tools/check-sql-safety.py` | Tidak ada SQL yang dirangkai string |
@@ -122,7 +122,7 @@ lengkap dan divalidasi. Tidak ada kode terkompilasi di dalamnya (§7.2 aturan 4)
 `CODE_OF_CONDUCT.md`, `CHANGELOG.md`, dan `.github/` (5 workflow, template PR,
 3 form issue). markdownlint bersih: 33 berkas, 0 masalah.
 
-`docs/OPEN-QUESTIONS.md`: **54 entri** — 23 `Settled`, 23 `Gap`, 8 `Open`.
+`docs/OPEN-QUESTIONS.md`: **55 entri** — 24 `Settled`, 22 `Gap`, 9 `Open`.
 
 ---
 
@@ -135,11 +135,12 @@ lengkap dan divalidasi. Tidak ada kode terkompilasi di dalamnya (§7.2 aturan 4)
 | 3 | `spec-ci.yml` hijau — `theme-schema.json` valid | **Sebagian.** Validasi lulus lokal; workflow belum pernah jalan |
 | 4 | Warnings-as-errors; `clang-format` + `ktlint` ditegakkan | **Sebagian.** `-Werror` aktif dan terbukti; `clang-format` **tidak terpasang di mesin ini**, jadi hanya CI yang bisa membuktikannya; `ktlint` N/A |
 | 5 | Cache biner vcpkg **dan cache Qt** terbukti bekerja | **Belum.** Lane vcpkg sudah ditulis dengan akuntansi yang gagal saat senyap; **lane Qt belum ditulis** (OQ-026) |
-| 6 | Skrip penegak aturan layer ada dan lulus (`REQ-GEN-051`) | **Sebagian.** Skrip ada dan lulus, tetapi §7.2 **aturan 1** (include hanya ke bawah) belum ditegakkan — OQ-031 |
+| 6 | Skrip penegak aturan layer ada dan lulus (`REQ-GEN-051`) | **Terpenuhi** (lokal). Aturan 1, 2, 3, 4 ditegakkan; aturan 5 milik Android, di luar cakupan. OQ-031 ditutup; OQ-055 mencatat inversi penomoran §7.1 yang ditemukan saat menutupnya |
 | 7 | String versi dari git tampil di **About** | **Sebagian.** String versi digenerate dari git, dibaca satu kali oleh `AppInfo`, dan dicetak oleh binari; **dialog About belum ada** |
 
 Jadi Fase 0 belum boleh ditutup, dan alasannya bukan satu hal besar melainkan
-empat hal kecil: jendela Qt, lane cache Qt, aturan layer 1, dan dialog About.
+tiga hal kecil: jendela Qt, lane cache Qt, dan dialog About — ditambah satu hal
+yang tidak bisa dikerjakan di mesin ini, yaitu menjalankan CI itu sendiri.
 
 ---
 
@@ -148,12 +149,12 @@ empat hal kecil: jendela Qt, lane cache Qt, aturan layer 1, dan dialog About.
 | Unit | Isi | Keadaan |
 |---|---|---|
 | A — layer aplikasi | `src/app/`, `main.cpp`, `test_app` | **Selesai** — commit `f03b5b3` |
-| A2 — aturan layer 1 | Peta direktori→layer + assertion include di `check-layers.py` | Belum |
-| B — shell Qt | `desktop/ui/`, dialog About, `.qrc`, `.ts` untuk `en`+`id`, tes UI off-screen | Sedang berjalan; baru `ui/include/eclipse/ui/shell.hpp` yang ada di disk |
+| A2 — aturan layer 1 | Peta direktori→layer + assertion include di `check-layers.py` | **Selesai** — commit `1084ac4` |
+| B — shell Qt | `desktop/ui/`, dialog About, `.qrc`, `.ts` untuk `en`+`id`, tes UI off-screen | Berjalan; baru `ui/include/eclipse/ui/shell.hpp` yang ada di disk |
 | C — lane Qt di CI | Instalasi + cache Qt di `desktop-ci.yml`, akuntansi cold/warm | Belum |
 
-Belum di-commit saat dokumen ini ditulis: hanya `desktop/ui/` (unit B, sedang
-berjalan) dan `status.md` sendiri.
+Belum di-commit saat dokumen ini ditulis: hanya `desktop/ui/` (unit B) dan
+pembaruan `status.md` ini sendiri.
 
 ---
 
