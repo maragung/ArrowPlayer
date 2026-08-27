@@ -18,8 +18,11 @@ std::uint32_t u32(const std::array<char, 4>& b) {
 }
 
 std::uint16_t u16(const char* b) {
-    return static_cast<std::uint16_t>(static_cast<unsigned char>(b[0])) |
-           (static_cast<std::uint16_t>(static_cast<unsigned char>(b[1])) << 8);
+    // The shift is performed in uint32_t so the implicit-int-conversion warning
+    // does not flag the narrowing back to uint16_t.
+    return static_cast<std::uint16_t>(
+        (static_cast<std::uint32_t>(static_cast<unsigned char>(b[0]))) |
+        (static_cast<std::uint32_t>(static_cast<unsigned char>(b[1])) << 8));
 }
 
 bool read_exact(std::ifstream& input, char* destination, std::streamsize size) {

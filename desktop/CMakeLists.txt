@@ -140,8 +140,13 @@ target_compile_features(eclipse-audio-wav PUBLIC cxx_std_20)
 target_link_libraries(eclipse-adapters INTERFACE eclipse-audio-wav)
 if(ECLIPSE_HAVE_ALSA)
     target_compile_definitions(eclipse-audio-null PRIVATE ECLIPSE_HAVE_ALSA=1)
+    # The factory dispatches to AlsaSink at runtime, so its compilation unit
+    # must live in the same library as alsa_sink.cpp — otherwise the vtable
+    # reference cannot be resolved at link time. We move the factory out of
+    # eclipse-audio-null and into eclipse-audio-alsa when ALSA is on.
     add_library(eclipse-audio-alsa STATIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/alsa_sink.cpp")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/alsa_sink.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/sink_factory.cpp")
     target_compile_definitions(eclipse-audio-alsa PRIVATE ECLIPSE_HAVE_ALSA=1)
     target_include_directories(eclipse-audio-alsa PUBLIC src)
     target_link_libraries(eclipse-audio-alsa PUBLIC eclipse-domain eclipse::alsa)
@@ -150,6 +155,8 @@ if(ECLIPSE_HAVE_ALSA)
     eclipse_set_hardening(eclipse-audio-alsa)
     target_compile_features(eclipse-audio-alsa PUBLIC cxx_std_20)
     target_link_libraries(eclipse-adapters INTERFACE eclipse-audio-alsa)
+else()
+    target_link_libraries(eclipse-adapters INTERFACE eclipse-audio-null)
 endif()
 target_link_libraries(eclipse-adapters INTERFACE eclipse-domain)
 if(ECLIPSE_HAVE_SQLITE3)

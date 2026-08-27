@@ -23,9 +23,10 @@ class FakeDecoder final : public IDecoder {
         if (!opened) {
             return err(ErrorCode::InvalidState, "decoder closed");
         }
-        const auto count = std::min(destination.frames, samples.size() - position);
+        const auto pos = static_cast<std::size_t>(position);
+        const auto count = std::min(destination.frames, samples.size() - pos);
         for (std::size_t i = 0; i < count; ++i) {
-            destination.planes[0][i] = samples[position + i];
+            destination.planes[0][i] = samples[pos + i];
         }
         position += count;
         return count;
@@ -35,14 +36,17 @@ class FakeDecoder final : public IDecoder {
         if (frame > samples.size()) {
             return err(ErrorCode::OutOfRange, "seek outside stream");
         }
-        position = static_cast<std::size_t>(frame);
+        position = frame;
         return ok();
     }
+
 
     void close() noexcept override { opened = false; }
 
     std::array<float, 4> samples{1.0F, 2.0F, 3.0F, 4.0F};
-    std::size_t position{0};
+    // The decoder position is uint64_t to match the IDecoder contract; this
+    // fake only ever holds 4 samples, but the type is the contract.
+    std::uint64_t position{0};
     bool opened{false};
 };
 
