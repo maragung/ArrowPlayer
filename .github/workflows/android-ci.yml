@@ -171,10 +171,11 @@ jobs:
           ls -la android/app/build/outputs/apk/release/ 2>/dev/null || true
           shopt -s nullglob
           # AGP names per-ABI release APKs as app-<abi>-release-unsigned.apk
-          # when the build is unsigned; the upload step strips the
-          # "-unsigned" suffix from the destination filename so the
-          # release artifact matches the spec name.
-          for apk in android/app/build/outputs/apk/release/app-*-release.apk; do
+          # when the build is unsigned. Bash glob `*` does not match the
+          # `-` separator inside the ABI name, so the pattern needs a
+          # second `*` to span "release" and the optional "-unsigned"
+          # suffix. The destination filename keeps the spec name.
+          for apk in android/app/build/outputs/apk/release/app-*-release*.apk; do
             abi=$(basename "$apk" | sed -E 's/^app-([a-z0-9-]+)-release(-unsigned)?\.apk$/\1/')
             dest="$out_dir/eclipse-player-$version-android-$abi.apk"
             cp "$apk" "$dest"
