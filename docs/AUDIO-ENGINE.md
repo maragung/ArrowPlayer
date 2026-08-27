@@ -449,7 +449,7 @@ column is this repository today, not an aspiration.
 | 11 | latency accuracy | reported vs measured loopback latency within 15 % | not written |
 | 12 | recovery | simulate device loss, format change, server restart; position within ±1 frame, state restored | not written |
 | 13 | pause losslessness | 100 random pause/resume cycles, output sample-identical to uninterrupted playback | not written |
-| 14 | desktop/Android DSP parity | same impulse and settings through both implementations, RMS error within −90 dBFS (`REQ-AUD-108`) | out of scope for now — no `android/` ([ADR 0011](adr/0011-desktop-first-sequencing.md)) |
+| 14 | desktop/Android DSP parity | same impulse and settings through both implementations, RMS error within −90 dBFS (`REQ-AUD-108`) | untestable — the Android app is a Phase 0 scaffold with no DSP ([ADR 0012](adr/0012-restore-android.md) restored the target; OQ-018) |
 | 15 | seek exactness | 1000 random seeks per format; first decoded frame matches the reference at that index | not written |
 
 Thirteen of fifteen are not written because the engine they test does not exist

@@ -1,0 +1,174 @@
+# ---------------------------------------------------------------------------
+#  android-ci.yml — spec §25.1 (REQ-BLD-020), Phase 0 exit gate 2.
+#
+#  ADR 0012 restored the Android target that ADR 0011 had deferred, so this
+#  workflow exists for the first time. What it proves today is what the
+#  scaffold has: the Gradle build is reproducible, the linters the spec names
+#  (ktlint, detekt) run, the debug APK assembles and its unit tests pass, and
+#  the APK installs and launches on an emulator. The instrumented suites, the
+#  macrobenchmarks and the conformance-fixture agreement (REQ-GEN-031) arrive
+#  with the phases that own their code — nothing here claims them.
+#
+#  On a version tag it builds the release APKs and uploads them to the same
+#  GitHub Release release.yml creates. The create/upload pair is idempotent
+#  (`|| true` on create, `--clobber` on upload) because the two workflows run
+#  concurrently and either may reach the release first.
+# ---------------------------------------------------------------------------
+name: android-ci
+
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', 'shared-spec/**', '.github/workflows/android-ci.yml']
+    tags: ['v*.*.*']
+  pull_request:
+    paths: ['android/**', 'shared-spec/**', '.github/workflows/android-ci.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: assemble + lint + unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # §25.1: "restore Gradle cache". setup-gradle caches ~/.gradle keyed on
+      # the lockfiles; the version is pinned to the same 8.9 the committed
+      # wrapper properties name, so local and CI cannot diverge.
+      - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+        with:
+          gradle-version: '8.9'
+
+      # Phase 0 exit gate 4 names ktlint. detekt is §25.1's own list. Both run
+      # before assemble so a style regression fails in seconds.
+      - name: ktlint (exit gate 4)
+        run: gradle ktlintCheck --no-daemon
+        working-directory: android
+
+      - name: detekt
+        run: gradle detekt --no-daemon
+        working-directory: android
+
+      - name: Assemble debug APK
+        run: gradle assembleDebug --no-daemon
+        working-directory: android
+
+      - name: Unit tests
+        run: gradle testDebugUnitTest --no-daemon
+        working-directory: android
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: apk-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+  # -------------------------------------------------------------------------
+  #  Phase 0 exit gate 2's "installs on an emulator" half. Not on pull
+  #  requests: an emulator boot on every review would make the feedback loop
+  #  the lint job exists to keep short. continue-on-error is the OQ-044 shape
+  #  and the condition for removing it is the same — the first green run on
+  #  this job, recorded in OQ-018. A red emulator must not be read as a red
+  #  scaffold; it is evidence about the runner, not about the APK.
+  # -------------------------------------------------------------------------
+  emulator:
+    name: install on emulator (exit gate 2)
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build the debug APK
+        run: gradle assembleDebug --no-daemon
+        working-directory: android
+
+      - name: Boot an emulator and install + launch the APK
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell am start -n io.github.eclipseplayer.app/.MainActivity
+            sleep 8
+            # The process must be alive after launch — "installs and launches"
+            # is what gate 2 asks, and pidof answering is the launch evidence.
+            adb shell pidof io.github.eclipseplayer.app
+        working-directory: android
+
+  # -------------------------------------------------------------------------
+  #  §25.1: "On a version tag: build … per-ABI APKs … and upload to the
+  #  release." Unsigned until a signing identity exists (REQ-SEC-016, Phase 9);
+  #  the release notes name that, so an unsigned artifact is a stated fact
+  #  rather than a surprise. Naming follows REQ-BLD-026.
+  # -------------------------------------------------------------------------
+  release:
+    name: per-ABI release APKs
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build release APKs (all ABIs)
+        run: gradle assembleRelease --no-daemon
+        working-directory: android
+
+      - name: Name the APKs per REQ-BLD-026 and upload to the release
+        env:
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # release.yml's publish job creates the release; either workflow may
+          # get there first, so create is idempotent and upload clobbers.
+          gh release create "$TAG" --title "$TAG" --notes "Eclipse Player $TAG — see the desktop artifacts in this release too." >/dev/null 2>&1 || true
+          version="${VERSION#v}"
+          out_dir="$RUNNER_TEMP/apks"
+          mkdir -p "$out_dir"
+          for apk in android/app/build/outputs/apk/release/app-release-*.apk; do
+            abi=$(basename "$apk" | sed -E 's/app-release-([a-z0-9-]+)\.apk/\1/')
+            dest="$out_dir/eclipse-player-$version-android-$abi.apk"
+            cp "$apk" "$dest"
+            sha256sum "$dest" > "$dest.sha256"
+          done
+          gh release upload "$TAG" "$out_dir"/eclipse-player-*.apk "$out_dir"/eclipse-player-*.sha256 --clobber
+          echo "::notice::Release APKs are unsigned. REQ-SEC-016 needs a signing"
+          echo "::notice::identity, which is Phase 9 work; see docs/OPEN-QUESTIONS.md."

@@ -65,7 +65,7 @@
       },
       {
         "name": "eclipse:android-entries-omitted",
-        "value": "6 — the Android tree is deferred (ADR 0011), so there is no Android artifact for this document to describe"
+        "value": "6 — the Android app is a Phase 0 scaffold (ADR 0012) whose Gradle dependencies are not yet reconciled with the §4.2 register, so no Android component is described here; this document covers the desktop build"
       },
       {
         "name": "eclipse:components-without-exact-version",

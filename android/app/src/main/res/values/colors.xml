@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher icon background. Not a §12.1 token: those arrive with the
+         theme engine and are validated against shared-spec tokens.json. -->
+    <color name="ic_launcher_background">#1B1F2A</color>
+</resources>

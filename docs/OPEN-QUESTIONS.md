@@ -451,18 +451,19 @@ has nothing to cache.
   instead, and its accounting step **fails** when the log contains neither
   `Restored N package(s)` nor `All packages already exist in the binary cache` —
   the only two things that tool release says when a provider is active.
-- **Gate 5 has a second half nobody has built: Qt caching.** Phase 0 exit gate 5
-  reads "vcpkg binary caching **and Qt caching** demonstrably working". No
-  workflow installs Qt at all. `desktop-ci.yml` declares
-  `QT_VERSION_FILE: desktop/qt-version.txt` and then never reads it, which is a
-  promise with nothing behind it. The UI is not built yet (Stage 3), so there is
-  nothing for a cached Qt to compile against; the honest position is that half of
-  gate 5 is untouched rather than half-done.
+- **Gate 5's Qt half is now written, and still unproven.** Phase 0 exit gate 5
+  reads "vcpkg binary caching **and Qt caching** demonstrably working". The Qt
+  lane now exists in `desktop-ci.yml` (and in `release.yml`'s `artifacts` job):
+  a `actions/cache` step keyed on `qt-version.txt` + runner, an `aqtinstall`
+  step that skips on a cache hit, and an unconditional `CMAKE_PREFIX_PATH`
+  export so configure finds Qt on a warm run too. What gate 5 asks for is
+  **evidence** — a warm run that is substantially faster than the cold one — and
+  evidence requires a pushed run. The lane is written; the proof is CI's to give.
 - **Closes when:** a second run of the `vcpkg` job on an unchanged manifest
   restores packages instead of building them — the job's summary states which
-  kind of run it was, so the evidence is in the run rather than in a claim — and
-  a Qt install step exists to cache. Neither has happened: nothing in this
-  repository has ever been pushed.
+  kind of run it was — **and** a second Qt install on an unchanged
+  `qt-version.txt` restores from cache instead of running `aqtinstall`. Neither
+  has happened: nothing in this repository has ever been pushed.
 
 ### OQ-030 — A sixth workflow file, outside the §5 layout · **Settled**
 
@@ -1743,23 +1744,21 @@ configured.
   TagLib, ALSA and SQLite are all present and detected, so the adapters those
   gate can be built and tested locally as they are written.
 
-### OQ-018 — Phase 0 exit gate 2 is red; `REQ-GEN-030` is unmet · **Gap**
+### OQ-018 — Phase 0 exit gate 2 needs its first green run; `REQ-GEN-030` is partially met · **Gap**
 
-There is no `android/` tree, so the repository layout `REQ-GEN-030` mandates is
-not matched, and gate 2 (`android-ci.yml` green, APK running on an emulator) has
-nothing to run.
-
-Downstream consequences, from ADR 0011:
+ADR 0012 restored the Android target ADR 0011 had deferred, so `android/` and
+`android-ci.yml` now exist. What exists is a **Phase 0 scaffold** — a Gradle +
+Kotlin + Compose app that builds, lints, unit-tests and assembles a debug APK,
+plus an emulator job that installs and launches it. What does not exist yet:
 
 | Requirement | Status |
 |---|---|
-| `REQ-GEN-031` — both engines agree on the conformance fixtures | **Half-proven.** One engine conforming is not two engines agreeing |
+| Phase 0 exit gate 2 — `android-ci.yml` green, APK on emulator | **First green run pending.** Nothing has been pushed to origin, so no run exists. The emulator job carries `continue-on-error` (the OQ-044 shape) and the condition for removing it is its first green run |
+| `REQ-GEN-030` — repository layout | **Partially met.** `android/` exists; the §5 module list (core-*, feature-*, auto/, benchmark/) is not yet implemented — one `:app` module today |
+| `REQ-GEN-031` — both engines agree on the conformance fixtures | **Half-proven.** The Android validator is unwritten; one engine conforming is not two engines agreeing |
 | `REQ-AUD-108` — desktop/Android DSP within −90 dBFS RMS | **Untestable.** One side of the comparison is missing |
-| `REQ-LIB-001` — a schema change lands on both platforms in one commit | **Unenforceable in one direction.** There is no second platform to fail the gate |
-
-An empty `android/` skeleton was explicitly rejected as a way to turn the gate
-green: a gate that passes without protecting anything is worse than a red one,
-because a red gate still tells the truth.
+| `REQ-LIB-001` — a schema change lands on both platforms in one commit | **Partially enforceable.** A second platform now exists to fail the gate; the same-commit rule applies to its files |
+| Android half of the §4.2 register | **Not reconciled.** The register lists NDK components (projectM, Chromaprint) the scaffold does not use; a future commit reconciles the catalogue with `libs.versions.toml` (ADR 0012 notes this) |
 
 ### OQ-019 — `REQ-TST-023`, the zero-connection test, is not implemented · **Gap**
 

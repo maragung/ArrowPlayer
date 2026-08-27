@@ -1,0 +1,9 @@
+# detekt configuration — spec §25.1 (REQ-BLD-020) runs detekt in android-ci.
+# Deliberately minimal: the defaults are strict enough for a scaffold, and a
+# config file that disables rules to make CI green would be the OQ-045 shape —
+# a gate tuned until it cannot fail.
+build:
+  maxIssues: 0
+
+complexity:
+  active: true

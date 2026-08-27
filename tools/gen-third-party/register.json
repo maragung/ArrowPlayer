@@ -353,7 +353,7 @@
     },
     "android": {
       "shipped": false,
-      "shipped_note": "Listed for completeness. The Android build is deferred (ADR 0011, desktop-first sequencing); none of these components is in the current build. §0.1 rule 2 forbids silently downgrading a requirement, so the Android half of the §4.2 register is kept here and rendered, marked not-yet-shipped, rather than dropped.",
+      "shipped_note": "Listed for completeness. The Android app exists as a Phase 0 scaffold (ADR 0012 restored the target ADR 0011 had deferred) but none of these NDK-level components is in its build yet; the Gradle version catalog is reconciled with this half of the register when the components arrive (OQ-018). §0.1 rule 2 forbids silently downgrading a requirement, so the Android half is kept here and rendered, marked not-yet-shipped, rather than dropped.",
       "columns": ["Dependency", "Licence", "Note"],
       "entries": [
         {

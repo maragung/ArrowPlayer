@@ -85,9 +85,9 @@ REQUIRED_DOCS: list[tuple[str, bool, str]] = [
 # every check here was pointed at docs/ and the repository root. Existence only —
 # these are YAML and templates, not prose with links to resolve.
 #
-# android-ci.yml is deliberately not required. ADR 0011 defers the Android target,
-# so its absence is a recorded decision, and reporting it as an error every run
-# would train people to read errors as noise.
+# android-ci.yml became required when ADR 0012 restored the Android target;
+# under ADR 0011 it was deliberately optional, its absence a recorded decision
+# rather than an oversight.
 REQUIRED_GITHUB: list[tuple[str, bool, str]] = [
     (".github/PULL_REQUEST_TEMPLATE.md", True, "§1.3's Definition of Done as a checklist"),
     (".github/ISSUE_TEMPLATE", True, "issue forms — §27 names the directory"),
@@ -96,7 +96,7 @@ REQUIRED_GITHUB: list[tuple[str, bool, str]] = [
     (".github/workflows/spec-ci.yml", True, "§25.3 REQ-BLD-023"),
     (".github/workflows/security.yml", True, "§25.4 REQ-BLD-024"),
     (".github/workflows/release.yml", True, "§25.5 REQ-BLD-025"),
-    (".github/workflows/android-ci.yml", False, "deferred by ADR 0011 — no app to build"),
+    (".github/workflows/android-ci.yml", True, "§25.1 REQ-BLD-020 — ADR 0012 restored the target"),
 ]
 
 # §27: "One file per decision, minimum: project licence, audio output,

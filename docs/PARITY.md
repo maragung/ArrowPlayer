@@ -33,9 +33,11 @@ Read this before the matrix below, because it applies to almost every row:
   real-time thread. The DSP kernels and the gapless metadata parsers are
   implemented and unit-tested; nothing plays.
 - **No user interface exists yet.** No `main.cpp`, no window.
-- **`android/` does not exist.** Every Android column below is therefore
-  **planned**, without exception. See
-  [ADR 0011](adr/0011-desktop-first-sequencing.md).
+- **`android/` is a Phase 0 scaffold.** [ADR 0012](adr/0012-restore-android.md)
+  restored the target [ADR 0011](adr/0011-desktop-first-sequencing.md) had
+  deferred: one Gradle `:app` module, an About screen, a debug APK build. Every
+  Android column below is still **planned**, because the scaffold implements
+  none of the feature rows.
 - **What "partial" rests on:** the 210-test suite passes from a clean build under
   Release, ASan+UBSan and TSan on a Linux development machine. Windows and
   `arm64` rows carry no local evidence at all — those are CI-only

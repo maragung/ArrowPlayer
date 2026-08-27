@@ -5,12 +5,12 @@ hardware, the golden corpus, the Android Auto manual checklist, the manual
 accessibility checklist* (`REQ-GEN-075`).
 
 One clause of that row does not apply to this build. **The Android Auto manual
-checklist is out of scope**, because the project is desktop-only for now — the
-scope decision and its consequences are recorded in
-[ADR 0011](adr/0011-desktop-first-sequencing.md). It is named and explained
-below rather than dropped, because silently omitting it would be the exact
-substitution ADR 0011 exists to refuse. The manual **accessibility** checklist
-is *not* Android-specific and is fully in scope; it is here in full.
+checklist is out of scope** — [ADR 0012](adr/0012-restore-android.md) restored
+the Android target, but the app is a Phase 0 scaffold with no
+`MediaLibraryService`, so there is nothing to walk with the Desktop Head Unit
+yet. It is named and explained below rather than dropped. The manual
+**accessibility** checklist is *not* Android-specific and is fully in scope; it
+is here in full.
 
 Everything stated as a number or a "passes" in this document comes from a
 command run on the development machine and pasted below, not from recall. Where
@@ -33,11 +33,11 @@ this document is consistent with it and links to it rather than restating it.
 
 The suite inventory today is small and honest: it is the domain layer (layer 3)
 and the application layer (layer 4), under GoogleTest, plus four fuzz harnesses
-replaying their committed corpus, plus the gate scripts. Everything else — the
-adapters, the RT engine, the Qt UI — is not written yet
-([ADR 0011](adr/0011-desktop-first-sequencing.md)), so the integration, UI, soak,
-and chaos suites the specification mandates have nothing to exercise and are not
-built. What runs, runs completely.
+replaying their committed corpus, the gate scripts, and — since the Qt shell
+landed — four offscreen QTest cases for the window and the About dialog (built
+only where Qt is present). The adapters, the RT engine and the full UI are not
+written yet, so the integration, soak, and chaos suites the specification
+mandates have nothing to exercise and are not built. What runs, runs completely.
 
 | CTest binary | Source | Cases | Domain area |
 |---|---|---|---|
@@ -449,8 +449,8 @@ doubled.
 None of these budgets is measured yet. The benchmark harness (`§20`, wired into
 CI per `REQ-BLD-021`) needs the RT engine, the scanner, and the Qt frontend, none
 of which exist. The Android rows are recorded verbatim from the specification for
-completeness; they belong to a platform this build does not include
-([ADR 0011](adr/0011-desktop-first-sequencing.md)). Until the harness exists, the
+completeness; they belong to a platform whose engine does not exist yet
+([ADR 0012](adr/0012-restore-android.md)). Until the harness exists, the
 figures in §20 are targets the code is written against, not results.
 
 ## The golden corpus
@@ -682,11 +682,11 @@ unowned.
 
 The §27 row asks this document for "the Android Auto manual checklist"
 (`REQ-AUT-020`, whose DHU run is Phase 4 exit gate 6). **It is out of scope for
-this build and is not provided.** There is no `android/` tree, no Media3
-`MediaLibraryService`, and no browse tree to walk with the Desktop Head Unit — so
-a checklist would be a checklist for software that does not exist, which is the
-kind of green-looking placeholder [ADR 0011](adr/0011-desktop-first-sequencing.md)
-was written to refuse.
+this build and is not provided.** The Android app is a Phase 0 scaffold
+([ADR 0012](adr/0012-restore-android.md)): no Media3 `MediaLibraryService` and no
+browse tree to walk with the Desktop Head Unit — so a checklist would be a
+checklist for software that does not exist, which is the kind of green-looking
+placeholder ADR 0011 was written to refuse.
 
 This is recorded, not silently dropped, because `REQ-BLD-037` names the Android
 Auto manual checklist as part of the per-release checklist, and a reader
@@ -710,9 +710,9 @@ requires them to be recorded in this file:
 
 `REQ-BLD-037` folds the completed passes into the archived per-release checklist.
 The desktop screen readers are **NVDA** and **Narrator** on Windows and **Orca**
-on Linux (Qt's AT-SPI2 bridge), per `REQ-UIX-056`; TalkBack/Android is out of
-scope ([ADR 0011](adr/0011-desktop-first-sequencing.md)). The target is **WCAG
-2.2 level AA** (`REQ-UIX-055`).
+on Linux (Qt's AT-SPI2 bridge), per `REQ-UIX-056`; TalkBack/Android awaits a
+device pass once the Android UI exists (ADR 0012 restored the target; the
+scaffold has no UI to test). The target is **WCAG 2.2 level AA** (`REQ-UIX-055`).
 
 A caveat that belongs in place: **these passes cannot be performed yet.** The Qt
 UI does not build on the development machine ([OQ-017](OPEN-QUESTIONS.md)) and the
@@ -787,7 +787,7 @@ The suites map onto the workflows that exist under `.github/workflows/`:
 | `desktop-ci.yml` | architecture gates plus `make-seeds.py --check` → configure/build/`ctest` on `ubuntu-22.04` (gcc-12), `ubuntu-24.04` (gcc-13, plus asan, tsan, clang-18), `windows-2022` (msvc) → FFmpeg licence assertion when a build links FFmpeg, and a hard failure if an adapter exists without one (OQ-042) → fuzzing smoke on clang-18: assert libFuzzer was detected, replay the corpus, 60 s per target → clang-format, clang-tidy, cppcheck | `REQ-BLD-021`, §25.2, `REQ-GEN-015`, `REQ-SEC-011`, `REQ-SEC-012` |
 | `spec-ci.yml` | `validate-shared-spec.py` → draft-2020-12 schema + fixture validation → schema/fixture-sync → `theme-validate` over the corpus, **blocking only once that engine exists** (OQ-040) → desktop/Android verdict comparison, which reports the gap rather than comparing nothing while there are zero implementations | `REQ-BLD-023`, `REQ-TST-021`, `REQ-THM-060`, `REQ-GEN-031` |
 | `repo-lint.yml` | `markdownlint-cli2` (no arguments) → `commitlint` over the reviewed range → `check-action-pins.py` in its own job → `check-doc-links.py` (§27 documents, internal links, **and** the OQ register), `gen-third-party.py --check` for both licence documents, and `gen-sbom.py --check` for the CycloneDX SBOM, each preceded by its own `--self-test` | `REQ-GEN-075`, `REQ-BLD-031`, `REQ-SEC-013`, `REQ-GEN-012`, `REQ-GEN-020`, `REQ-GEN-021` |
-| `security.yml` | six jobs for §25.4's six steps, run in parallel rather than chained (OQ-052): CodeQL C++ with `security-extended`, stating in its summary that there is no Kotlin (ADR 0011) · grype by digest over the SBOM **and** the tree, gated by `check-cve-baseline.py`, with `--add-cpes-if-none` advisory-only and the `pkg:vcpkg` coverage gap printed every run (OQ-046) · the denylist and both licence documents against the register, then again against a real `vcpkg install --dry-run` (OQ-015, OQ-038) · SBOM regeneration, release diff, and `cyclonedx validate --fail-on-errors` (OQ-048) · 15 minutes of libFuzzer per target with the corpus cached (OQ-043) · `check-hardening.py` over the release build | `REQ-BLD-024`, `REQ-SEC-004`, `REQ-GEN-012`, `REQ-SEC-011`, `REQ-SEC-018`, `REQ-SET-010` |
+| `security.yml` | six jobs for §25.4's six steps, run in parallel rather than chained (OQ-052): CodeQL C++ with `security-extended`, and Kotlin since the Android scaffold landed (ADR 0012) · grype by digest over the SBOM **and** the tree, gated by `check-cve-baseline.py`, with `--add-cpes-if-none` advisory-only and the `pkg:vcpkg` coverage gap printed every run (OQ-046) · the denylist and both licence documents against the register, then again against a real `vcpkg install --dry-run` (OQ-015, OQ-038) · SBOM regeneration, release diff, and `cyclonedx validate --fail-on-errors` (OQ-048) · 15 minutes of libFuzzer per target with the corpus cached (OQ-043) · `check-hardening.py` over the release build | `REQ-BLD-024`, `REQ-SEC-004`, `REQ-GEN-012`, `REQ-SEC-011`, `REQ-SEC-018`, `REQ-SET-010` |
 | `desktop-ci.yml`'s `vcpkg` job | the committed manifest built in manifest mode against the baseline read out of `desktop/vcpkg.json`, with a binary cache whose effectiveness is reported from vcpkg's own log rather than asserted; plus two manifest claims checked — no Qt port (§6.2, ADR 0005) and `ffmpeg` at the overridden 7.1.x. Not on pull requests, because a cold cache compiles ffmpeg and projectm from source (OQ-026) | `REQ-BLD-022`, `REQ-SEC-013` |
 | `release.yml` | the four §25.5 steps whose inputs exist: the tag is `vX.Y.Z` and agrees with `desktop/version.txt` · the 1.0.0 checklist, scoped to that tag alone · `gen-changelog.py` over the range since the previous tag · a stamped SBOM beside the `--check` of the committed baseline · both licence documents checked for staleness. The OQ-013 precondition is probed **up front** by asking `gen-third-party.py`, not by re-implementing its rule. The `publish` job refuses while packaging, signing or the Android pipeline is missing, names which, and **fails** once all three land, because at that point the missing thing is the publish steps (OQ-053) | `REQ-BLD-025`, `REQ-BLD-026`, `REQ-BLD-036`, `REQ-GEN-020`, `REQ-GEN-021` |
 
@@ -838,12 +838,14 @@ Two notes on that mapping:
   and exclusions live in `.markdownlint-cli2.jsonc`, because passing a glob is
   precisely how the wrong file set once got linted ([OQ-028](OPEN-QUESTIONS.md)).
 
-`android-ci.yml` is named by §25 but does not exist yet: it has no app to build
-([ADR 0011](adr/0011-desktop-first-sequencing.md)). `release.yml` does exist and
-has nothing to release — which is the point. Its four runnable steps run on every
-`workflow_dispatch`, so the version check, the changelog, the SBOM stamp and the
-staleness checks are exercised long before a tag depends on them; a release
-workflow first run at release time is the classic way releases fail. The five
+`android-ci.yml` now exists — [ADR 0012](adr/0012-restore-android.md) restored
+the target ADR 0011 had deferred — and builds the scaffold's debug APK. `release.yml`
+has real artifacts to release: on a tag it builds and packages the Windows and
+Ubuntu binaries, android-ci builds the APKs, and the publish job uploads one
+unified GitHub Release (unsigned, REQ-SEC-016). Its tag-independent steps still
+run on every `workflow_dispatch`, so the version check, the changelog, the SBOM
+stamp and the staleness checks are exercised long before a tag depends on them; a
+release workflow first run at release time is the classic way releases fail. The
 steps it cannot do are refused by name rather than skipped
 ([OQ-053](OPEN-QUESTIONS.md)). `security.yml` now
 exists and owns the nightly 15-minute-per-target budget with corpus persistence,
@@ -893,10 +895,10 @@ this is the short form, and it defers to that section wherever they touch.
   Phase 6 work.
 - **`arm64` and the whole Windows matrix are CI-only or untested**
   ([OQ-022](OPEN-QUESTIONS.md), [OQ-023](OPEN-QUESTIONS.md)).
-- **Android is absent entirely**, which makes the parity verifications
+- **Android is a scaffold, not a product**: the parity verifications
   (`REQ-AUD-108`, test 14) and the two-engine half of conformance (`REQ-TST-021`)
-  untestable rather than merely unimplemented
-  ([ADR 0011](adr/0011-desktop-first-sequencing.md),
+  are untestable until the Android engine exists
+  ([ADR 0012](adr/0012-restore-android.md),
   [OQ-018](OPEN-QUESTIONS.md)).
 
 A test that does not exist is reported as absent, never as passing. The 210 that

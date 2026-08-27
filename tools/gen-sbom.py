@@ -808,8 +808,9 @@ def build_bom(register: dict, *, pins: dict, root_version: str,
             f"{qt_version} (not a vcpkg port; aqtinstall per ADR 0005)"))
     metadata_properties.append(prop(
         "android-entries-omitted",
-        f"{len(android)} — the Android tree is deferred (ADR 0011), so there is no "
-        f"Android artifact for this document to describe"))
+        f"{len(android)} — the Android app is a Phase 0 scaffold (ADR 0012) whose "
+        f"Gradle dependencies are not yet reconciled with the §4.2 register, so no "
+        f"Android component is described here; this document covers the desktop build"))
     inexact = inexact_versions(register, resolved)
     metadata_properties.append(prop(
         "components-without-exact-version",

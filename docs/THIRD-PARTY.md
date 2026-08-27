@@ -2,7 +2,7 @@
 
 `eclipse-player.md` §27 requires this document: *Generated; the §4.2 register with SPDX ids, versions, licence texts, and source URLs*. This is that document. It is **generated** by `tools/gen-third-party/gen-third-party.py` from `tools/gen-third-party/register.json` and MUST NOT be edited by hand — fix the generator or the register, never the output (`REQ-GEN-012`).
 
-Scope: the **desktop** build. The Android half of the §4.2 register is listed at the end for completeness and is **not in the current build** — the Android app is deferred (see [ADR 0011](adr/0011-desktop-first-sequencing.md)). §0.1 rule 2 forbids silently downgrading a requirement, so those entries are kept and marked, not dropped.
+Scope: the **desktop** build. The Android half of the §4.2 register is listed at the end for completeness and is **not in the current Android build** — the app exists as a Phase 0 scaffold, but the NDK-level components below are not in it yet, and the Gradle version catalog is reconciled with this half of the register when they arrive (ADR 0012, OQ-018). §0.1 rule 2 forbids silently downgrading a requirement, so those entries are kept and marked, not dropped.
 
 > **Generation mode: direct-only.** This document was generated **without** a resolved dependency graph, so it covers the **direct** dependencies of §4.2 and does **not** enumerate the transitive set. This is the honest degraded mode described in the open-questions log under OQ-025 — see the *Transitive dependencies* section for how to regenerate with the full graph.
 
@@ -148,7 +148,7 @@ As stated above, licence texts are **referenced, not embedded** in this document
 
 ## Android dependencies — listed for completeness, not in this build
 
-> Listed for completeness. The Android build is deferred (ADR 0011, desktop-first sequencing); none of these components is in the current build. §0.1 rule 2 forbids silently downgrading a requirement, so the Android half of the §4.2 register is kept here and rendered, marked not-yet-shipped, rather than dropped.
+> Listed for completeness. The Android app exists as a Phase 0 scaffold (ADR 0012 restored the target ADR 0011 had deferred) but none of these NDK-level components is in its build yet; the Gradle version catalog is reconciled with this half of the register when the components arrive (OQ-018). §0.1 rule 2 forbids silently downgrading a requirement, so the Android half is kept here and rendered, marked not-yet-shipped, rather than dropped.
 
 | Dependency | SPDX id | Note | Source |
 |---|---|---|---|

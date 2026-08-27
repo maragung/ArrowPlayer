@@ -166,14 +166,15 @@ that is a finding rather than a nuisance.
 
 ## Status: `REQ-GEN-031` is unproven on both sides
 
-There is no `android/` tree yet, and no desktop theme engine either — `tools/theme-validate`
-is a Phase 5 deliverable, so **zero** implementations currently produce verdicts, not one.
-The corpus is complete and platform-neutral so either engine can consume it unchanged, but
-**agreement between two engines cannot be claimed while neither exists.** Recorded in
-`docs/adr/0011-desktop-first-sequencing.md` and `docs/OPEN-QUESTIONS.md` (OQ-018, OQ-040)
-rather than left to be inferred from an absent directory. `spec-ci.yml`'s `agreement` job
-says the same thing in its own job summary on every run, so the gap is visible where the
-gate is, not only here.
+There is no Android validator and no desktop theme engine — `tools/theme-validate` is a
+Phase 5 deliverable and the Android app is a Phase 0 scaffold (ADR 0012 restored the
+target ADR 0011 had deferred), so **zero** implementations currently produce verdicts,
+not one. The corpus is complete and platform-neutral so either engine can consume it
+unchanged, but **agreement between two engines cannot be claimed while neither exists.**
+Recorded in `docs/adr/0011-desktop-first-sequencing.md`, `docs/adr/0012-restore-android.md`
+and `docs/OPEN-QUESTIONS.md` (OQ-018, OQ-040) rather than left to be inferred from an
+absent directory. `spec-ci.yml`'s `agreement` job says the same thing in its own job
+summary on every run, so the gap is visible where the gate is, not only here.
 
 ## Adding a case
 

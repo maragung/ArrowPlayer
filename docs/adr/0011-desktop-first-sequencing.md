@@ -1,7 +1,9 @@
 # ADR 0011 — Desktop-first sequencing, with the Android gap stated
 
-- **Status:** Accepted
+- **Status:** **Superseded by [ADR 0012](0012-restore-android.md)**
 - **Date:** 2026-08-25
+- **Superseded on:** 2026-08-27 — the Android target is restored; `android/` and
+  `android-ci.yml` now exist (see [ADR 0012](0012-restore-android.md)).
 - **Requirements:** REQ-GEN-030, REQ-GEN-031, REQ-BLD-020, REQ-AUD-108, REQ-LIB-001
 
 ## Context
