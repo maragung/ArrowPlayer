@@ -23,8 +23,7 @@ class FakeDecoder final : public IDecoder {
         if (!opened) {
             return err(ErrorCode::InvalidState, "decoder closed");
         }
-        const auto count = std::min<std::size_t>(destination.frames,
-                                                  samples.size() - position);
+        const auto count = std::min<std::size_t>(destination.frames, samples.size() - position);
         for (std::size_t i = 0; i < count; ++i) {
             destination.planes[0][i] = samples[position + i];
         }
