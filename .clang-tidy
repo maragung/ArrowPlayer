@@ -20,7 +20,11 @@ Checks: >
   -bugprone-easily-swappable-parameters
 
 WarningsAsErrors: 'bugprone-*,cert-*,clang-analyzer-*'
-HeaderFilterRegex: '(src|include)/.*\.(hpp|h)$'
+# Scoped to the project's own source tree. The previous '(src|include)/' also
+# matched vendored headers — gmock's path contains '/include/gmock/…' — so the
+# first real run reported bugprone/cert findings from googletest as if they were
+# ours. Headers the project owns live under desktop/src and desktop/ui/include.
+HeaderFilterRegex: 'desktop/(src|ui/include)/.*\.(hpp|h)$'
 FormatStyle: file
 
 CheckOptions:

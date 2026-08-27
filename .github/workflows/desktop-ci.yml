@@ -226,6 +226,11 @@ jobs:
       # Offscreen platform: there is no display on these runners.
       - name: Smoke — the window opens (exit gate 1)
         if: matrix.preset == 'linux-release' || matrix.preset == 'windows-release'
+        # Explicit shell: the step is written in bash, and the default shell on
+        # the Windows runner is pwsh — which fails `set -euo pipefail` on the
+        # first line. Git Bash ships on windows-2022 (the Configure step relies
+        # on it too); the first run that finally reached this step proved it.
+        shell: bash
         env:
           QT_QPA_PLATFORM: offscreen
           ECLIPSE_SMOKE_TEST: '1'
@@ -707,18 +712,30 @@ jobs:
       # showed it turns ~900 non-required style notes into build failures.
       #
       # The file list comes from the compile database, not `find src tests`:
-      # this job configures without Qt (the UI lane is the build job's), so the
-      # DB has no entry for tests/ui/*.cpp, and clang-tidy on a file with no DB
-      # entry uses bare defaults — first such run failed on 'QString' file not
-      # found. Analyzing exactly what the database describes also self-scopes
-      # the check to what the build would build.
+      # the DB is the exact set of translation units the build builds, which is
+      # what REQ-SEC-015 should be judging. It is filtered first, because the DB
+      # also names things that are not ours to grade: vendored sources under
+      # _deps (gtest/gmock) and AUTOMOC's generated mocs_compilation.cpp.
+      #
+      # Building before analysing is not optional either: AUTOMOC only writes
+      # mocs_compilation.cpp and test_shell.moc during a build, and clang-tidy
+      # fails on the former ("no input files") and the latter ("file not
+      # found") when they are still just entries in the database. The first run
+      # that finally reached the UI sources proved both.
+      - name: Build for analysis
+        run: cmake --build --preset linux-debug --parallel
+        working-directory: desktop
+
       - name: clang-tidy (REQ-SEC-015)
         run: |
           python3 -c "
           import json
           db = json.load(open('../build/linux-debug/compile_commands.json'))
           for e in db:
-              print(e['file'])
+              f = e['file']
+              if '_deps' in f or '/build/' in f:
+                  continue
+              print(f)
           " | xargs -P 4 -n 1 clang-tidy-18 -p "../build/linux-debug"
         working-directory: desktop
 
