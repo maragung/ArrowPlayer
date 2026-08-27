@@ -130,12 +130,14 @@ enum class ErrorCode {
 [[nodiscard]] std::string_view to_string(Severity sev) noexcept;
 
 /// An error value. Cheap to move, safe to copy, always loggable.
-// NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign) — false positive: every member
-// carries a default initializer (code_ defaults to ErrorCode::Unknown), and the analyzer
-// mis-models `Error() = default` with NSDMI, reporting an uninitialized assignment that
-// cannot happen. The analyzer reports it at the class declaration, so this suppression
-// must be the last comment line above `class Error {` — a NOLINTNEXTLINE followed by more
-// comments suppresses the comments instead, which is exactly what the first run proved.
+// clang-analyzer's core.uninitialized.Assign is a false positive here: every member
+// carries a default initializer (code_ defaults to ErrorCode::Unknown), but the analyzer
+// mis-models `Error() = default` with NSDMI and reports an uninitialized assignment it
+// cannot perform. The finding lands on the class declaration, and a NOLINTNEXTLINE only
+// suppresses the immediately following line, so it has to be the last comment line above
+// the class — one more comment after it and it would suppress the comment instead, which
+// is exactly how the first two runs failed.
+// NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
 class Error {
   public:
     Error() = default;
