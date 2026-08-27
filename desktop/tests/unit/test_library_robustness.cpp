@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
-#include <gtest/gtest.h>
-
 #include <filesystem>
 #include <fstream>
 
 #include "library/filesystem_scanner.hpp"
 #include "library/sidecar_tag_reader.hpp"
+
+#include <gtest/gtest.h>
 
 TEST(LibraryRobustness, ScannerReportsMissingRoot) {
     eclipse::library::FilesystemScanner scanner;

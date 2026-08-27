@@ -7,7 +7,8 @@ namespace eclipse::library {
 
 class FilesystemScanner final : public ILibraryScanner {
   public:
-    [[nodiscard]] Result<std::vector<std::filesystem::path>> scan(const ScanRequest& request) const override;
+    [[nodiscard]] Result<std::vector<std::filesystem::path>> scan(
+        const ScanRequest& request) const override;
 };
 
 }  // namespace eclipse::library

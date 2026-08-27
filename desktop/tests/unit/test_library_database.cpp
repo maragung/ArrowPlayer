@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MPL-2.0
-#include <gtest/gtest.h>
-
 #include <filesystem>
 #include <fstream>
 
 #include "library/filesystem_scanner.hpp"
+#include "library/library_database.hpp"
 #include "library/library_importer.hpp"
 #include "library/sidecar_tag_reader.hpp"
-#include "library/library_database.hpp"
+
+#include <gtest/gtest.h>
 
 namespace {
 
@@ -17,7 +17,9 @@ class LibraryDatabaseTest : public ::testing::Test {
         path = std::filesystem::temp_directory_path() / "eclipse-player-library-test.sqlite";
         std::filesystem::remove(path);
     }
+
     void TearDown() override { std::filesystem::remove(path); }
+
     std::filesystem::path path;
 };
 
@@ -59,7 +61,8 @@ TEST(FilesystemScanner, ImportsScannedFilesIdempotently) {
 TEST(SidecarTagReader, ReadsOptionalMetadataAndRejectsInvalidDuration) {
     const auto root = std::filesystem::temp_directory_path() / "eclipse-player-tags-test.mp3";
     std::ofstream(root).put('x');
-    std::ofstream(root.string() + ".eclipse-tags") << "title=Custom Title\nartist=Artist\nduration_ms=1234\n";
+    std::ofstream(root.string() + ".eclipse-tags")
+        << "title=Custom Title\nartist=Artist\nduration_ms=1234\n";
     eclipse::library::SidecarTagReader reader;
     const auto result = reader.read(root);
     ASSERT_TRUE(result);
@@ -76,7 +79,8 @@ TEST(SidecarTagReader, ReadsOptionalMetadataAndRejectsInvalidDuration) {
 TEST(FilesystemScanner, RejectsInvalidRequests) {
     eclipse::library::FilesystemScanner scanner;
     EXPECT_EQ(scanner.scan({{}, 10}).error().code(), eclipse::ErrorCode::InvalidArgument);
-    EXPECT_EQ(scanner.scan({std::filesystem::temp_directory_path(), 0}).error().code(), eclipse::ErrorCode::InvalidArgument);
+    EXPECT_EQ(scanner.scan({std::filesystem::temp_directory_path(), 0}).error().code(),
+              eclipse::ErrorCode::InvalidArgument);
 }
 
 TEST_F(LibraryDatabaseTest, RequiresOpenBeforeInsert) {

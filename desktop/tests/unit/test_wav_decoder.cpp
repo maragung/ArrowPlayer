@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: MPL-2.0
-#include <gtest/gtest.h>
-
 #include <array>
 #include <cstdint>
 #include <filesystem>
@@ -8,12 +6,15 @@
 
 #include "audio/decode/wav_decoder.hpp"
 
+#include <gtest/gtest.h>
+
 namespace {
 
 void write_u16(std::ofstream& out, std::uint16_t value) {
     out.put(static_cast<char>(value & 0xffU));
     out.put(static_cast<char>(value >> 8U));
 }
+
 void write_u32(std::ofstream& out, std::uint32_t value) {
     for (int shift = 0; shift < 32; shift += 8) out.put(static_cast<char>(value >> shift));
 }
@@ -21,10 +22,21 @@ void write_u32(std::ofstream& out, std::uint32_t value) {
 std::filesystem::path make_wav() {
     const auto path = std::filesystem::temp_directory_path() / "eclipse-player-test.wav";
     std::ofstream out(path, std::ios::binary);
-    out.write("RIFF", 4); write_u32(out, 44); out.write("WAVE", 4);
-    out.write("fmt ", 4); write_u32(out, 16); write_u16(out, 1); write_u16(out, 1);
-    write_u32(out, 44100); write_u32(out, 88200); write_u16(out, 2); write_u16(out, 16);
-    out.write("data", 4); write_u32(out, 4); write_u16(out, 0); write_u16(out, 32767);
+    out.write("RIFF", 4);
+    write_u32(out, 44);
+    out.write("WAVE", 4);
+    out.write("fmt ", 4);
+    write_u32(out, 16);
+    write_u16(out, 1);
+    write_u16(out, 1);
+    write_u32(out, 44100);
+    write_u32(out, 88200);
+    write_u16(out, 2);
+    write_u16(out, 16);
+    out.write("data", 4);
+    write_u32(out, 4);
+    write_u16(out, 0);
+    write_u16(out, 32767);
     return path;
 }
 

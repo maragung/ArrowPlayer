@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
-#include <gtest/gtest.h>
-
 #include <array>
 
 #include "audio/sink/null_sink.hpp"
+
+#include <gtest/gtest.h>
 
 namespace {
 

@@ -17,7 +17,8 @@ Result<std::unique_ptr<IAudioSink>> make_sink(const SinkFactoryOptions options) 
 #if defined(ECLIPSE_HAVE_ALSA)
             return std::unique_ptr<IAudioSink>{std::make_unique<AlsaSink>()};
 #else
-            return err(ErrorCode::DeviceNotFound, "The ALSA sink is not available in this build.");
+            return err(ErrorCode::DeviceNotFound,
+                       "The ALSA sink is not available in this build.");
 #endif
         case SinkPreference::Automatic:
 #if defined(ECLIPSE_HAVE_ALSA)

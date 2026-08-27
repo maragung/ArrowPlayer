@@ -52,10 +52,11 @@ Result<StreamInfo> WavDecoder::open(const std::filesystem::path& path) {
     std::uint16_t bits = 0;
     while (input_ && (!found_format || !found_data)) {
         if (!read_exact(input_, chunk.data(), 4) || !read_exact(input_, size_bytes, 4)) break;
-        const auto size = static_cast<std::uint32_t>(static_cast<unsigned char>(size_bytes[0])) |
-                          (static_cast<std::uint32_t>(static_cast<unsigned char>(size_bytes[1])) << 8U) |
-                          (static_cast<std::uint32_t>(static_cast<unsigned char>(size_bytes[2])) << 16U) |
-                          (static_cast<std::uint32_t>(static_cast<unsigned char>(size_bytes[3])) << 24U);
+        const auto size =
+            static_cast<std::uint32_t>(static_cast<unsigned char>(size_bytes[0])) |
+            (static_cast<std::uint32_t>(static_cast<unsigned char>(size_bytes[1])) << 8U) |
+            (static_cast<std::uint32_t>(static_cast<unsigned char>(size_bytes[2])) << 16U) |
+            (static_cast<std::uint32_t>(static_cast<unsigned char>(size_bytes[3])) << 24U);
         const auto start = input_.tellg();
         if (std::string_view{chunk.data(), 4} == "fmt ") {
             if (size < 16) break;
@@ -96,7 +97,8 @@ Result<std::size_t> WavDecoder::read(const PlanarFrames destination) {
     if (!destination.valid() || destination.channels != source_channels_) {
         return err(ErrorCode::InvalidArgument, "The decode buffer is invalid.");
     }
-    const auto bytes_per_frame = static_cast<std::uint64_t>(source_channels_) * (source_bits_ / 8U);
+    const auto bytes_per_frame =
+        static_cast<std::uint64_t>(source_channels_) * (source_bits_ / 8U);
     const auto remaining = info_.total_frames - std::min(position_, info_.total_frames);
     const auto frames = std::min<std::uint64_t>(destination.frames, remaining);
     if (frames == 0) return std::size_t{0};
@@ -107,18 +109,25 @@ Result<std::size_t> WavDecoder::read(const PlanarFrames destination) {
     const auto bytes_per_sample = source_bits_ / 8U;
     for (std::size_t frame = 0; frame < frames; ++frame) {
         for (std::size_t channel = 0; channel < source_channels_; ++channel) {
-            const auto* sample = bytes.data() + (frame * source_channels_ + channel) * bytes_per_sample;
+            const auto* sample =
+                bytes.data() + (frame * source_channels_ + channel) * bytes_per_sample;
             std::int32_t value = 0;
-            if (source_bits_ == 16) value = static_cast<std::int16_t>(u16(sample));
-            else if (source_bits_ == 24) value = (static_cast<std::int32_t>(static_cast<unsigned char>(sample[0])) |
-                                                   (static_cast<std::int32_t>(static_cast<unsigned char>(sample[1])) << 8) |
-                                                   (static_cast<std::int32_t>(static_cast<signed char>(sample[2])) << 16));
-            else value = static_cast<std::int32_t>(static_cast<unsigned char>(sample[0])) |
-                              (static_cast<std::int32_t>(static_cast<unsigned char>(sample[1])) << 8) |
-                              (static_cast<std::int32_t>(static_cast<unsigned char>(sample[2])) << 16) |
-                              (static_cast<std::int32_t>(static_cast<unsigned char>(sample[3])) << 24);
-            destination.planes[channel][frame] = static_cast<float>(value) /
-                                                  static_cast<float>(std::uint64_t{1} << (source_bits_ - 1U));
+            if (source_bits_ == 16)
+                value = static_cast<std::int16_t>(u16(sample));
+            else if (source_bits_ == 24)
+                value =
+                    (static_cast<std::int32_t>(static_cast<unsigned char>(sample[0])) |
+                     (static_cast<std::int32_t>(static_cast<unsigned char>(sample[1])) << 8) |
+                     (static_cast<std::int32_t>(static_cast<signed char>(sample[2])) << 16));
+            else
+                value =
+                    static_cast<std::int32_t>(static_cast<unsigned char>(sample[0])) |
+                    (static_cast<std::int32_t>(static_cast<unsigned char>(sample[1])) << 8) |
+                    (static_cast<std::int32_t>(static_cast<unsigned char>(sample[2])) << 16) |
+                    (static_cast<std::int32_t>(static_cast<unsigned char>(sample[3])) << 24);
+            destination.planes[channel][frame] =
+                static_cast<float>(value) /
+                static_cast<float>(std::uint64_t{1} << (source_bits_ - 1U));
         }
     }
     position_ += frames;
@@ -126,10 +135,13 @@ Result<std::size_t> WavDecoder::read(const PlanarFrames destination) {
 }
 
 Status WavDecoder::seek(const std::uint64_t frame) {
-    if (!opened_ || frame > info_.total_frames) return err(ErrorCode::SeekFailed, "The seek position is invalid.");
-    const auto bytes_per_frame = static_cast<std::uint64_t>(source_channels_) * (source_bits_ / 8U);
+    if (!opened_ || frame > info_.total_frames)
+        return err(ErrorCode::SeekFailed, "The seek position is invalid.");
+    const auto bytes_per_frame =
+        static_cast<std::uint64_t>(source_channels_) * (source_bits_ / 8U);
     input_.clear();
-    input_.seekg(static_cast<std::streamoff>(data_offset_ + frame * bytes_per_frame), std::ios::beg);
+    input_.seekg(static_cast<std::streamoff>(data_offset_ + frame * bytes_per_frame),
+                 std::ios::beg);
     if (!input_) return err(ErrorCode::SeekFailed, "The audio stream could not seek.");
     position_ = frame;
     return ok();

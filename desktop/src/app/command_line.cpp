@@ -15,14 +15,17 @@ Result<CommandLine> parse_command_line(int argc, char* const argv[]) noexcept {
         } else if (arg == "--play") {
             if (result.play || i + 1 >= argc || argv[i + 1] == nullptr ||
                 std::string_view{argv[i + 1]}.empty()) {
-                return err(ErrorCode::InvalidArgument, "A single audio file is required after --play.",
+                return err(ErrorCode::InvalidArgument,
+                           "A single audio file is required after --play.",
                            "--play");
             }
             result.play = true;
             result.path = argv[++i];
         } else if (arg == "--sink") {
             if (i + 1 >= argc || argv[i + 1] == nullptr) {
-                return err(ErrorCode::InvalidArgument, "Choose a sink: auto, null, or alsa.", "--sink");
+                return err(ErrorCode::InvalidArgument,
+                           "Choose a sink: auto, null, or alsa.",
+                           "--sink");
             }
             const std::string_view value{argv[++i]};
             if (value == "auto") {
@@ -32,18 +35,23 @@ Result<CommandLine> parse_command_line(int argc, char* const argv[]) noexcept {
             } else if (value == "alsa") {
                 result.sink = SinkChoice::Alsa;
             } else {
-                return err(ErrorCode::InvalidArgument, "Choose a sink: auto, null, or alsa.",
+                return err(ErrorCode::InvalidArgument,
+                           "Choose a sink: auto, null, or alsa.",
                            std::string{"--sink "} + std::string{value});
             }
         } else {
-            return err(ErrorCode::InvalidArgument, "Unknown command-line option.", std::string{arg});
+            return err(
+                ErrorCode::InvalidArgument, "Unknown command-line option.", std::string{arg});
         }
     }
     if (result.help && result.play) {
-        return err(ErrorCode::InvalidArgument, "--help cannot be combined with playback.", "--help --play");
+        return err(ErrorCode::InvalidArgument,
+                   "--help cannot be combined with playback.",
+                   "--help --play");
     }
     if (!result.play && result.sink != SinkChoice::Automatic) {
-        return err(ErrorCode::InvalidArgument, "--sink requires --play.", "sink without playback");
+        return err(
+            ErrorCode::InvalidArgument, "--sink requires --play.", "sink without playback");
     }
     return result;
 }
