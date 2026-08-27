@@ -34,7 +34,10 @@ class Application {
     static constexpr int kExitStartupFailed = 70;  ///< EX_SOFTWARE
     static constexpr int kExitUnavailable = 69;    ///< EX_UNAVAILABLE
 
-    explicit Application(AppInfo info) noexcept : info_{info} {}
+    // Passed by value and moved: the caller's temporary (AppInfo::current())
+    // is consumed, which is both the cheapest option and what cppcheck's
+    // passedByValue accepts — a copy here would trigger it (REQ-BLD-021).
+    explicit Application(AppInfo info) noexcept : info_{std::move(info)} {}
 
     [[nodiscard]] const AppInfo& info() const noexcept { return info_; }
 

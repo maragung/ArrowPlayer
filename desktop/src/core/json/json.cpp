@@ -377,6 +377,13 @@ class Parser {
         }
     }
 
+    // By-value `result` is deliberate: the callers hand over fresh temporaries
+    // (Value{true} etc.) and the parameter is moved out on return — the implicit
+    // move in `return result;` is exactly that, and GCC's -Wredundant-move
+    // rejects spelling it out. cppcheck's passedByValue (REQ-BLD-021) does not
+    // model the implicit move, so the finding is suppressed here rather than
+    // by weakening the parameter to const& (which would force a copy).
+    // cppcheck-suppress passedByValue
     Result<Value> parse_literal(std::string_view word, Value result) {
         if (src_.compare(pos_, word.size(), word) != 0)
             return fail(ErrorCode::UnexpectedToken, "Invalid literal.");
