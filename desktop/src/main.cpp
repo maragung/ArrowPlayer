@@ -65,7 +65,8 @@ int main(int argc, char** argv) {
         // step proves the linked executable opens a window rather than
         // crashing on the first frame. The env-var check happens after
         // startup so a failed lifecycle still produces a meaningful code.
-        if (const char* smoke = std::getenv("ECLIPSE_SMOKE_TEST"); smoke != nullptr) {
+        const char* smoke = std::getenv("ECLIPSE_SMOKE_TEST");
+        if (smoke != nullptr) {
             static_cast<void>(application.lifecycle().shutdown());
             return Application::kExitOk;
         }
