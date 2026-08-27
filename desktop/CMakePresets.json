@@ -28,6 +28,14 @@
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
     },
     {
+      "name": "linux-release-arm64",
+      "displayName": "Linux · Release · arm64",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "toolchainFile": "${sourceDir}/cmake/toolchains/linux-aarch64.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
+    },
+    {
       "name": "linux-asan",
       "displayName": "Linux · ASan + UBSan (§23.5)",
       "inherits": "base",
@@ -82,7 +90,7 @@
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
     },
     {
-      "name": "windows-arm64",
+      "name": "windows-release-arm64",
       "displayName": "Windows · Release · arm64 (REQ-GEN-001)",
       "inherits": "base",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
@@ -94,12 +102,13 @@
   "buildPresets": [
     { "name": "linux-debug",     "configurePreset": "linux-debug" },
     { "name": "linux-release",   "configurePreset": "linux-release" },
+    { "name": "linux-release-arm64", "configurePreset": "linux-release-arm64" },
     { "name": "linux-asan",      "configurePreset": "linux-asan" },
     { "name": "linux-tsan",      "configurePreset": "linux-tsan" },
     { "name": "linux-fuzz",      "configurePreset": "linux-fuzz" },
     { "name": "windows-debug",   "configurePreset": "windows-debug" },
     { "name": "windows-release", "configurePreset": "windows-release" },
-    { "name": "windows-arm64",   "configurePreset": "windows-arm64" }
+    { "name": "windows-release-arm64", "configurePreset": "windows-release-arm64" }
   ],
 
   "testPresets": [
