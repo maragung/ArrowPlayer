@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
 <!--
-    Indonesian translation source — Phase 0 shell strings (status.md unit B).
+    Indonesian translation source — Phase 0 shell strings.
     Compiled to eclipse_id.qm by qt_add_lrelease and embedded as
     :/i18n/eclipse_id.qm.
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
 <!--
-    English translation source — Phase 0 shell strings (status.md unit B).
+    English translation source — Phase 0 shell strings.
 
     Compiled to eclipse_en.qm by qt_add_lrelease (ui/CMakeLists.txt) and
     embedded as :/i18n/eclipse_en.qm. The <source> texts must match the tr()
