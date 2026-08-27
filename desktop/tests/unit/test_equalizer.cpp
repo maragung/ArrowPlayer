@@ -11,6 +11,7 @@
 //   * a fully bypassed chain returns bit-identical samples      (§8.11 test 2)
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <complex>
 #include <numbers>

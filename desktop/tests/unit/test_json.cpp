@@ -63,23 +63,28 @@ TEST(Json, HandlesEmptyContainers) {
 }
 
 TEST(Json, ParsesStringEscapes) {
-    EXPECT_EQ(must_parse(R"("a\nb")").as_string(), "a\nb");
-    EXPECT_EQ(must_parse(R"("q\"q")").as_string(), "q\"q");
-    EXPECT_EQ(must_parse(R"("back\\slash")").as_string(), "back\\slash");
-    EXPECT_EQ(must_parse(R"("tab\there")").as_string(), "tab\there");
-    EXPECT_EQ(must_parse(R"("\u00e9")").as_string(), "\u00E9");
-    EXPECT_EQ(must_parse(R"("\u20AC")").as_string(), "\u20AC");
+    // Plain (non-raw) literals: MSVC processes universal-character-names and
+    // \" even inside raw strings, so the JSON text must be written with the
+    // backslashes doubled instead of relying on raw-string passthrough.
+    EXPECT_EQ(must_parse("\"a\\nb\"").as_string(), "a\nb");
+    EXPECT_EQ(must_parse("\"q\\\"q\"").as_string(), "q\"q");
+    EXPECT_EQ(must_parse("\"back\\\\slash\"").as_string(), "back\\slash");
+    EXPECT_EQ(must_parse("\"tab\\there\"").as_string(), "tab\there");
+    EXPECT_EQ(must_parse("\"\\u00e9\"").as_string(), "\u00E9");
+    EXPECT_EQ(must_parse("\"\\u20AC\"").as_string(), "\u20AC");
 }
 
 TEST(Json, ParsesSurrogatePairs) {
-    // U+1F600 as a UTF-16 surrogate pair must become 4-byte UTF-8.
-    EXPECT_EQ(must_parse(R"("\ud83d\ude00")").as_string(), "\U0001F600");
+    // U+1F600 as a UTF-16 surrogate pair must become 4-byte UTF-8. The JSON
+    // text is "\ud83d\ude00" — written with doubled backslashes so no UCN is
+    // formed in the C++ source (surrogates are ill-formed UCNs, C3850 on MSVC).
+    EXPECT_EQ(must_parse("\"\\ud83d\\ude00\"").as_string(), "\U0001F600");
 }
 
 TEST(Json, ReplacesUnpairedSurrogates) {
     // Must not produce invalid UTF-8, and must not fail outright.
-    EXPECT_EQ(must_parse(R"("\ud83d")").as_string(), "\uFFFD");
-    EXPECT_EQ(must_parse(R"("\udc00")").as_string(), "\uFFFD");
+    EXPECT_EQ(must_parse("\"\\ud83d\"").as_string(), "\uFFFD");
+    EXPECT_EQ(must_parse("\"\\udc00\"").as_string(), "\uFFFD");
 }
 
 TEST(Json, AcceptsJsoncCommentsAndTrailingCommas) {
@@ -302,7 +307,9 @@ TEST(Json, DumpPrettyPrints) {
 }
 
 TEST(Json, DumpPreservesUnicode) {
-    const auto v = must_parse(R"({"k":"Bj\u00f6rk \ud83c\udfb5"})");
+    // Same rationale as ParsesStringEscapes: doubled backslashes keep the JSON
+    // text literal instead of letting MSVC form UCNs inside the raw string.
+    const auto v = must_parse("{\"k\":\"Bj\\u00f6rk \\ud83c\\udfb5\"}");
     const auto again = must_parse(v.dump());
     EXPECT_EQ(again.find("k")->as_string(), "Bj\u00F6rk \U0001F3B5");
 }
