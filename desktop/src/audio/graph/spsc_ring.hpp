@@ -74,11 +74,20 @@ class SpscPcmRing final {
     }
 
   private:
+    // Cache-line padding separates the two atomics so producer and consumer
+    // threads do not false-share. MSVC warns (C4324) on the implicit padding
+    // that comes with alignas; that warning is the cost of avoiding the
+    // worse cost of cache-line ping-pong on the audio RT path.
     const std::size_t capacity_;
     const std::size_t channels_;
     std::vector<float> samples_;
+#ifdef _MSC_VER
+    __declspec(align(64)) std::atomic<std::size_t> write_index_{0};
+    __declspec(align(64)) std::atomic<std::size_t> read_index_{0};
+#else
     alignas(64) std::atomic<std::size_t> write_index_{0};
     alignas(64) std::atomic<std::size_t> read_index_{0};
+#endif
 };
 
 }  // namespace eclipse::audio
