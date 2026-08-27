@@ -16,18 +16,21 @@ namespace eclipse::audio {
 class SpscPcmRing final {
   public:
     SpscPcmRing(std::size_t capacity_frames, std::size_t channels)
-        : capacity_{capacity_frames}, channels_{channels},
-          samples_(capacity_frames * channels, 0.0F) {}
+          : capacity_{capacity_frames},
+            channels_{channels},
+            samples_(capacity_frames * channels, 0.0F) {}
 
     SpscPcmRing(const SpscPcmRing&) = delete;
     SpscPcmRing& operator=(const SpscPcmRing&) = delete;
 
     [[nodiscard]] std::size_t capacity() const noexcept { return capacity_; }
+
     [[nodiscard]] std::size_t available_read() const noexcept {
         const auto write = write_index_.load(std::memory_order_acquire);
         const auto read = read_index_.load(std::memory_order_relaxed);
         return write - read;
     }
+
     [[nodiscard]] std::size_t available_write() const noexcept {
         return capacity_ - available_read();
     }
@@ -36,7 +39,8 @@ class SpscPcmRing final {
         if (!source.valid() || source.channels != channels_ || capacity_ == 0) {
             return 0;
         }
-        const auto count = source.frames < available_write() ? source.frames : available_write();
+        const auto count =
+            source.frames < available_write() ? source.frames : available_write();
         const auto read = read_index_.load(std::memory_order_acquire);
         const auto write = write_index_.load(std::memory_order_relaxed);
         for (std::size_t frame = 0; frame < count; ++frame) {
@@ -54,7 +58,8 @@ class SpscPcmRing final {
         if (!destination.valid() || destination.channels != channels_ || capacity_ == 0) {
             return 0;
         }
-        const auto count = destination.frames < available_read() ? destination.frames : available_read();
+        const auto count =
+            destination.frames < available_read() ? destination.frames : available_read();
         const auto read = read_index_.load(std::memory_order_relaxed);
         const auto write = write_index_.load(std::memory_order_acquire);
         for (std::size_t frame = 0; frame < count; ++frame) {

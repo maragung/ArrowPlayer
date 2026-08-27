@@ -6,10 +6,14 @@
 
 namespace eclipse::audio {
 
-PlaybackGraph::PlaybackGraph(IDecoder& decoder, IAudioSink& sink, const std::size_t ring_capacity_frames)
-    : decoder_{decoder}, sink_{sink}, ring_capacity_frames_{ring_capacity_frames},
-      ring_{std::make_unique<SpscPcmRing>(ring_capacity_frames == 0 ? 1 : ring_capacity_frames, 1)} {}
-
+PlaybackGraph::PlaybackGraph(IDecoder& decoder,
+                             IAudioSink& sink,
+                             const std::size_t ring_capacity_frames)
+      : decoder_{decoder},
+        sink_{sink},
+        ring_capacity_frames_{ring_capacity_frames},
+        ring_{std::make_unique<SpscPcmRing>(
+            ring_capacity_frames == 0 ? 1 : ring_capacity_frames, 1)} {}
 
 Status PlaybackGraph::open(const std::filesystem::path& path) {
     if (ring_capacity_frames_ == 0) {
@@ -58,8 +62,10 @@ Status PlaybackGraph::produce(const std::size_t max_frames) {
     if (at_end_) {
         return ok();
     }
-    const auto request = std::min(max_frames, std::min(ring_->available_write(), ring_capacity_frames_));
-    const auto decoded = decoder_.read(PlanarFrames{decode_plane_ptrs_.data(), info_.format.channels, request});
+    const auto request =
+        std::min(max_frames, std::min(ring_->available_write(), ring_capacity_frames_));
+    const auto decoded =
+        decoder_.read(PlanarFrames{decode_plane_ptrs_.data(), info_.format.channels, request});
     if (!decoded) {
         return std::move(decoded).error();
     }
@@ -67,9 +73,11 @@ Status PlaybackGraph::produce(const std::size_t max_frames) {
         at_end_ = true;
         return ok();
     }
-    const auto pushed = ring_->push(PlanarFrames{decode_plane_ptrs_.data(), info_.format.channels, decoded.value()});
+    const auto pushed = ring_->push(
+        PlanarFrames{decode_plane_ptrs_.data(), info_.format.channels, decoded.value()});
     if (pushed != decoded.value()) {
-        return err(ErrorCode::BufferUnderrun, "The playback buffer could not accept decoded audio.");
+        return err(ErrorCode::BufferUnderrun,
+                   "The playback buffer could not accept decoded audio.");
     }
     return ok();
 }
@@ -85,7 +93,8 @@ Status PlaybackGraph::consume(const std::size_t max_frames) noexcept {
     if (count == 0) {
         return err(ErrorCode::BufferUnderrun, "The playback buffer has no audio available.");
     }
-    const auto popped = ring_->pop(PlanarFrames{consume_plane_ptrs_.data(), info_.format.channels, count});
+    const auto popped =
+        ring_->pop(PlanarFrames{consume_plane_ptrs_.data(), info_.format.channels, count});
     if (popped != count) {
         return err(ErrorCode::BufferUnderrun, "The playback buffer could not provide audio.");
     }

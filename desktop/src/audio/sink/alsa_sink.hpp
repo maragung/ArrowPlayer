@@ -16,6 +16,7 @@ class AlsaSink final : public IAudioSink {
     void stop() noexcept override;
     void close() noexcept override;
     [[nodiscard]] Status write(PlanarFrames frames) noexcept override;
+
     [[nodiscard]] std::string_view device_name() const noexcept override { return "default"; }
 
   private:

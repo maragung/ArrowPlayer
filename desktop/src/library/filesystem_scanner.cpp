@@ -3,9 +3,8 @@
 
 #include <algorithm>
 #include <array>
-#include <system_error>
-
 #include <cctype>
+#include <system_error>
 
 namespace eclipse::library {
 namespace {
@@ -23,26 +22,29 @@ namespace {
 
 }  // namespace
 
-Result<std::vector<std::filesystem::path>> FilesystemScanner::scan(const ScanRequest& request) const {
+Result<std::vector<std::filesystem::path>> FilesystemScanner::scan(
+    const ScanRequest& request) const {
     if (request.root.empty() || request.max_files == 0) {
         return err(ErrorCode::InvalidArgument, "The library scan request is invalid.");
     }
     std::error_code status;
     if (!std::filesystem::is_directory(request.root, status) || status) {
         return err(status == std::errc::permission_denied ? ErrorCode::PermissionDenied
-                                                           : ErrorCode::NotADirectory,
+                                                          : ErrorCode::NotADirectory,
                    "The library root is not accessible.");
     }
 
     std::vector<std::filesystem::path> paths;
     paths.reserve(std::min<std::size_t>(request.max_files, 4096U));
-    std::filesystem::directory_options options = std::filesystem::directory_options::skip_permission_denied;
+    std::filesystem::directory_options options =
+        std::filesystem::directory_options::skip_permission_denied;
     std::filesystem::recursive_directory_iterator iterator(request.root, options, status);
     const std::filesystem::recursive_directory_iterator end;
     while (iterator != end && !status) {
         const auto& entry = *iterator;
         std::error_code entry_status;
-        if (entry.is_regular_file(entry_status) && !entry_status && supported_extension(entry.path())) {
+        if (entry.is_regular_file(entry_status) && !entry_status &&
+            supported_extension(entry.path())) {
             paths.push_back(entry.path());
             if (paths.size() >= request.max_files) break;
         }

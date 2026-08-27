@@ -2,10 +2,10 @@
 #include <array>
 #include <cstddef>
 
-#include <gtest/gtest.h>
-
 #include "audio/graph/spsc_ring.hpp"
 #include "audio/ports/audio_types.hpp"
+
+#include <gtest/gtest.h>
 
 namespace eclipse::audio {
 namespace {

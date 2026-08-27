@@ -21,8 +21,12 @@ class PlaybackGraph final {
     [[nodiscard]] Status consume(std::size_t max_frames) noexcept;
     void close() noexcept;
 
-    [[nodiscard]] std::size_t queued_frames() const noexcept { return ring_ == nullptr ? 0 : ring_->available_read(); }
+    [[nodiscard]] std::size_t queued_frames() const noexcept {
+        return ring_ == nullptr ? 0 : ring_->available_read();
+    }
+
     [[nodiscard]] bool at_end() const noexcept { return at_end_; }
+
     [[nodiscard]] const StreamInfo& stream_info() const noexcept { return info_; }
 
   private:

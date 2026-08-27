@@ -26,6 +26,7 @@ class LibraryDatabase final : public ILibrary {
     [[nodiscard]] Result<std::vector<Track>> list_tracks() const override;
     [[nodiscard]] Status remove_track(std::string_view path) override;
     void close() noexcept;
+
     [[nodiscard]] bool is_open() const noexcept { return db_ != nullptr; }
 
   private:

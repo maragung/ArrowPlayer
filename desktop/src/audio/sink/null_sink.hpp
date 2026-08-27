@@ -15,7 +15,9 @@ class NullSink final : public IAudioSink {
     void stop() noexcept override;
     void close() noexcept override;
     [[nodiscard]] Status write(PlanarFrames frames) noexcept override;
+
     [[nodiscard]] std::string_view device_name() const noexcept override { return "null"; }
+
     [[nodiscard]] std::size_t written_frames() const noexcept { return written_frames_; }
 
   private:

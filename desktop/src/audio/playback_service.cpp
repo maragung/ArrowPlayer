@@ -3,8 +3,10 @@
 
 namespace eclipse::audio {
 
-Status PlaybackService::play_file(const std::filesystem::path& path, const std::size_t chunk_frames) {
-    if (chunk_frames == 0) return err(ErrorCode::InvalidArgument, "The playback chunk size is invalid.");
+Status PlaybackService::play_file(const std::filesystem::path& path,
+                                  const std::size_t chunk_frames) {
+    if (chunk_frames == 0)
+        return err(ErrorCode::InvalidArgument, "The playback chunk size is invalid.");
     if (auto opened = graph_.open(path); !opened) return opened;
     while (!graph_.at_end() || graph_.queued_frames() > 0) {
         if (!graph_.at_end()) {

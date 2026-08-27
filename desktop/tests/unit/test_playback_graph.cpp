@@ -5,9 +5,9 @@
 #include <string_view>
 #include <vector>
 
-#include <gtest/gtest.h>
-
 #include "audio/graph/playback_graph.hpp"
+
+#include <gtest/gtest.h>
 
 namespace eclipse::audio {
 namespace {
@@ -49,15 +49,20 @@ class FakeDecoder final : public IDecoder {
 class FakeSink final : public IAudioSink {
   public:
     Result<SinkConfig> open(const SinkConfig& requested) override { return requested; }
+
     Status start() override { return ok(); }
+
     void stop() noexcept override {}
+
     void close() noexcept override { closed = true; }
+
     Status write(const PlanarFrames frames) noexcept override {
         for (std::size_t i = 0; i < frames.frames; ++i) {
             received.push_back(frames.planes[0][i]);
         }
         return ok();
     }
+
     std::string_view device_name() const noexcept override { return "fake"; }
 
     std::vector<float> received;

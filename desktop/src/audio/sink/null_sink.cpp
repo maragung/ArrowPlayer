@@ -5,7 +5,8 @@ namespace eclipse::audio {
 
 Result<SinkConfig> NullSink::open(const SinkConfig& requested) {
     if (auto valid = requested.format.validate(); !valid) return std::move(valid).error();
-    if (requested.period_frames == 0) return err(ErrorCode::InvalidArgument, "The sink period is invalid.");
+    if (requested.period_frames == 0)
+        return err(ErrorCode::InvalidArgument, "The sink period is invalid.");
     config_ = requested;
     written_frames_ = 0;
     opened_ = true;
@@ -19,7 +20,9 @@ Status NullSink::start() {
     return ok();
 }
 
-void NullSink::stop() noexcept { started_ = false; }
+void NullSink::stop() noexcept {
+    started_ = false;
+}
 
 void NullSink::close() noexcept {
     started_ = false;

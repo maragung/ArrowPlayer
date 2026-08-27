@@ -35,7 +35,8 @@ int main(int argc, char** argv) {
         const AppInfo& info = application.info();
         const auto command = eclipse::app::parse_command_line(argc, argv);
         if (!command) {
-            (void)std::fprintf(stderr, "%s: %s\n",
+            (void)std::fprintf(stderr,
+                               "%s: %s\n",
                                eclipse::app::command_line_usage().data(),
                                command.error().technical_detail().c_str());
             return Application::exit_code_for(command.error());
@@ -59,8 +60,11 @@ int main(int argc, char** argv) {
             return Application::exit_code_for(started.error());
         }
 #if defined(ECLIPSE_WITH_UI)
-        const int code = eclipse::ui::run_shell(argc, argv, eclipse::ui::ShellInfo{
-            .version = info.version, .git_sha = info.git_sha, .git_dirty = info.git_dirty});
+        const int code = eclipse::ui::run_shell(
+            argc,
+            argv,
+            eclipse::ui::ShellInfo{
+                .version = info.version, .git_sha = info.git_sha, .git_dirty = info.git_dirty});
         static_cast<void>(application.lifecycle().shutdown());
         return code;
 #else

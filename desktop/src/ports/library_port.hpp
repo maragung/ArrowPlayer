@@ -35,7 +35,8 @@ class ILibrary {
 class ILibraryScanner {
   public:
     virtual ~ILibraryScanner() = default;
-    [[nodiscard]] virtual Result<std::vector<std::filesystem::path>> scan(const ScanRequest& request) const = 0;
+    [[nodiscard]] virtual Result<std::vector<std::filesystem::path>> scan(
+        const ScanRequest& request) const = 0;
 };
 
 }  // namespace eclipse::library

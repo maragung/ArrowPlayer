@@ -19,15 +19,17 @@ struct SinkFactoryOptions final {
     bool allow_null_fallback{true};
 };
 
-[[nodiscard]] Result<std::unique_ptr<IAudioSink>> make_sink(
-    SinkFactoryOptions options = {});
+[[nodiscard]] Result<std::unique_ptr<IAudioSink>> make_sink(SinkFactoryOptions options = {});
 
 [[nodiscard]] constexpr std::string_view sink_preference_name(
     const SinkPreference preference) noexcept {
     switch (preference) {
-        case SinkPreference::Automatic: return "automatic";
-        case SinkPreference::Null: return "null";
-        case SinkPreference::Alsa: return "alsa";
+        case SinkPreference::Automatic:
+            return "automatic";
+        case SinkPreference::Null:
+            return "null";
+        case SinkPreference::Alsa:
+            return "alsa";
     }
     return "unknown";
 }
