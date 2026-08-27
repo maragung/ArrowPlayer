@@ -133,21 +133,27 @@ jobs:
           path: ${{ runner.tool_cache }}/Qt
           key: qt-${{ runner.os }}-${{ hashFiles('desktop/qt-version.txt') }}
 
+      # Qt 6.8+ in the online repository bundles Qt Declarative, Qt Svg and
+      # Qt Tools into the base package (the repository restructured), and aqt
+      # 3.x lists the Linux arch as `linux_gcc_64`. So the only add-on this
+      # build needs is qtshadertools, and the arch is the full name. Both were
+      # learned the hard way: the first CI run failed with "packages were not
+      # found while parsing XML" for the old module list.
       - name: Install Qt (Linux)
         if: runner.os == 'Linux'
         working-directory: desktop
         run: |
           set -euo pipefail
           qtver="$(cat qt-version.txt)"
-          if [ -d "$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" ]; then
+          if [ -d "$RUNNER_TOOL_CACHE/Qt/$qtver/linux_gcc_64" ]; then
             echo "Qt $qtver already on disk — cache hit, not installing."
           else
             python3 -m pip install --quiet "aqtinstall==3.*"
-            aqt install-qt linux desktop "$qtver" gcc_64 \
-              -m qtdeclarative qtsvg qttools qtshadertools qtwayland \
+            aqt install-qt linux desktop "$qtver" linux_gcc_64 \
+              -m qtshadertools \
               -O "$RUNNER_TOOL_CACHE/Qt"
           fi
-          echo "CMAKE_PREFIX_PATH=$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=$RUNNER_TOOL_CACHE/Qt/$qtver/linux_gcc_64" >> "$GITHUB_ENV"
 
       - name: Install Qt (Windows)
         if: runner.os == 'Windows'
@@ -160,7 +166,7 @@ jobs:
           } else {
             python3 -m pip install --quiet "aqtinstall==3.*"
             aqt install-qt windows desktop $qtver win64_msvc2022_64 `
-              -m qtdeclarative qtsvg qttools qtshadertools `
+              -m qtshadertools `
               -O "$env:RUNNER_TOOL_CACHE\Qt"
           }
           "CMAKE_PREFIX_PATH=$env:RUNNER_TOOL_CACHE\Qt\$qtver\win64_msvc2022_64" `

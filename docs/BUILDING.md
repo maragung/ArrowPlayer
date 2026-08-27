@@ -167,12 +167,21 @@ binaries at the version pinned in `qt-version.txt`
 
 ```bash
 pip install "aqtinstall==3.*"
-aqt install-qt linux desktop "$(cat qt-version.txt)" gcc_64 \
-    -m qtdeclarative qtsvg qttools qtshadertools qtwayland -O "$HOME/Qt"
+aqt install-qt linux desktop "$(cat qt-version.txt)" linux_gcc_64 \
+    -m qtshadertools -O "$HOME/Qt"
 
-export CMAKE_PREFIX_PATH="$HOME/Qt/$(cat qt-version.txt)/gcc_64"
+export CMAKE_PREFIX_PATH="$HOME/Qt/$(cat qt-version.txt)/linux_gcc_64"
 cmake --preset linux-release
 ```
+
+Two notes on that command, both learned from the first CI run. Qt's online
+repository restructured: from 6.8 the base package already contains Qt
+Declarative, Qt Svg and Qt Tools, so the only add-on this build needs is
+`qtshadertools`, and asking for the old module names fails with "packages were
+not found while parsing XML". And aqt 3.x lists the Linux architecture as
+`linux_gcc_64` — the plain `gcc_64` no longer resolves. On Windows the
+architecture name is unchanged (`win64_msvc2022_64`) and the same single module
+applies.
 
 Qt **must be dynamically linked**. `cmake/EclipseDependencies.cmake` fails the
 configure step on a static Qt, because LGPL-3.0 requires that users be able to
