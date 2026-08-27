@@ -10,8 +10,10 @@ namespace {
 
 constexpr double kPi = std::numbers::pi;
 
-/// True when the filter is a no-op for a gain-bearing type.
-constexpr bool negligible_gain(double gain_db) noexcept {
+/// True when the filter is a no-op for a gain-bearing type. Runtime-only:
+/// `std::abs(double)` is not constexpr on MSVC (C3615), and this helper is
+/// only ever called from `design()`.
+bool negligible_gain(double gain_db) noexcept {
     return std::abs(gain_db) < 1e-9;
 }
 
