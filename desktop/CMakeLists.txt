@@ -119,7 +119,8 @@ target_link_libraries(eclipse-domain PUBLIC Threads::Threads)
 # ---------------------------------------------------------------------------
 add_library(eclipse-adapters INTERFACE)
 add_library(eclipse-audio-null STATIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/null_sink.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/null_sink.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/sink_factory.cpp")
 target_include_directories(eclipse-audio-null PUBLIC src)
 target_link_libraries(eclipse-audio-null PUBLIC eclipse-domain)
 eclipse_set_warnings(eclipse-audio-null)
@@ -136,10 +137,12 @@ eclipse_set_sanitizers(eclipse-audio-wav)
 eclipse_set_hardening(eclipse-audio-wav)
 target_compile_features(eclipse-audio-wav PUBLIC cxx_std_20)
 if(ECLIPSE_HAVE_ALSA)
-    # The factory dispatches to AlsaSink at runtime, so its compilation unit
-    # must live in the same library as alsa_sink.cpp — otherwise the vtable
-    # reference cannot be resolved at link time. We move the factory out of
-    # eclipse-audio-null and into eclipse-audio-alsa when ALSA is on.
+    # ALSA is on Linux only. The factory dispatches to AlsaSink at runtime,
+    # so its compilation unit must live in the same library as alsa_sink.cpp
+    # to resolve the vtable. We compile the factory twice — once in
+    # eclipse-audio-null (always) and once in eclipse-audio-alsa (when ALSA
+    # is on, with the AlsaSink vtable available) — and the executable links
+    # the variant that matches the current platform.
     target_compile_definitions(eclipse-audio-null PRIVATE ECLIPSE_HAVE_ALSA=1)
     add_library(eclipse-audio-alsa STATIC
         "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/alsa_sink.cpp"
