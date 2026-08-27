@@ -174,9 +174,11 @@ jobs:
           # when the build is unsigned. Bash glob `*` does not match the
           # `-` separator inside the ABI name, so the pattern needs a
           # second `*` to span "release" and the optional "-unsigned"
-          # suffix. The destination filename keeps the spec name.
+          # suffix. The regex below allows the underscore in `x86_64`
+          # to land in the ABI capture group. The destination filename
+          # keeps the spec name.
           for apk in android/app/build/outputs/apk/release/app-*-release*.apk; do
-            abi=$(basename "$apk" | sed -E 's/^app-([a-z0-9-]+)-release(-unsigned)?\.apk$/\1/')
+            abi=$(basename "$apk" | sed -E 's/^app-([a-z0-9_-]+)-release(-unsigned)?\.apk$/\1/')
             dest="$out_dir/eclipse-player-$version-android-$abi.apk"
             cp "$apk" "$dest"
             sha256sum "$dest" > "$dest.sha256"
