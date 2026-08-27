@@ -40,7 +40,6 @@ class FakeDecoder final : public IDecoder {
         return ok();
     }
 
-
     void close() noexcept override { opened = false; }
 
     std::array<float, 4> samples{1.0F, 2.0F, 3.0F, 4.0F};

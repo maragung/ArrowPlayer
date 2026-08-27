@@ -56,6 +56,9 @@ TEST(WavDecoder, ReadsPcmSamplesAndSeeks) {
     ASSERT_TRUE(decoder.seek(1));
     ASSERT_TRUE(decoder.read({planes, 1, 1}));
     EXPECT_NEAR(samples[0], 1.0F, 0.001F);
+    // Close the decoder before removing the file: on Windows, the OS keeps
+    // a write/delete lock on the open handle and remove() throws.
+    decoder.close();
     std::filesystem::remove(path);
 }
 

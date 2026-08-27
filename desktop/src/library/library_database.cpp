@@ -15,7 +15,11 @@ Status LibraryDatabase::execute(const std::string_view sql) const {
         return err(ErrorCode::InvalidState, "The library database is not open.");
     }
     char* message = nullptr;
-    const int result = sqlite3_exec(db_, sql.data(), nullptr, nullptr, &message);
+    // sqlite3_exec takes a NUL-terminated string. The std::string_view we
+    // receive is rarely terminated (e.g. the schema literal below), so we
+    // materialise a copy rather than read past the end of the view.
+    const std::string terminated(sql);
+    const int result = sqlite3_exec(db_, terminated.c_str(), nullptr, nullptr, &message);
     if (result != SQLITE_OK) {
         const std::string detail = message == nullptr ? sqlite3_errmsg(db_) : message;
         sqlite3_free(message);
