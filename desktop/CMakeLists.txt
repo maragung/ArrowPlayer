@@ -96,7 +96,13 @@ set(ECLIPSE_DOMAIN_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/biquad.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/equalizer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/decode/gapless_info.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/graph/playback_graph.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/playback_service.cpp"
 )
+
+
+# Playback ports and the SPSC ring are header-only contracts/primitives. They
+# are compiled by the domain consumers and intentionally require no adapter.
 add_library(eclipse-domain STATIC ${ECLIPSE_DOMAIN_SOURCES})
 target_include_directories(eclipse-domain PUBLIC
     include src "${CMAKE_BINARY_DIR}/generated")
@@ -112,7 +118,54 @@ target_link_libraries(eclipse-domain PUBLIC Threads::Threads)
 #  always configures.  §7.2: reachable only through layer-2 ports.
 # ---------------------------------------------------------------------------
 add_library(eclipse-adapters INTERFACE)
+add_library(eclipse-audio-null STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/null_sink.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/sink_factory.cpp")
+target_include_directories(eclipse-audio-null PUBLIC src)
+target_link_libraries(eclipse-audio-null PUBLIC eclipse-domain)
+eclipse_set_warnings(eclipse-audio-null)
+eclipse_set_sanitizers(eclipse-audio-null)
+eclipse_set_hardening(eclipse-audio-null)
+target_compile_features(eclipse-audio-null PUBLIC cxx_std_20)
+target_link_libraries(eclipse-adapters INTERFACE eclipse-audio-null)
+
+add_library(eclipse-audio-wav STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/decode/wav_decoder.cpp")
+target_include_directories(eclipse-audio-wav PUBLIC src)
+target_link_libraries(eclipse-audio-wav PUBLIC eclipse-domain)
+eclipse_set_warnings(eclipse-audio-wav)
+eclipse_set_sanitizers(eclipse-audio-wav)
+eclipse_set_hardening(eclipse-audio-wav)
+target_compile_features(eclipse-audio-wav PUBLIC cxx_std_20)
+target_link_libraries(eclipse-adapters INTERFACE eclipse-audio-wav)
+if(ECLIPSE_HAVE_ALSA)
+    target_compile_definitions(eclipse-audio-null PRIVATE ECLIPSE_HAVE_ALSA=1)
+    add_library(eclipse-audio-alsa STATIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/alsa_sink.cpp")
+    target_compile_definitions(eclipse-audio-alsa PRIVATE ECLIPSE_HAVE_ALSA=1)
+    target_include_directories(eclipse-audio-alsa PUBLIC src)
+    target_link_libraries(eclipse-audio-alsa PUBLIC eclipse-domain eclipse::alsa)
+    eclipse_set_warnings(eclipse-audio-alsa)
+    eclipse_set_sanitizers(eclipse-audio-alsa)
+    eclipse_set_hardening(eclipse-audio-alsa)
+    target_compile_features(eclipse-audio-alsa PUBLIC cxx_std_20)
+    target_link_libraries(eclipse-adapters INTERFACE eclipse-audio-alsa)
+endif()
 target_link_libraries(eclipse-adapters INTERFACE eclipse-domain)
+if(ECLIPSE_HAVE_SQLITE3)
+    add_library(eclipse-library-sqlite STATIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/library_database.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/filesystem_scanner.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/library_importer.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/sidecar_tag_reader.cpp")
+    target_include_directories(eclipse-library-sqlite PUBLIC src)
+    target_link_libraries(eclipse-library-sqlite PUBLIC eclipse-domain eclipse::sqlite3)
+    eclipse_set_warnings(eclipse-library-sqlite)
+    eclipse_set_sanitizers(eclipse-library-sqlite)
+    eclipse_set_hardening(eclipse-library-sqlite)
+    target_compile_features(eclipse-library-sqlite PUBLIC cxx_std_20)
+    target_link_libraries(eclipse-adapters INTERFACE eclipse-library-sqlite)
+endif()
 
 
 
@@ -132,6 +185,7 @@ target_link_libraries(eclipse-adapters INTERFACE eclipse-domain)
 set(ECLIPSE_APP_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_info.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/application.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/command_line.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/lifecycle.cpp"
 )
 add_library(eclipse-app STATIC ${ECLIPSE_APP_SOURCES})
@@ -175,7 +229,7 @@ endif()
 #  window can open rather than exiting 0 in silence.
 # ---------------------------------------------------------------------------
 add_executable(eclipse-player "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-target_link_libraries(eclipse-player PRIVATE eclipse-app)
+target_link_libraries(eclipse-player PRIVATE eclipse-app eclipse-audio-wav eclipse-audio-null)
 eclipse_set_warnings(eclipse-player)
 eclipse_set_sanitizers(eclipse-player)
 eclipse_set_hardening(eclipse-player)   # REQ-SEC-018
