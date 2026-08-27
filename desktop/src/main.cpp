@@ -36,17 +36,20 @@ int main(int argc, char** argv) {
     // lifecycle is still started and stopped rather than skipped.
     if (eclipse::Status started = application.lifecycle().start(); !started) {
         const eclipse::Error& error = started.error();
-        std::fprintf(stderr, "%s\n%s: %s\n", info.to_log_string().c_str(),
+        std::fprintf(stderr,
+                     "%s\n%s: %s\n",
+                     info.to_log_string().c_str(),
                      eclipse::to_string(error.code()).data(),
                      error.technical_detail().c_str());
         return Application::exit_code_for(error);
     }
 
 #if defined(ECLIPSE_WITH_UI)
-    const int code = eclipse::ui::run_shell(argc, argv,
+    const int code = eclipse::ui::run_shell(argc,
+                                            argv,
                                             eclipse::ui::ShellInfo{
-                                                .version   = info.version,
-                                                .git_sha   = info.git_sha,
+                                                .version = info.version,
+                                                .git_sha = info.git_sha,
                                                 .git_dirty = info.git_dirty,
                                             });
     static_cast<void>(application.lifecycle().shutdown());

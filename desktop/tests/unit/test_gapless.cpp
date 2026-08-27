@@ -6,15 +6,15 @@
 // requirement is sample-exactness (REQ-AUD-035), so every arithmetic result is
 // asserted exactly, never approximately.
 
-#include "audio/decode/gapless_info.hpp"
-
-#include <gtest/gtest.h>
-
 #include <cstring>
 #include <limits>
 #include <random>
 #include <string>
 #include <vector>
+
+#include "audio/decode/gapless_info.hpp"
+
+#include <gtest/gtest.h>
 
 using namespace eclipse;
 using namespace eclipse::audio;
@@ -29,24 +29,26 @@ std::uint16_t crc16(const std::uint8_t* data, std::size_t n) {
         crc ^= static_cast<std::uint16_t>(static_cast<std::uint32_t>(data[i]) << 8);
         for (int b = 0; b < 8; ++b) {
             crc = (crc & 0x8000u)
-                ? static_cast<std::uint16_t>(((static_cast<std::uint32_t>(crc) << 1) ^ 0x8005u) & 0xFFFFu)
-                : static_cast<std::uint16_t>((static_cast<std::uint32_t>(crc) << 1) & 0xFFFFu);
+                      ? static_cast<std::uint16_t>(
+                            ((static_cast<std::uint32_t>(crc) << 1) ^ 0x8005u) & 0xFFFFu)
+                      : static_cast<std::uint16_t>((static_cast<std::uint32_t>(crc) << 1) &
+                                                   0xFFFFu);
         }
     }
     return crc;
 }
 
 struct Mp3Options {
-    std::uint32_t delay       = 576;
-    std::uint32_t padding     = 1800;
+    std::uint32_t delay = 576;
+    std::uint32_t padding = 1800;
     std::uint32_t frame_count = 10000;
-    bool          use_info_magic = false;
-    bool          include_lame   = true;
-    bool          valid_crc      = true;
-    bool          zero_crc       = false;   ///< encoder did not compute a CRC
-    bool          mono           = false;
-    bool          include_toc    = false;
-    const char*   encoder        = "LAME3.100";
+    bool use_info_magic = false;
+    bool include_lame = true;
+    bool valid_crc = true;
+    bool zero_crc = false;  ///< encoder did not compute a CRC
+    bool mono = false;
+    bool include_toc = false;
+    const char* encoder = "LAME3.100";
 };
 
 /// Builds a plausible MPEG-1 Layer III frame containing a Xing/Info tag and,
@@ -56,9 +58,9 @@ std::vector<std::uint8_t> make_mp3_frame(const Mp3Options& o) {
 
     // Header: MPEG-1, Layer III, protection absent, 128 kbps, 44.1 kHz.
     f[0] = 0xFF;
-    f[1] = 0xFB;                                   // 1111 1011 -> MPEG1, L3, no CRC
-    f[2] = 0x90;                                   // bitrate idx 9 (128k), rate idx 0
-    f[3] = static_cast<std::uint8_t>(o.mono ? 0xC0 : 0x00);   // 11 = mono, 00 = stereo
+    f[1] = 0xFB;                                             // 1111 1011 -> MPEG1, L3, no CRC
+    f[2] = 0x90;                                             // bitrate idx 9 (128k), rate idx 0
+    f[3] = static_cast<std::uint8_t>(o.mono ? 0xC0 : 0x00);  // 11 = mono, 00 = stereo
 
     const std::size_t side_info = o.mono ? 17u : 32u;
     std::size_t at = 4 + side_info;
@@ -93,8 +95,8 @@ std::vector<std::uint8_t> make_mp3_frame(const Mp3Options& o) {
 
         // Delay/padding packed big-endian: 12 bits each across 3 bytes at +21.
         f[lame + 21] = static_cast<std::uint8_t>((o.delay >> 4) & 0xFFu);
-        f[lame + 22] = static_cast<std::uint8_t>(((o.delay & 0x0Fu) << 4) |
-                                                 ((o.padding >> 8) & 0x0Fu));
+        f[lame + 22] =
+            static_cast<std::uint8_t>(((o.delay & 0x0Fu) << 4) | ((o.padding >> 8) & 0x0Fu));
         f[lame + 23] = static_cast<std::uint8_t>(o.padding & 0xFFu);
 
         if (o.zero_crc) {
@@ -104,8 +106,7 @@ std::vector<std::uint8_t> make_mp3_frame(const Mp3Options& o) {
             // The CRC covers every frame byte preceding the CRC field, which is
             // 190 for LAME's own full-flag layout and less when the TOC is
             // omitted. Compute it the general way, matching the parser.
-            const std::uint16_t c =
-                o.valid_crc ? crc16(f.data(), lame + 34) : 0xDEAD;
+            const std::uint16_t c = o.valid_crc ? crc16(f.data(), lame + 34) : 0xDEAD;
             f[lame + 34] = static_cast<std::uint8_t>((c >> 8) & 0xFFu);
             f[lame + 35] = static_cast<std::uint8_t>(c & 0xFFu);
         }
@@ -120,11 +121,14 @@ std::vector<std::uint8_t> make_opus_head(std::uint16_t pre_skip,
                                          std::uint8_t mapping = 0) {
     std::vector<std::uint8_t> h(19, 0);
     std::memcpy(h.data(), "OpusHead", 8);
-    h[8]  = version;
-    h[9]  = channels;
+    h[8] = version;
+    h[9] = channels;
     h[10] = static_cast<std::uint8_t>(pre_skip & 0xFFu);
     h[11] = static_cast<std::uint8_t>((pre_skip >> 8) & 0xFFu);
-    h[12] = 0x80; h[13] = 0xBB; h[14] = 0x00; h[15] = 0x00;   // 48000 LE
+    h[12] = 0x80;
+    h[13] = 0xBB;
+    h[14] = 0x00;
+    h[15] = 0x00;  // 48000 LE
     const auto g = static_cast<std::uint16_t>(gain_q78);
     h[16] = static_cast<std::uint8_t>(g & 0xFFu);
     h[17] = static_cast<std::uint8_t>((g >> 8) & 0xFFu);
@@ -150,11 +154,12 @@ TEST(MpegHeader, ParsesMpeg1Layer3Stereo) {
     EXPECT_FALSE(h->is_mono);
     EXPECT_EQ(h->samples_per_frame, 1152u);
     EXPECT_EQ(h->side_info_bytes, 32u);
-    EXPECT_EQ(h->frame_bytes, 417u);   // 1152/8 * 128000 / 44100 = 417
+    EXPECT_EQ(h->frame_bytes, 417u);  // 1152/8 * 128000 / 44100 = 417
 }
 
 TEST(MpegHeader, MonoHasSmallerSideInfo) {
-    Mp3Options o; o.mono = true;
+    Mp3Options o;
+    o.mono = true;
     const auto f = make_mp3_frame(o);
     auto h = parse_mpeg_frame_header(f);
     ASSERT_TRUE(h.has_value());
@@ -177,7 +182,8 @@ TEST(MpegHeader, RejectsBadSyncWord) {
     ASSERT_FALSE(h.has_value());
     EXPECT_EQ(h.error().code(), ErrorCode::MalformedHeader);
 
-    buf[0] = 0xFF; buf[1] = 0x0B;      // sync bits incomplete
+    buf[0] = 0xFF;
+    buf[1] = 0x0B;  // sync bits incomplete
     EXPECT_FALSE(parse_mpeg_frame_header(buf).has_value());
 }
 
@@ -215,7 +221,7 @@ TEST(MpegHeader, Mpeg2HasHalfTheSamplesPerFrame) {
 }
 
 TEST(MpegHeader, Mpeg25IsRecognised) {
-    std::uint8_t buf[4] = {0xFF, 0xE3, 0x80, 0x00};   // version bits 00
+    std::uint8_t buf[4] = {0xFF, 0xE3, 0x80, 0x00};  // version bits 00
     auto h = parse_mpeg_frame_header(buf);
     ASSERT_TRUE(h.has_value()) << h.error().to_log_string();
     EXPECT_EQ(h->version, MpegVersion::Mpeg25);
@@ -228,7 +234,9 @@ TEST(MpegHeader, Mpeg25IsRecognised) {
 // ===========================================================================
 
 TEST(XingLame, ParsesDelayAndPaddingExactly) {
-    Mp3Options o; o.delay = 576; o.padding = 1800;
+    Mp3Options o;
+    o.delay = 576;
+    o.padding = 1800;
     const auto f = make_mp3_frame(o);
     auto tag = parse_xing_lame(f);
     ASSERT_TRUE(tag.has_value()) << tag.error().to_log_string();
@@ -244,7 +252,9 @@ TEST(XingLame, HandlesFullTwelveBitFieldRange) {
     // 12 bits each: 0..4095. Boundary values must survive the packing.
     for (const std::uint32_t d : {0u, 1u, 529u, 576u, 1152u, 4094u, 4095u}) {
         for (const std::uint32_t p : {0u, 1u, 529u, 530u, 4095u}) {
-            Mp3Options o; o.delay = d; o.padding = p;
+            Mp3Options o;
+            o.delay = d;
+            o.padding = p;
             const auto f = make_mp3_frame(o);
             auto tag = parse_xing_lame(f);
             ASSERT_TRUE(tag.has_value()) << "d=" << d << " p=" << p;
@@ -256,11 +266,13 @@ TEST(XingLame, HandlesFullTwelveBitFieldRange) {
 
 TEST(XingLame, AppliesSpecFormulaExactly) {
     // REQ-AUD-037:  skip_start = delay + 529 ; skip_end = max(0, padding - 529)
-    Mp3Options o; o.delay = 576; o.padding = 1800;
+    Mp3Options o;
+    o.delay = 576;
+    o.padding = 1800;
     const auto info = mp3_gapless_info(make_mp3_frame(o));
     EXPECT_EQ(info.source, GaplessSource::XingLame);
-    EXPECT_EQ(info.skip_start_frames, 576u + 529u);      // 1105
-    EXPECT_EQ(info.skip_end_frames, 1800u - 529u);       // 1271
+    EXPECT_EQ(info.skip_start_frames, 576u + 529u);  // 1105
+    EXPECT_EQ(info.skip_end_frames, 1800u - 529u);   // 1271
     EXPECT_EQ(info.valid_frames, 10000ull * 1152ull);
 }
 
@@ -268,16 +280,21 @@ TEST(XingLame, ClampsSkipEndAtZeroWhenPaddingIsSmall) {
     // padding < 529 must yield 0, never a wrapped huge unsigned value. This is
     // exactly the bug the max(0, ...) in the spec formula exists to prevent.
     for (const std::uint32_t p : {0u, 1u, 100u, 528u, 529u}) {
-        Mp3Options o; o.delay = 576; o.padding = p;
+        Mp3Options o;
+        o.delay = 576;
+        o.padding = p;
         const auto info = mp3_gapless_info(make_mp3_frame(o));
         EXPECT_EQ(info.skip_end_frames, 0u) << "padding=" << p;
     }
-    Mp3Options o; o.delay = 576; o.padding = 530;
+    Mp3Options o;
+    o.delay = 576;
+    o.padding = 530;
     EXPECT_EQ(mp3_gapless_info(make_mp3_frame(o)).skip_end_frames, 1u);
 }
 
 TEST(XingLame, InfoMagicIsAcceptedLikeXing) {
-    Mp3Options o; o.use_info_magic = true;
+    Mp3Options o;
+    o.use_info_magic = true;
     auto tag = parse_xing_lame(make_mp3_frame(o));
     ASSERT_TRUE(tag.has_value());
     EXPECT_TRUE(tag->is_info_magic);
@@ -288,7 +305,10 @@ TEST(XingLame, InfoMagicIsAcceptedLikeXing) {
 TEST(XingLame, TocIsSkippedCorrectly) {
     // With a TOC present the LAME extension moves 100 bytes later; if the
     // offset walk is wrong the delay/padding come out as garbage.
-    Mp3Options o; o.include_toc = true; o.delay = 1000; o.padding = 2000;
+    Mp3Options o;
+    o.include_toc = true;
+    o.delay = 1000;
+    o.padding = 2000;
     auto tag = parse_xing_lame(make_mp3_frame(o));
     ASSERT_TRUE(tag.has_value());
     EXPECT_TRUE(tag->has_toc);
@@ -297,7 +317,10 @@ TEST(XingLame, TocIsSkippedCorrectly) {
 }
 
 TEST(XingLame, MonoLayoutIsHandled) {
-    Mp3Options o; o.mono = true; o.delay = 800; o.padding = 900;
+    Mp3Options o;
+    o.mono = true;
+    o.delay = 800;
+    o.padding = 900;
     auto tag = parse_xing_lame(make_mp3_frame(o));
     ASSERT_TRUE(tag.has_value());
     EXPECT_EQ(tag->encoder_delay, 800u);
@@ -306,7 +329,8 @@ TEST(XingLame, MonoLayoutIsHandled) {
 
 TEST(XingLame, MissingLameFallsBackToDecoderDelayOnly) {
     // REQ-AUD-038: no LAME tag -> skip_start = 529, skip_end = 0, source None.
-    Mp3Options o; o.include_lame = false;
+    Mp3Options o;
+    o.include_lame = false;
     const auto info = mp3_gapless_info(make_mp3_frame(o));
     EXPECT_EQ(info.source, GaplessSource::None);
     EXPECT_EQ(info.skip_start_frames, kMp3DecoderDelay);
@@ -316,7 +340,10 @@ TEST(XingLame, MissingLameFallsBackToDecoderDelayOnly) {
 
 TEST(XingLame, CrcInvalidTagIsIgnored) {
     // REQ-AUD-039: a tag failing CRC must be ignored, not trusted.
-    Mp3Options o; o.valid_crc = false; o.delay = 576; o.padding = 1800;
+    Mp3Options o;
+    o.valid_crc = false;
+    o.delay = 576;
+    o.padding = 1800;
     const auto f = make_mp3_frame(o);
 
     auto tag = parse_xing_lame(f);
@@ -333,7 +360,10 @@ TEST(XingLame, CrcInvalidTagIsIgnored) {
 TEST(XingLame, ZeroCrcMeansNotComputedAndIsAccepted) {
     // Many encoders leave the CRC field zero; refusing those would break
     // gapless on a large slice of real libraries.
-    Mp3Options o; o.zero_crc = true; o.delay = 576; o.padding = 1800;
+    Mp3Options o;
+    o.zero_crc = true;
+    o.delay = 576;
+    o.padding = 1800;
     const auto info = mp3_gapless_info(make_mp3_frame(o));
     EXPECT_EQ(info.source, GaplessSource::XingLame);
     EXPECT_EQ(info.skip_start_frames, 1105u);
@@ -341,7 +371,10 @@ TEST(XingLame, ZeroCrcMeansNotComputedAndIsAccepted) {
 
 TEST(XingLame, RejectsImplausibleTrimLargerThanStream) {
     // A 1-frame stream cannot have thousands of samples trimmed.
-    Mp3Options o; o.frame_count = 1; o.delay = 4095; o.padding = 4095;
+    Mp3Options o;
+    o.frame_count = 1;
+    o.delay = 4095;
+    o.padding = 4095;
     const auto info = mp3_gapless_info(make_mp3_frame(o));
     EXPECT_EQ(info.source, GaplessSource::None);
     EXPECT_EQ(info.skip_start_frames, kMp3DecoderDelay);
@@ -349,7 +382,10 @@ TEST(XingLame, RejectsImplausibleTrimLargerThanStream) {
 
 TEST(XingLame, NoXingMagicIsReportedNotCrashed) {
     std::vector<std::uint8_t> f(1024, 0);
-    f[0] = 0xFF; f[1] = 0xFB; f[2] = 0x90; f[3] = 0x00;
+    f[0] = 0xFF;
+    f[1] = 0xFB;
+    f[2] = 0x90;
+    f[3] = 0x00;
     auto tag = parse_xing_lame(f);
     EXPECT_FALSE(tag.has_value());
     // And the convenience wrapper still yields a usable fallback.
@@ -378,7 +414,8 @@ TEST(XingLame, TruncatedFrameIsRejectedAtEveryLength) {
         EXPECT_LE(info.skip_start_frames, 4095u + kMp3DecoderDelay) << "n=" << n;
         EXPECT_LE(info.skip_end_frames, 4095u) << "n=" << n;
         EXPECT_TRUE(info.source == GaplessSource::None ||
-                    info.source == GaplessSource::XingLame) << "n=" << n;
+                    info.source == GaplessSource::XingLame)
+            << "n=" << n;
     }
 }
 
@@ -486,7 +523,7 @@ TEST(OpusHeadParse, ParsesPreSkipAndGain) {
 
 TEST(OpusHeadParse, OutputGainIsQ7Point8Signed) {
     // +256 in Q7.8 is +1.0 dB; -256 is -1.0 dB. Sign handling is the risk here.
-    EXPECT_DOUBLE_EQ(parse_opus_head(make_opus_head(312,  256))->output_gain_db(),  1.0);
+    EXPECT_DOUBLE_EQ(parse_opus_head(make_opus_head(312, 256))->output_gain_db(), 1.0);
     EXPECT_DOUBLE_EQ(parse_opus_head(make_opus_head(312, -256))->output_gain_db(), -1.0);
     EXPECT_DOUBLE_EQ(parse_opus_head(make_opus_head(312, -1536))->output_gain_db(), -6.0);
     EXPECT_NEAR(parse_opus_head(make_opus_head(312, 128))->output_gain_db(), 0.5, 1e-12);
@@ -668,7 +705,7 @@ TEST(SourceNames, AreStable) {
 // ===========================================================================
 
 TEST(Robustness, RandomBuffersNeverCrashOrHang) {
-    std::mt19937 rng{0xC0FFEEu};                    // fixed seed: reproducible
+    std::mt19937 rng{0xC0FFEEu};  // fixed seed: reproducible
     std::uniform_int_distribution<int> byte{0, 255};
 
     for (int iter = 0; iter < 3000; ++iter) {
@@ -713,7 +750,7 @@ TEST(Robustness, RandomItunSmpbStringsAreSafe) {
             // Whatever it accepted must be internally consistent.
             if (r->valid_frames != kUnknownFrames) {
                 EXPECT_LE(static_cast<std::uint64_t>(r->skip_start_frames) +
-                          static_cast<std::uint64_t>(r->skip_end_frames),
+                              static_cast<std::uint64_t>(r->skip_end_frames),
                           r->valid_frames);
             }
         }

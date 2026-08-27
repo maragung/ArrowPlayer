@@ -7,12 +7,18 @@ namespace eclipse::app {
 
 std::string_view to_string(LifecycleState state) noexcept {
     switch (state) {
-        case LifecycleState::Created:      return "created";
-        case LifecycleState::Starting:     return "starting";
-        case LifecycleState::Running:      return "running";
-        case LifecycleState::ShuttingDown: return "shutting-down";
-        case LifecycleState::Stopped:      return "stopped";
-        case LifecycleState::Failed:       return "failed";
+        case LifecycleState::Created:
+            return "created";
+        case LifecycleState::Starting:
+            return "starting";
+        case LifecycleState::Running:
+            return "running";
+        case LifecycleState::ShuttingDown:
+            return "shutting-down";
+        case LifecycleState::Stopped:
+            return "stopped";
+        case LifecycleState::Failed:
+            return "failed";
     }
     return "unknown";
 }
@@ -33,7 +39,8 @@ Status Lifecycle::add_step(std::string name, StartFn start, StopFn stop) {
         return err(ErrorCode::InvalidState,
                    "A startup step was added after startup had already begun.",
                    "Lifecycle::add_step for step '" + name + "' while state is " +
-                       std::string{to_string(state_)} + "; steps are fixed once start() runs, "
+                       std::string{to_string(state_)} +
+                       "; steps are fixed once start() runs, "
                        "because a step appended later would never be stopped.");
     }
     steps_.push_back(Step{std::move(name), std::move(start), std::move(stop)});
@@ -56,8 +63,8 @@ Status Lifecycle::start() {
             Error failure = std::move(result).error();
             // Record which step failed before unwinding, so the message survives
             // whatever the teardown of the earlier steps does.
-            const std::string detail = "startup step '" + step.name + "' failed: " +
-                                       failure.technical_detail();
+            const std::string detail =
+                "startup step '" + step.name + "' failed: " + failure.technical_detail();
             unwind();
             state_ = LifecycleState::Failed;
             return failure.with_detail(detail);

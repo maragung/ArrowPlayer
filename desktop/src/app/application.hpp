@@ -26,18 +26,19 @@ namespace eclipse::app {
 ///
 /// Not thread-safe; see Lifecycle. Construct and drive it from the main thread.
 class Application {
-public:
+  public:
     // Exit codes. The values follow the BSD sysexits convention rather than
     // being invented here, because a shell script or a systemd unit that wraps
     // the player can act on them, and 1-for-everything cannot be acted on.
-    static constexpr int kExitOk            = 0;
+    static constexpr int kExitOk = 0;
     static constexpr int kExitStartupFailed = 70;  ///< EX_SOFTWARE
-    static constexpr int kExitUnavailable   = 69;  ///< EX_UNAVAILABLE
+    static constexpr int kExitUnavailable = 69;    ///< EX_UNAVAILABLE
 
     explicit Application(AppInfo info) noexcept : info_{info} {}
 
     [[nodiscard]] const AppInfo& info() const noexcept { return info_; }
-    [[nodiscard]] Lifecycle&     lifecycle() noexcept { return lifecycle_; }
+
+    [[nodiscard]] Lifecycle& lifecycle() noexcept { return lifecycle_; }
 
     /// Process exit code for an error that reached main().
     ///
@@ -46,8 +47,8 @@ public:
     /// two different codes.
     [[nodiscard]] static int exit_code_for(const Error& error) noexcept;
 
-private:
-    AppInfo   info_;
+  private:
+    AppInfo info_;
     Lifecycle lifecycle_;
 };
 

@@ -14,7 +14,9 @@ namespace {
 constexpr char32_t kReplacement = 0xFFFD;
 
 // Continuation-byte check.
-constexpr bool is_cont(unsigned char c) noexcept { return (c & 0xC0u) == 0x80u; }
+constexpr bool is_cont(unsigned char c) noexcept {
+    return (c & 0xC0u) == 0x80u;
+}
 
 }  // namespace
 
@@ -28,17 +30,32 @@ char32_t decode_utf8(std::string_view s, std::size_t& pos) noexcept {
     const unsigned char c0 = p[pos];
 
     // 1-byte / ASCII
-    if (c0 < 0x80u) { ++pos; return c0; }
+    if (c0 < 0x80u) {
+        ++pos;
+        return c0;
+    }
 
     // Lone continuation byte or invalid lead -> replacement, advance 1.
-    if (c0 < 0xC2u) { ++pos; return kReplacement; }
+    if (c0 < 0xC2u) {
+        ++pos;
+        return kReplacement;
+    }
 
     std::size_t need = 0;
     char32_t cp = 0;
-    if (c0 < 0xE0u)      { need = 1; cp = c0 & 0x1Fu; }
-    else if (c0 < 0xF0u) { need = 2; cp = c0 & 0x0Fu; }
-    else if (c0 < 0xF5u) { need = 3; cp = c0 & 0x07u; }
-    else                 { ++pos; return kReplacement; }
+    if (c0 < 0xE0u) {
+        need = 1;
+        cp = c0 & 0x1Fu;
+    } else if (c0 < 0xF0u) {
+        need = 2;
+        cp = c0 & 0x0Fu;
+    } else if (c0 < 0xF5u) {
+        need = 3;
+        cp = c0 & 0x07u;
+    } else {
+        ++pos;
+        return kReplacement;
+    }
 
     // We need bytes at pos+1 .. pos+need, so pos+need must be a valid index.
     if (pos + need >= s.size()) {
@@ -47,7 +64,10 @@ char32_t decode_utf8(std::string_view s, std::size_t& pos) noexcept {
     }
     for (std::size_t i = 1; i <= need; ++i) {
         const unsigned char ci = p[pos + i];
-        if (!is_cont(ci)) { ++pos; return kReplacement; }
+        if (!is_cont(ci)) {
+            ++pos;
+            return kReplacement;
+        }
         cp = (cp << 6) | (ci & 0x3Fu);
     }
 
@@ -101,13 +121,19 @@ void encode_utf8(char32_t cp, std::string& out) {
 
 std::size_t utf8_length(std::string_view s) noexcept {
     std::size_t pos = 0, n = 0;
-    while (pos < s.size()) { (void)decode_utf8(s, pos); ++n; }
+    while (pos < s.size()) {
+        (void)decode_utf8(s, pos);
+        ++n;
+    }
     return n;
 }
 
 std::size_t utf8_offset_of(std::string_view s, std::size_t n) noexcept {
     std::size_t pos = 0, i = 0;
-    while (pos < s.size() && i < n) { (void)decode_utf8(s, pos); ++i; }
+    while (pos < s.size() && i < n) {
+        (void)decode_utf8(s, pos);
+        ++i;
+    }
     return pos;
 }
 
@@ -116,7 +142,10 @@ std::string utf8_substr(std::string_view s, std::size_t start, std::size_t count
     if (b >= s.size()) return {};
     if (count == std::string_view::npos) return std::string{s.substr(b)};
     std::size_t pos = b, i = 0;
-    while (pos < s.size() && i < count) { (void)decode_utf8(s, pos); ++i; }
+    while (pos < s.size() && i < count) {
+        (void)decode_utf8(s, pos);
+        ++i;
+    }
     return std::string{s.substr(b, pos - b)};
 }
 
@@ -176,54 +205,113 @@ char32_t to_upper(char32_t cp) noexcept {
 char32_t strip_diacritic(char32_t cp) noexcept {
     // Latin-1 Supplement.
     switch (cp) {
-        case 0x00C0: case 0x00C1: case 0x00C2: case 0x00C3: case 0x00C4: case 0x00C5:
+        case 0x00C0:
+        case 0x00C1:
+        case 0x00C2:
+        case 0x00C3:
+        case 0x00C4:
+        case 0x00C5:
             return U'A';
-        case 0x00C6: return U'A';                       // AE -> A (single-char fold)
-        case 0x00C7: return U'C';
-        case 0x00C8: case 0x00C9: case 0x00CA: case 0x00CB: return U'E';
-        case 0x00CC: case 0x00CD: case 0x00CE: case 0x00CF: return U'I';
-        case 0x00D0: return U'D';
-        case 0x00D1: return U'N';
-        case 0x00D2: case 0x00D3: case 0x00D4: case 0x00D5: case 0x00D6: case 0x00D8:
+        case 0x00C6:
+            return U'A';  // AE -> A (single-char fold)
+        case 0x00C7:
+            return U'C';
+        case 0x00C8:
+        case 0x00C9:
+        case 0x00CA:
+        case 0x00CB:
+            return U'E';
+        case 0x00CC:
+        case 0x00CD:
+        case 0x00CE:
+        case 0x00CF:
+            return U'I';
+        case 0x00D0:
+            return U'D';
+        case 0x00D1:
+            return U'N';
+        case 0x00D2:
+        case 0x00D3:
+        case 0x00D4:
+        case 0x00D5:
+        case 0x00D6:
+        case 0x00D8:
             return U'O';
-        case 0x00D9: case 0x00DA: case 0x00DB: case 0x00DC: return U'U';
-        case 0x00DD: return U'Y';
-        case 0x00DE: return U'T';                       // thorn
-        case 0x00DF: return U's';                       // sharp s -> s
-        case 0x00E0: case 0x00E1: case 0x00E2: case 0x00E3: case 0x00E4: case 0x00E5:
+        case 0x00D9:
+        case 0x00DA:
+        case 0x00DB:
+        case 0x00DC:
+            return U'U';
+        case 0x00DD:
+            return U'Y';
+        case 0x00DE:
+            return U'T';  // thorn
+        case 0x00DF:
+            return U's';  // sharp s -> s
+        case 0x00E0:
+        case 0x00E1:
+        case 0x00E2:
+        case 0x00E3:
+        case 0x00E4:
+        case 0x00E5:
             return U'a';
-        case 0x00E6: return U'a';
-        case 0x00E7: return U'c';
-        case 0x00E8: case 0x00E9: case 0x00EA: case 0x00EB: return U'e';
-        case 0x00EC: case 0x00ED: case 0x00EE: case 0x00EF: return U'i';
-        case 0x00F0: return U'd';
-        case 0x00F1: return U'n';
-        case 0x00F2: case 0x00F3: case 0x00F4: case 0x00F5: case 0x00F6: case 0x00F8:
+        case 0x00E6:
+            return U'a';
+        case 0x00E7:
+            return U'c';
+        case 0x00E8:
+        case 0x00E9:
+        case 0x00EA:
+        case 0x00EB:
+            return U'e';
+        case 0x00EC:
+        case 0x00ED:
+        case 0x00EE:
+        case 0x00EF:
+            return U'i';
+        case 0x00F0:
+            return U'd';
+        case 0x00F1:
+            return U'n';
+        case 0x00F2:
+        case 0x00F3:
+        case 0x00F4:
+        case 0x00F5:
+        case 0x00F6:
+        case 0x00F8:
             return U'o';
-        case 0x00F9: case 0x00FA: case 0x00FB: case 0x00FC: return U'u';
-        case 0x00FD: case 0x00FF: return U'y';
-        case 0x00FE: return U't';
-        default: break;
+        case 0x00F9:
+        case 0x00FA:
+        case 0x00FB:
+        case 0x00FC:
+            return U'u';
+        case 0x00FD:
+        case 0x00FF:
+            return U'y';
+        case 0x00FE:
+            return U't';
+        default:
+            break;
     }
     // Latin Extended-A, grouped by base letter.
     if (cp >= 0x0100u && cp <= 0x017Fu) {
         static constexpr std::array<char32_t, 128> kBase = {
-            /*0100*/ U'A',U'a',U'A',U'a',U'A',U'a',U'C',U'c',
-            /*0108*/ U'C',U'c',U'C',U'c',U'C',U'c',U'D',U'd',
-            /*0110*/ U'D',U'd',U'E',U'e',U'E',U'e',U'E',U'e',
-            /*0118*/ U'E',U'e',U'E',U'e',U'G',U'g',U'G',U'g',
-            /*0120*/ U'G',U'g',U'G',U'g',U'H',U'h',U'H',U'h',
-            /*0128*/ U'I',U'i',U'I',U'i',U'I',U'i',U'I',U'i',
-            /*0130*/ U'I',U'i',U'I',U'i',U'J',U'j',U'K',U'k',
-            /*0138*/ U'k',U'L',U'l',U'L',U'l',U'L',U'l',U'L',
-            /*0140*/ U'l',U'L',U'l',U'N',U'n',U'N',U'n',U'N',
-            /*0148*/ U'n',U'n',U'N',U'n',U'O',U'o',U'O',U'o',
-            /*0150*/ U'O',U'o',U'O',U'o',U'R',U'r',U'R',U'r',
-            /*0158*/ U'R',U'r',U'S',U's',U'S',U's',U'S',U's',
-            /*0160*/ U'S',U's',U'T',U't',U'T',U't',U'T',U't',
-            /*0168*/ U'U',U'u',U'U',U'u',U'U',U'u',U'U',U'u',
-            /*0170*/ U'U',U'u',U'U',U'u',U'W',U'w',U'Y',U'y',
-            /*0178*/ U'Y',U'Z',U'z',U'Z',U'z',U'Z',U'z',U's',
+            /*0100*/ U'A', U'a', U'A', U'a', U'A', U'a', U'C', U'c',
+            /*0108*/ U'C', U'c', U'C', U'c', U'C', U'c', U'D', U'd',
+            /*0110*/ U'D', U'd', U'E', U'e', U'E', U'e', U'E', U'e',
+            /*0118*/ U'E', U'e', U'E', U'e', U'G', U'g', U'G', U'g',
+            /*0120*/ U'G', U'g', U'G', U'g', U'H', U'h', U'H', U'h',
+            /*0128*/ U'I', U'i', U'I', U'i', U'I', U'i', U'I', U'i',
+            /*0130*/ U'I', U'i', U'I', U'i', U'J', U'j', U'K', U'k',
+            /*0138*/ U'k', U'L', U'l', U'L', U'l', U'L', U'l', U'L',
+            /*0140*/ U'l', U'L', U'l', U'N', U'n', U'N', U'n', U'N',
+            /*0148*/ U'n', U'n', U'N', U'n', U'O', U'o', U'O', U'o',
+            /*0150*/ U'O', U'o', U'O', U'o', U'R', U'r', U'R', U'r',
+            /*0158*/ U'R', U'r', U'S', U's', U'S', U's', U'S', U's',
+            /*0160*/ U'S', U's', U'T', U't', U'T', U't', U'T', U't',
+            /*0168*/ U'U', U'u', U'U', U'u', U'U', U'u', U'U', U'u',
+            /*0170*/ U'U', U'u', U'U', U'u', U'W', U'w', U'Y', U'y',
+            /*0178*/ U'Y', U'Z', U'z', U'Z', U'z', U'Z', U'z', U's',
         };
         return kBase[cp - 0x0100u];
     }
@@ -267,15 +355,22 @@ std::string to_title(std::string_view s) {
 // =========================================================================
 
 bool is_space(char32_t cp) noexcept {
-    return cp == U' ' || cp == U'\t' || cp == U'\n' || cp == U'\r' ||
-           cp == U'\v' || cp == U'\f' || cp == 0x00A0u || cp == 0x2028u ||
-           cp == 0x2029u || cp == 0x3000u || (cp >= 0x2000u && cp <= 0x200Au);
+    return cp == U' ' || cp == U'\t' || cp == U'\n' || cp == U'\r' || cp == U'\v' ||
+           cp == U'\f' || cp == 0x00A0u || cp == 0x2028u || cp == 0x2029u || cp == 0x3000u ||
+           (cp >= 0x2000u && cp <= 0x200Au);
 }
-bool is_digit(char32_t cp) noexcept { return cp >= U'0' && cp <= U'9'; }
+
+bool is_digit(char32_t cp) noexcept {
+    return cp >= U'0' && cp <= U'9';
+}
+
 bool is_alpha(char32_t cp) noexcept {
     return (cp >= U'a' && cp <= U'z') || (cp >= U'A' && cp <= U'Z') || cp >= 0x00C0u;
 }
-bool is_alnum(char32_t cp) noexcept { return is_alpha(cp) || is_digit(cp); }
+
+bool is_alnum(char32_t cp) noexcept {
+    return is_alpha(cp) || is_digit(cp);
+}
 
 std::string_view trim_left(std::string_view s) noexcept {
     std::size_t pos = 0;
@@ -299,7 +394,9 @@ std::string_view trim_right(std::string_view s) noexcept {
     return s;
 }
 
-std::string_view trim(std::string_view s) noexcept { return trim_right(trim_left(s)); }
+std::string_view trim(std::string_view s) noexcept {
+    return trim_right(trim_left(s));
+}
 
 std::string collapse_whitespace(std::string_view s) {
     std::string out;
@@ -341,8 +438,7 @@ bool istarts_with(std::string_view s, std::string_view prefix) noexcept {
 }
 
 bool iends_with(std::string_view s, std::string_view suffix) noexcept {
-    return s.size() >= suffix.size() &&
-           iequals(s.substr(s.size() - suffix.size()), suffix);
+    return s.size() >= suffix.size() && iequals(s.substr(s.size() - suffix.size()), suffix);
 }
 
 bool icontains(std::string_view s, std::string_view needle) noexcept {
@@ -425,8 +521,9 @@ std::vector<std::string> split_multi(std::string_view s,
                                      const std::vector<std::string>& separators) {
     // Longest separator first, so " / " wins over "/".
     std::vector<std::string> seps = separators;
-    std::sort(seps.begin(), seps.end(),
-              [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
+    std::sort(seps.begin(), seps.end(), [](const std::string& a, const std::string& b) {
+        return a.size() > b.size();
+    });
 
     std::vector<std::string> out;
     std::string current;
@@ -448,9 +545,9 @@ std::vector<std::string> split_multi(std::string_view s,
     out.emplace_back(trim(current));
 
     // Drop empties produced by leading/trailing/doubled separators.
-    out.erase(std::remove_if(out.begin(), out.end(),
-                             [](const std::string& v) { return v.empty(); }),
-              out.end());
+    out.erase(
+        std::remove_if(out.begin(), out.end(), [](const std::string& v) { return v.empty(); }),
+        out.end());
     return out;
 }
 
@@ -470,7 +567,10 @@ std::string replace_all(std::string_view s, std::string_view find, std::string_v
     std::size_t start = 0;
     while (true) {
         const std::size_t at = s.find(find, start);
-        if (at == std::string_view::npos) { out.append(s.substr(start)); break; }
+        if (at == std::string_view::npos) {
+            out.append(s.substr(start));
+            break;
+        }
         out.append(s.substr(start, at - start));
         out.append(repl);
         start = at + find.size();
@@ -488,7 +588,10 @@ bool parse_int(std::string_view s, std::int64_t& out) noexcept {
 
     std::size_t i = 0;
     bool negative = false;
-    if (t[0] == '+' || t[0] == '-') { negative = (t[0] == '-'); i = 1; }
+    if (t[0] == '+' || t[0] == '-') {
+        negative = (t[0] == '-');
+        i = 1;
+    }
     if (i >= t.size()) return false;
 
     // The magnitude limit is asymmetric: int64 reaches 2^63 going down but only
@@ -502,11 +605,14 @@ bool parse_int(std::string_view s, std::int64_t& out) noexcept {
     for (; i < t.size(); ++i) {
         if (t[i] < '0' || t[i] > '9') return false;
         const std::uint64_t digit = static_cast<std::uint64_t>(t[i] - '0');
-        if (acc > (limit - digit) / 10) return false;   // overflow
+        if (acc > (limit - digit) / 10) return false;  // overflow
         acc = acc * 10 + digit;
     }
 
-    if (!negative) { out = static_cast<std::int64_t>(acc); return true; }
+    if (!negative) {
+        out = static_cast<std::int64_t>(acc);
+        return true;
+    }
     // Negating 2^63 as int64 is undefined, so INT64_MIN is named, not computed.
     out = (acc == kMaxPositive + 1u) ? std::numeric_limits<std::int64_t>::min()
                                      : -static_cast<std::int64_t>(acc);
@@ -533,10 +639,14 @@ bool parse_hex(std::string_view s, std::uint64_t& out) noexcept {
     std::uint64_t acc = 0;
     for (const char c : t) {
         std::uint64_t d;
-        if (c >= '0' && c <= '9')      d = static_cast<std::uint64_t>(c - '0');
-        else if (c >= 'a' && c <= 'f') d = static_cast<std::uint64_t>(c - 'a' + 10);
-        else if (c >= 'A' && c <= 'F') d = static_cast<std::uint64_t>(c - 'A' + 10);
-        else return false;
+        if (c >= '0' && c <= '9')
+            d = static_cast<std::uint64_t>(c - '0');
+        else if (c >= 'a' && c <= 'f')
+            d = static_cast<std::uint64_t>(c - 'a' + 10);
+        else if (c >= 'A' && c <= 'F')
+            d = static_cast<std::uint64_t>(c - 'A' + 10);
+        else
+            return false;
         acc = (acc << 4) | d;
     }
     out = acc;
@@ -547,7 +657,8 @@ bool parse_hex(std::string_view s, std::uint64_t& out) noexcept {
 //  Glob and edit distance
 // =========================================================================
 
-bool glob_match(std::string_view pattern, std::string_view subject,
+bool glob_match(std::string_view pattern,
+                std::string_view subject,
                 bool case_sensitive) noexcept {
     // Iterative backtracking: linear space, no recursion, so a hostile pattern
     // cannot blow the stack (contrast with regex, excluded by REQ-PLS-013).
@@ -571,27 +682,42 @@ bool glob_match(std::string_view pattern, std::string_view subject,
             for (; i < pattern.size() && (pattern[i] != ']' || i == close); ++i) {
                 if (i + 2 < pattern.size() && pattern[i + 1] == '-' && pattern[i + 2] != ']') {
                     if (norm(subject[s]) >= norm(pattern[i]) &&
-                        norm(subject[s]) <= norm(pattern[i + 2])) matched = true;
+                        norm(subject[s]) <= norm(pattern[i + 2]))
+                        matched = true;
                     i += 2;
                 } else if (norm(pattern[i]) == norm(subject[s])) {
                     matched = true;
                 }
             }
-            if (i < pattern.size() && matched != negate) { p = i + 1; ++s; continue; }
-        } else if (p < pattern.size() && (pattern[p] == '?' || norm(pattern[p]) == norm(subject[s]))) {
-            ++p; ++s; continue;
+            if (i < pattern.size() && matched != negate) {
+                p = i + 1;
+                ++s;
+                continue;
+            }
+        } else if (p < pattern.size() &&
+                   (pattern[p] == '?' || norm(pattern[p]) == norm(subject[s]))) {
+            ++p;
+            ++s;
+            continue;
         } else if (p < pattern.size() && pattern[p] == '*') {
-            star_p = p++; star_s = s; continue;
+            star_p = p++;
+            star_s = s;
+            continue;
         }
 
-        if (star_p != std::string_view::npos) { p = star_p + 1; s = ++star_s; continue; }
+        if (star_p != std::string_view::npos) {
+            p = star_p + 1;
+            s = ++star_s;
+            continue;
+        }
         return false;
     }
     while (p < pattern.size() && pattern[p] == '*') ++p;
     return p == pattern.size();
 }
 
-std::size_t edit_distance(std::string_view a, std::string_view b,
+std::size_t edit_distance(std::string_view a,
+                          std::string_view b,
                           std::size_t max_distance) noexcept {
     const std::size_t n = a.size(), m = b.size();
     if (n > m + max_distance || m > n + max_distance) return max_distance + 1;
@@ -609,7 +735,7 @@ std::size_t edit_distance(std::string_view a, std::string_view b,
             const std::size_t cost = (a[i - 1] == b[j - 1]) ? 0u : 1u;
             std::size_t v = std::min({prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost});
             if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1])
-                v = std::min(v, prev2[j - 2] + 1);   // transposition
+                v = std::min(v, prev2[j - 2] + 1);  // transposition
             cur[j] = v;
             row_min = std::min(row_min, v);
         }
@@ -626,7 +752,7 @@ std::size_t edit_distance(std::string_view a, std::string_view b,
 
 bool is_unsafe_relative_path(std::string_view p) noexcept {
     if (p.empty()) return true;
-    if (p.size() > 200) return true;                       // REQ-THM-017
+    if (p.size() > 200) return true;  // REQ-THM-017
 
     // Absolute, UNC, or drive-letter prefixed.
     if (p.front() == '/' || p.front() == '\\') return true;
@@ -682,7 +808,7 @@ bool normalize_relative_path(std::string_view p, std::string& out) {
             start = i + 1;
             if (seg.empty() || seg == ".") continue;
             if (seg == "..") {
-                if (stack.empty()) return false;   // would escape the root
+                if (stack.empty()) return false;  // would escape the root
                 stack.pop_back();
                 continue;
             }

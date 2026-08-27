@@ -35,12 +35,12 @@ inline constexpr std::uint32_t kMp3DecoderDelay = 529;
 /// (REQ-UIX-017) so the user can be told *why* a boundary is not gapless — the
 /// spec explicitly requires that honesty (REQ-AUD-038).
 enum class GaplessSource {
-    None,       ///< no usable metadata; conservative defaults applied
-    Native,     ///< format carries an exact frame count (FLAC, WavPack, WAV...)
-    XingLame,   ///< MP3 Xing/Info frame with a LAME extension
-    ITunSMPB,   ///< MP4/M4A iTunSMPB free-form tag
-    OpusHead,   ///< Ogg Opus identification header pre-skip
-    Granule,    ///< Ogg Vorbis granule position
+    None,      ///< no usable metadata; conservative defaults applied
+    Native,    ///< format carries an exact frame count (FLAC, WavPack, WAV...)
+    XingLame,  ///< MP3 Xing/Info frame with a LAME extension
+    ITunSMPB,  ///< MP4/M4A iTunSMPB free-form tag
+    OpusHead,  ///< Ogg Opus identification header pre-skip
+    Granule,   ///< Ogg Vorbis granule position
 };
 
 [[nodiscard]] std::string_view to_string(GaplessSource s) noexcept;
@@ -48,9 +48,9 @@ enum class GaplessSource {
 /// The trim description for one stream. REQ-AUD-036.
 struct GaplessInfo {
     std::uint32_t skip_start_frames = 0;
-    std::uint32_t skip_end_frames   = 0;
-    std::uint64_t valid_frames      = kUnknownFrames;
-    GaplessSource source            = GaplessSource::None;
+    std::uint32_t skip_end_frames = 0;
+    std::uint64_t valid_frames = kUnknownFrames;
+    GaplessSource source = GaplessSource::None;
 
     /// True when this stream can take part in a sample-exact splice, i.e. we
     /// have real metadata rather than a fallback guess.
@@ -79,16 +79,16 @@ enum class MpegVersion { Mpeg1, Mpeg2, Mpeg25 };
 
 /// Decoded MPEG audio frame header.
 struct MpegFrameHeader {
-    MpegVersion   version        = MpegVersion::Mpeg1;
-    int           layer          = 3;      ///< 1, 2 or 3
-    std::uint32_t bitrate_kbps   = 0;      ///< 0 for the "free" bitrate index
+    MpegVersion version = MpegVersion::Mpeg1;
+    int layer = 3;                   ///< 1, 2 or 3
+    std::uint32_t bitrate_kbps = 0;  ///< 0 for the "free" bitrate index
     std::uint32_t sample_rate_hz = 0;
-    int           channels       = 2;
-    bool          is_mono        = false;
-    bool          has_crc        = false;
-    bool          padded         = false;
-    std::uint32_t frame_bytes    = 0;      ///< total frame length including header
-    std::uint32_t side_info_bytes = 0;     ///< Layer III side information size
+    int channels = 2;
+    bool is_mono = false;
+    bool has_crc = false;
+    bool padded = false;
+    std::uint32_t frame_bytes = 0;      ///< total frame length including header
+    std::uint32_t side_info_bytes = 0;  ///< Layer III side information size
     /// Samples produced per frame: 1152 (MPEG-1 L3), 576 (MPEG-2/2.5 L3).
     std::uint32_t samples_per_frame = 1152;
 };
@@ -105,19 +105,19 @@ struct MpegFrameHeader {
 
 /// Raw contents of the Xing/Info tag, before the gapless formula is applied.
 struct XingLameTag {
-    bool          is_info_magic   = false;  ///< "Info" (CBR) rather than "Xing"
-    bool          has_frame_count = false;
-    bool          has_byte_count  = false;
-    bool          has_toc         = false;
-    bool          has_quality     = false;
-    std::uint32_t frame_count     = 0;      ///< audio frames, excluding this one
-    std::uint32_t byte_count      = 0;
+    bool is_info_magic = false;  ///< "Info" (CBR) rather than "Xing"
+    bool has_frame_count = false;
+    bool has_byte_count = false;
+    bool has_toc = false;
+    bool has_quality = false;
+    std::uint32_t frame_count = 0;  ///< audio frames, excluding this one
+    std::uint32_t byte_count = 0;
 
-    bool          has_lame        = false;
-    std::uint32_t encoder_delay   = 0;      ///< 12-bit field
-    std::uint32_t encoder_padding = 0;      ///< 12-bit field
-    bool          lame_crc_ok     = false;
-    char          encoder[10]     = {};     ///< 9 chars + NUL, e.g. "LAME3.100"
+    bool has_lame = false;
+    std::uint32_t encoder_delay = 0;    ///< 12-bit field
+    std::uint32_t encoder_padding = 0;  ///< 12-bit field
+    bool lame_crc_ok = false;
+    char encoder[10] = {};  ///< 9 chars + NUL, e.g. "LAME3.100"
 };
 
 /// Parses the Xing/Info tag out of the first MPEG frame of an MP3 stream.
@@ -161,8 +161,7 @@ struct XingLameTag {
 /// characters, or values exceeding the frame count cause outright rejection.
 /// The parser never produces a negative or overflowing skip.
 [[nodiscard]] Result<GaplessInfo> parse_itunsmpb(
-    std::string_view value,
-    std::uint64_t total_frames_hint = kUnknownFrames);
+    std::string_view value, std::uint64_t total_frames_hint = kUnknownFrames);
 
 /// AAC-LC decoder priming used when no iTunSMPB tag exists (REQ-AUD-041).
 inline constexpr std::uint32_t kAacDefaultPriming = 1024;
@@ -171,7 +170,7 @@ inline constexpr std::uint32_t kAacDefaultPriming = 1024;
 /// record that this is not authoritative.
 [[nodiscard]] GaplessInfo aac_fallback_gapless_info(
     std::uint32_t priming_frames = kAacDefaultPriming,
-    std::uint64_t total_frames   = kUnknownFrames);
+    std::uint64_t total_frames = kUnknownFrames);
 
 // ===========================================================================
 //  Opus — OpusHead  (REQ-AUD-043)
@@ -179,12 +178,12 @@ inline constexpr std::uint32_t kAacDefaultPriming = 1024;
 
 /// Decoded OpusHead identification packet (RFC 7845 §5.1).
 struct OpusHead {
-    std::uint8_t  version              = 1;
-    std::uint8_t  channel_count        = 2;
-    std::uint16_t pre_skip             = 0;   ///< in 48 kHz samples
+    std::uint8_t version = 1;
+    std::uint8_t channel_count = 2;
+    std::uint16_t pre_skip = 0;  ///< in 48 kHz samples
     std::uint32_t input_sample_rate_hz = 48000;
-    std::int16_t  output_gain_q7_8     = 0;   ///< Q7.8 dB
-    std::uint8_t  channel_mapping      = 0;
+    std::int16_t output_gain_q7_8 = 0;  ///< Q7.8 dB
+    std::uint8_t channel_mapping = 0;
 
     /// output_gain converted to decibels. RFC 7845 requires this be applied
     /// independently of, and in addition to, ReplayGain (REQ-AUD-043).

@@ -4,11 +4,11 @@
 // Every JSON document Eclipse parses is untrusted (a downloaded skin, an
 // imported settings bundle), so the limits are tested as hard guarantees.
 
+#include <string>
+
 #include "core/json/json.hpp"
 
 #include <gtest/gtest.h>
-
-#include <string>
 
 using namespace eclipse;
 using namespace eclipse::json;
@@ -51,7 +51,7 @@ TEST(Json, ParsesObjectsAndArrays) {
     EXPECT_EQ(b->at(2)->as_string(), "x");
 
     EXPECT_EQ(v.find("c")->find("d")->as_int(), 2);
-    EXPECT_EQ(v.at(0), nullptr);          // not an array
+    EXPECT_EQ(v.at(0), nullptr);  // not an array
     EXPECT_EQ(v.find("missing"), nullptr);
 }
 
@@ -116,19 +116,33 @@ TEST(Json, IsIntegerDistinguishesWholeNumbers) {
 
 TEST(Json, RejectsMalformedDocuments) {
     const char* bad[] = {
-        "",  "{",  "}",  "[",  "]",  "{\"a\"}", "{\"a\":}", "{:1}",
-        "{\"a\":1,}",                       // handled, but "{,}" is not
-        "{,}", "[,]", "[1,]",               // trailing comma cases vary
+        "",
+        "{",
+        "}",
+        "[",
+        "]",
+        "{\"a\"}",
+        "{\"a\":}",
+        "{:1}",
+        "{\"a\":1,}",  // handled, but "{,}" is not
+        "{,}",
+        "[,]",
+        "[1,]",  // trailing comma cases vary
         "\"unterminated",
         "\"bad\\escape\"",
-        "01",                               // handled by trailing-content check
-        "tru", "fals", "nul",
-        "{\"a\":1}{\"b\":2}",               // content after the value
+        "01",  // handled by trailing-content check
+        "tru",
+        "fals",
+        "nul",
+        "{\"a\":1}{\"b\":2}",  // content after the value
         "[1 2]",
         "{\"a\" 1}",
-        "\"\\u00\"",                        // truncated escape
+        "\"\\u00\"",  // truncated escape
         "\"\\uZZZZ\"",
-        "+",  "-",  ".",  "e5",
+        "+",
+        "-",
+        ".",
+        "e5",
     };
     for (const char* s : bad) {
         auto r = parse(s);
@@ -143,7 +157,9 @@ TEST(Json, RejectsMalformedDocuments) {
 }
 
 TEST(Json, RejectsRawControlCharactersInStrings) {
-    const std::string s = "\"a\x01" "b\"";
+    const std::string s =
+        "\"a\x01"
+        "b\"";
     auto r = parse(s);
     ASSERT_FALSE(r.has_value());
     EXPECT_EQ(r.error().code(), ErrorCode::UnexpectedToken);
@@ -154,6 +170,31 @@ TEST(Json, ReportsDuplicateKeysRatherThanOverwriting) {
     auto r = parse(R"({"a":1,"a":2})");
     ASSERT_FALSE(r.has_value());
     EXPECT_EQ(r.error().code(), ErrorCode::SchemaViolation);
+}
+
+TEST(Json, RejectsInvalidUtf8InStrings) {
+    // RFC 8259 §8.1: JSON text MUST be UTF-8. The parser must not accept bytes
+    // it cannot represent losslessly: dump() re-encodes every string, so a raw
+    // malformed byte would round-trip as U+FFFD and two distinct keys could
+    // collapse into one. Found by fuzz_json (REQ-SEC-011): a document with
+    // keys holding invalid bytes parsed fine, then dump()/parse() failed with
+    // a duplicate-key error. Rejecting at parse time keeps the dump() round
+    // trip a true invariant.
+    const std::string bad =
+        std::string{"{\"a"} + "\x8e\x8e" + "\":1,\"a" + "\xff\xff" + "\":2}";
+    auto r = parse(bad);
+    ASSERT_FALSE(r.has_value());
+    EXPECT_EQ(r.error().code(), ErrorCode::UnexpectedToken);
+
+    // A lone continuation byte in a string is equally rejected.
+    EXPECT_FALSE(parse(std::string{"\"a\x80"
+                                   "b\""})
+                     .has_value());
+    // Valid multibyte UTF-8 must still be accepted.
+    EXPECT_TRUE(parse("\"Bj\\u00f6rk\"").has_value());
+    EXPECT_TRUE(parse(std::string{"\"caf\xc3"
+                                  "\xa9\""})
+                    .has_value());
 }
 
 TEST(Json, ErrorsCarryLineAndColumn) {
@@ -201,7 +242,10 @@ TEST(Json, EnforcesMaxElements) {
     Limits lim;
     lim.max_elements = 50;
     std::string arr = "[";
-    for (int i = 0; i < 500; ++i) { if (i) arr += ','; arr += '1'; }
+    for (int i = 0; i < 500; ++i) {
+        if (i) arr += ',';
+        arr += '1';
+    }
     arr += ']';
 
     auto r = parse(arr, lim);
@@ -265,7 +309,7 @@ TEST(Json, DumpPreservesUnicode) {
 
 TEST(Json, ValueIsCopyable) {
     const auto v = must_parse(R"({"a":[1,2,3]})");
-    const Value copy = v;                       // deep copy
+    const Value copy = v;  // deep copy
     EXPECT_EQ(copy.dump(), v.dump());
     EXPECT_EQ(copy.find("a")->size(), 3u);
 }

@@ -86,14 +86,16 @@ int main(int argc, char** argv) {
                 // An empty corpus directory is a defect, not a pass: REQ-SEC-011
                 // requires seeds to exist, and a silent zero-case run is exactly
                 // how a gate stops guarding anything.
-                std::fprintf(stderr, "replay: %s contains no corpus inputs\n",
-                             arg.string().c_str());
+                std::fprintf(
+                    stderr, "replay: %s contains no corpus inputs\n", arg.string().c_str());
                 return 1;
             }
             for (const auto& file : files) {
                 const auto data = read_file(file);
-                std::fprintf(stderr, "replay: %s (%zu bytes)\n",
-                             file.filename().string().c_str(), data.size());
+                std::fprintf(stderr,
+                             "replay: %s (%zu bytes)\n",
+                             file.filename().string().c_str(),
+                             data.size());
                 std::fflush(stderr);
                 (void)feed(data);
                 ++inputs;
@@ -114,7 +116,7 @@ int main(int argc, char** argv) {
         bytes += data.size();
     }
 
-    std::fprintf(stderr, "replay: %zu input(s), %zu byte(s), no invariant violated\n",
-                 inputs, bytes);
+    std::fprintf(
+        stderr, "replay: %zu input(s), %zu byte(s), no invariant violated\n", inputs, bytes);
     return 0;
 }

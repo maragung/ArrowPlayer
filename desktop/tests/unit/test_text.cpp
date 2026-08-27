@@ -2,14 +2,14 @@
 // Tests for core/text.hpp — spec §9.2.3 (sort keys), §9.2.4 (Unicode),
 // §23.2 (mandatory unit coverage), REQ-LIB-029, REQ-LIB-033, REQ-PLS-013.
 
-#include "core/text.hpp"
-
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <limits>
 #include <string>
 #include <vector>
+
+#include "core/text.hpp"
+
+#include <gtest/gtest.h>
 
 using namespace eclipse::text;
 
@@ -23,11 +23,11 @@ TEST(Utf8, DecodesAsciiAndMultibyte) {
     EXPECT_EQ(pos, 1u);
 
     pos = 0;
-    EXPECT_EQ(decode_utf8("\u00E9", pos), 0x00E9u);   // e-acute, 2 bytes
+    EXPECT_EQ(decode_utf8("\u00E9", pos), 0x00E9u);  // e-acute, 2 bytes
     EXPECT_EQ(pos, 2u);
 
     pos = 0;
-    EXPECT_EQ(decode_utf8("\u20AC", pos), 0x20ACu);   // euro sign, 3 bytes
+    EXPECT_EQ(decode_utf8("\u20AC", pos), 0x20ACu);  // euro sign, 3 bytes
     EXPECT_EQ(pos, 3u);
 
     pos = 0;
@@ -65,14 +65,19 @@ TEST(Utf8, ValidatesGoodInput) {
     EXPECT_TRUE(is_valid_utf8(""));
     EXPECT_TRUE(is_valid_utf8("plain ascii"));
     EXPECT_TRUE(is_valid_utf8("Bj\u00F6rk"));
-    EXPECT_TRUE(is_valid_utf8("\u65E5\u672C\u8A9E"));          // Japanese
+    EXPECT_TRUE(is_valid_utf8("\u65E5\u672C\u8A9E"));              // Japanese
     EXPECT_TRUE(is_valid_utf8("\u0627\u0644\u0639\u0631\u0628"));  // Arabic
-    EXPECT_TRUE(is_valid_utf8("\U0001F3B5 music"));            // emoji
+    EXPECT_TRUE(is_valid_utf8("\U0001F3B5 music"));                // emoji
 }
 
 TEST(Utf8, RoundTripsEncodeDecode) {
-    for (char32_t cp : {U'A', char32_t{0x7F}, char32_t{0x80}, char32_t{0x7FF},
-                        char32_t{0x800}, char32_t{0xFFFD}, char32_t{0x10000},
+    for (char32_t cp : {U'A',
+                        char32_t{0x7F},
+                        char32_t{0x80},
+                        char32_t{0x7FF},
+                        char32_t{0x800},
+                        char32_t{0xFFFD},
+                        char32_t{0x10000},
                         char32_t{0x10FFFF}}) {
         std::string encoded;
         encode_utf8(cp, encoded);
@@ -111,7 +116,8 @@ TEST(Case, AsciiAndLatin1) {
 }
 
 TEST(Case, CyrillicAndGreek) {
-    EXPECT_EQ(to_lower("\u041F\u0420\u0418\u0412\u0415\u0422"), "\u043F\u0440\u0438\u0432\u0435\u0442");
+    EXPECT_EQ(to_lower("\u041F\u0420\u0418\u0412\u0415\u0422"),
+              "\u043F\u0440\u0438\u0432\u0435\u0442");
     EXPECT_EQ(to_upper("\u03B1\u03B2\u03B3"), "\u0391\u0392\u0393");
 }
 
@@ -123,12 +129,12 @@ TEST(Case, TitleCaseHandlesWordBoundaries) {
 }
 
 TEST(Diacritics, StripsLatinAccents) {
-    EXPECT_EQ(strip_diacritic(0x00E9u), U'e');   // e-acute
-    EXPECT_EQ(strip_diacritic(0x00F6u), U'o');   // o-umlaut
-    EXPECT_EQ(strip_diacritic(0x00E7u), U'c');   // c-cedilla
-    EXPECT_EQ(strip_diacritic(0x0161u), U's');   // s-caron
-    EXPECT_EQ(strip_diacritic(0x0141u), U'L');   // L-stroke
-    EXPECT_EQ(strip_diacritic(U'a'), U'a');      // unchanged
+    EXPECT_EQ(strip_diacritic(0x00E9u), U'e');  // e-acute
+    EXPECT_EQ(strip_diacritic(0x00F6u), U'o');  // o-umlaut
+    EXPECT_EQ(strip_diacritic(0x00E7u), U'c');  // c-cedilla
+    EXPECT_EQ(strip_diacritic(0x0161u), U's');  // s-caron
+    EXPECT_EQ(strip_diacritic(0x0141u), U'L');  // L-stroke
+    EXPECT_EQ(strip_diacritic(U'a'), U'a');     // unchanged
 }
 
 // ===========================================================================
@@ -174,7 +180,8 @@ TEST(SortKey, GivesCorrectOrderingForRealArtistNames) {
     std::sort(names.begin(), names.end(), [](const auto& a, const auto& b) {
         return sort_key(a, "en") < sort_key(b, "en");
     });
-    EXPECT_EQ(names, (std::vector<std::string>{"\u00C1lvaro", "Beach House", "The Beatles", "Beck"}));
+    EXPECT_EQ(names,
+              (std::vector<std::string>{"\u00C1lvaro", "Beach House", "The Beatles", "Beck"}));
 }
 
 // ===========================================================================
@@ -212,10 +219,14 @@ TEST(SplitMulti, DropsEmptyFragments) {
 
 TEST(ParseInt, AcceptsValidAndRejectsGarbage) {
     std::int64_t v = 0;
-    EXPECT_TRUE(parse_int("0", v));       EXPECT_EQ(v, 0);
-    EXPECT_TRUE(parse_int("42", v));      EXPECT_EQ(v, 42);
-    EXPECT_TRUE(parse_int("-17", v));     EXPECT_EQ(v, -17);
-    EXPECT_TRUE(parse_int("  8  ", v));   EXPECT_EQ(v, 8);
+    EXPECT_TRUE(parse_int("0", v));
+    EXPECT_EQ(v, 0);
+    EXPECT_TRUE(parse_int("42", v));
+    EXPECT_EQ(v, 42);
+    EXPECT_TRUE(parse_int("-17", v));
+    EXPECT_EQ(v, -17);
+    EXPECT_TRUE(parse_int("  8  ", v));
+    EXPECT_EQ(v, 8);
 
     EXPECT_FALSE(parse_int("", v));
     EXPECT_FALSE(parse_int("abc", v));
@@ -261,9 +272,12 @@ TEST(ParseInt, LeavesOutputUntouchedOnFailure) {
 
 TEST(ParseHex, ForITunSmpbStyleFields) {
     std::uint64_t v = 0;
-    EXPECT_TRUE(parse_hex("00000840", v));  EXPECT_EQ(v, 0x840u);
-    EXPECT_TRUE(parse_hex("1C0", v));       EXPECT_EQ(v, 0x1C0u);
-    EXPECT_TRUE(parse_hex("ffffFFFF", v));  EXPECT_EQ(v, 0xFFFFFFFFu);
+    EXPECT_TRUE(parse_hex("00000840", v));
+    EXPECT_EQ(v, 0x840u);
+    EXPECT_TRUE(parse_hex("1C0", v));
+    EXPECT_EQ(v, 0x1C0u);
+    EXPECT_TRUE(parse_hex("ffffFFFF", v));
+    EXPECT_EQ(v, 0xFFFFFFFFu);
     EXPECT_FALSE(parse_hex("00 40", v));
     EXPECT_FALSE(parse_hex("xyz", v));
     EXPECT_FALSE(parse_hex("", v));
@@ -315,7 +329,7 @@ TEST(EditDistance, BasicOperations) {
     EXPECT_EQ(edit_distance("kitten", "sitting", 10), 3u);
     EXPECT_EQ(edit_distance("", "abc", 10), 3u);
     EXPECT_EQ(edit_distance("same", "same", 10), 0u);
-    EXPECT_EQ(edit_distance("ab", "ba", 10), 1u);   // transposition
+    EXPECT_EQ(edit_distance("ab", "ba", 10), 1u);  // transposition
 }
 
 TEST(EditDistance, RespectsBound) {
@@ -338,7 +352,7 @@ TEST(PathSafety, RejectsTraversalAndAbsolutePaths) {
         "c:\\windows",
         "\\\\server\\share",
         "images/../../secret",
-        std::string("with\0nul", 8),   // explicit length: NUL is interior
+        std::string("with\0nul", 8),  // explicit length: NUL is interior
         "",
     };
     for (const auto& p : unsafe) {
@@ -367,16 +381,22 @@ TEST(PathSafety, RejectsOverlongPaths) {
 
 TEST(PathSafety, RejectsControlCharacters) {
     EXPECT_TRUE(is_unsafe_relative_path(std::string("a\x01b")));
-    EXPECT_TRUE(is_unsafe_relative_path(std::string("a\x7F" "b")));
+    EXPECT_TRUE(
+        is_unsafe_relative_path(std::string("a\x7F"
+                                            "b")));
     EXPECT_TRUE(is_unsafe_relative_path(std::string("a\nb")));
 }
 
 TEST(Normalize, ResolvesDotSegments) {
     std::string out;
-    EXPECT_TRUE(normalize_relative_path("a/./b", out));      EXPECT_EQ(out, "a/b");
-    EXPECT_TRUE(normalize_relative_path("a/b/../c", out));   EXPECT_EQ(out, "a/c");
-    EXPECT_TRUE(normalize_relative_path("a\\b", out));       EXPECT_EQ(out, "a/b");
-    EXPECT_TRUE(normalize_relative_path("a//b", out));       EXPECT_EQ(out, "a/b");
+    EXPECT_TRUE(normalize_relative_path("a/./b", out));
+    EXPECT_EQ(out, "a/b");
+    EXPECT_TRUE(normalize_relative_path("a/b/../c", out));
+    EXPECT_EQ(out, "a/c");
+    EXPECT_TRUE(normalize_relative_path("a\\b", out));
+    EXPECT_EQ(out, "a/b");
+    EXPECT_TRUE(normalize_relative_path("a//b", out));
+    EXPECT_EQ(out, "a/b");
 }
 
 TEST(Normalize, RefusesToEscapeRoot) {
@@ -414,8 +434,21 @@ TEST(Normalize, RefusesWhatTheSecurityCheckRefuses) {
 // even where libFuzzer is unavailable.
 TEST(Normalize, AcceptanceImpliesSafety) {
     static constexpr std::string_view kPaths[] = {
-        "a/b", "a/./b", "a/b/../c", "a\\b", "a//b", "./x", "x/.", "../x",
-        "/abs", "C:/x", "..", ".", "", "a/../b", "deep/n/e/s/t/e/d/file.svg",
+        "a/b",
+        "a/./b",
+        "a/b/../c",
+        "a\\b",
+        "a//b",
+        "./x",
+        "x/.",
+        "../x",
+        "/abs",
+        "C:/x",
+        "..",
+        ".",
+        "",
+        "a/../b",
+        "deep/n/e/s/t/e/d/file.svg",
     };
     std::string out;
     for (const std::string_view path : kPaths) {
@@ -434,7 +467,7 @@ TEST(Normalize, AcceptanceImpliesSafety) {
 TEST(Trim, HandlesUnicodeSpaces) {
     EXPECT_EQ(trim("  hello  "), "hello");
     EXPECT_EQ(trim("\t\nhello\r\n"), "hello");
-    EXPECT_EQ(trim("\u00A0hello\u00A0"), "hello");   // non-breaking space
+    EXPECT_EQ(trim("\u00A0hello\u00A0"), "hello");  // non-breaking space
     EXPECT_EQ(trim(""), "");
     EXPECT_EQ(trim("   "), "");
 }
@@ -453,7 +486,7 @@ TEST(ReplaceAll, Works) {
     EXPECT_EQ(replace_all("a-b-c", "-", "+"), "a+b+c");
     EXPECT_EQ(replace_all("aaa", "aa", "b"), "ba");
     EXPECT_EQ(replace_all("abc", "x", "y"), "abc");
-    EXPECT_EQ(replace_all("abc", "", "y"), "abc");   // empty needle is a no-op
+    EXPECT_EQ(replace_all("abc", "", "y"), "abc");  // empty needle is a no-op
 }
 
 TEST(Split, KeepsOrDropsEmpties) {

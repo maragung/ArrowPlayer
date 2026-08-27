@@ -7,13 +7,13 @@ namespace eclipse::app {
 
 AppInfo AppInfo::current() noexcept {
     return AppInfo{
-        .name      = version::kName,
-        .version   = version::kString,
-        .git_sha   = version::kGitSha,
+        .name = version::kName,
+        .version = version::kString,
+        .git_sha = version::kGitSha,
         .git_dirty = version::kGitDirty != 0,
-        .major     = version::kMajor,
-        .minor     = version::kMinor,
-        .patch     = version::kPatch,
+        .major = version::kMajor,
+        .minor = version::kMinor,
+        .patch = version::kPatch,
     };
 }
 

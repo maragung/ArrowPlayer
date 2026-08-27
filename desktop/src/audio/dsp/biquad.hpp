@@ -18,12 +18,12 @@ namespace eclipse::audio {
 
 /// Filter topologies. All use the RBJ formulas for the named response.
 enum class FilterType {
-    Peaking,     ///< the graphic-EQ workhorse
-    LowShelf,    ///< bass boost (REQ-AUD-095)
-    HighShelf,   ///< treble boost
+    Peaking,    ///< the graphic-EQ workhorse
+    LowShelf,   ///< bass boost (REQ-AUD-095)
+    HighShelf,  ///< treble boost
     LowPass,
     HighPass,
-    BandPass,    ///< constant 0 dB peak gain
+    BandPass,  ///< constant 0 dB peak gain
     Notch,
     AllPass,
 };
@@ -61,11 +61,8 @@ inline constexpr double kMaxNyquistFraction = 0.95;
 ///
 /// `gain_db` is used by Peaking, LowShelf and HighShelf; it is ignored by the
 /// other types. `q` must be > 0; non-positive values yield identity.
-[[nodiscard]] BiquadCoeffs design(FilterType type,
-                                  double f0_hz,
-                                  double sample_rate_hz,
-                                  double q,
-                                  double gain_db) noexcept;
+[[nodiscard]] BiquadCoeffs design(
+    FilterType type, double f0_hz, double sample_rate_hz, double q, double gain_db) noexcept;
 
 /// Evaluates |H(e^{jw})| in dB at `freq_hz`. Used by REQ-AUD-088 to draw the
 /// real computed frequency response rather than a cosmetic spline, and by the
@@ -83,11 +80,13 @@ inline constexpr double kMaxNyquistFraction = 0.95;
 /// RT-SAFE: process() and process_in_place() allocate nothing, lock nothing and
 /// take no branches on external state.
 class Biquad {
-public:
+  public:
     Biquad() = default;
+
     explicit Biquad(const BiquadCoeffs& c) noexcept : c_{c} {}
 
     void set_coeffs(const BiquadCoeffs& c) noexcept { c_ = c; }
+
     [[nodiscard]] const BiquadCoeffs& coeffs() const noexcept { return c_; }
 
     /// Clears the delay line. Call on seek/track change to avoid dragging the
@@ -97,10 +96,11 @@ public:
     /// RT-SAFE: processes one sample.
     [[nodiscard]] float process_one(float in) noexcept {
         const double x = static_cast<double>(in);
-        const double y = c_.b0 * x + c_.b1 * x1_ + c_.b2 * x2_
-                       - c_.a1 * y1_ - c_.a2 * y2_;
-        x2_ = x1_; x1_ = x;
-        y2_ = y1_; y1_ = y;
+        const double y = c_.b0 * x + c_.b1 * x1_ + c_.b2 * x2_ - c_.a1 * y1_ - c_.a2 * y2_;
+        x2_ = x1_;
+        x1_ = x;
+        y2_ = y1_;
+        y1_ = y;
         return static_cast<float>(y);
     }
 
@@ -110,7 +110,7 @@ public:
     /// RT-SAFE: processes `in` into `out`; sizes must match.
     void process(std::span<const float> in, std::span<float> out) noexcept;
 
-private:
+  private:
     BiquadCoeffs c_{};
     // float64 state — see the file header for why.
     double x1_{0.0}, x2_{0.0}, y1_{0.0}, y2_{0.0};
@@ -120,7 +120,7 @@ private:
 ///
 /// RT-SAFE once `resize()` has been called: processing never allocates.
 class BiquadCascade {
-public:
+  public:
     /// Allocates section storage. NOT RT-safe — call from the UI thread.
     void resize(std::size_t sections);
 
@@ -140,11 +140,12 @@ public:
     /// prove non-null, which the optimiser cannot always see through, and the
     /// struct is only five doubles.
     [[nodiscard]] BiquadCoeffs coeffs(std::size_t index) const noexcept {
-        return index < sections_.size() ? sections_[index].coeffs()
-                                        : BiquadCoeffs::identity();
+        return index < sections_.size() ? sections_[index].coeffs() : BiquadCoeffs::identity();
     }
 
-    void reset() noexcept { for (auto& s : sections_) s.reset(); }
+    void reset() noexcept {
+        for (auto& s : sections_) s.reset();
+    }
 
     /// RT-SAFE: runs every non-identity section in order. Identity sections are
     /// skipped outright (REQ-AUD-005).
@@ -153,7 +154,7 @@ public:
     /// Combined magnitude response of the whole cascade, in dB.
     [[nodiscard]] double magnitude_db(double freq_hz, double sample_rate_hz) const noexcept;
 
-private:
+  private:
     std::vector<Biquad> sections_;
 };
 

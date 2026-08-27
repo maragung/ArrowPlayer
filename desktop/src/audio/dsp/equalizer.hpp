@@ -21,31 +21,44 @@ namespace eclipse::audio {
 
 /// REQ-AUD-080 — 10-band graphic EQ, ISO octave centres in Hz.
 inline constexpr std::array<double, 10> kBands10 = {
-    31.5, 63.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0
-};
+    31.5, 63.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0};
 
 /// REQ-AUD-080 — 18-band graphic EQ, half-octave spacing (ratio sqrt(2)), Hz.
-inline constexpr std::array<double, 18> kBands18 = {
-      31.5,   44.5,   63.0,   89.0,  125.0,  177.0,   250.0,  354.0,  500.0,
-     707.0, 1000.0, 1414.0, 2000.0, 2828.0, 4000.0,  5657.0, 8000.0, 11314.0
-};
+inline constexpr std::array<double, 18> kBands18 = {31.5,
+                                                    44.5,
+                                                    63.0,
+                                                    89.0,
+                                                    125.0,
+                                                    177.0,
+                                                    250.0,
+                                                    354.0,
+                                                    500.0,
+                                                    707.0,
+                                                    1000.0,
+                                                    1414.0,
+                                                    2000.0,
+                                                    2828.0,
+                                                    4000.0,
+                                                    5657.0,
+                                                    8000.0,
+                                                    11314.0};
 
 /// REQ-AUD-081 — gain range and resolution.
-inline constexpr double kGainMinDb  = -12.0;
-inline constexpr double kGainMaxDb  =  12.0;
-inline constexpr double kGainStepDb =   0.1;
+inline constexpr double kGainMinDb = -12.0;
+inline constexpr double kGainMaxDb = 12.0;
+inline constexpr double kGainStepDb = 0.1;
 
 /// REQ-AUD-081 — the separate pre-amp used for headroom management.
 inline constexpr double kPreampMinDb = -12.0;
-inline constexpr double kPreampMaxDb =  12.0;
+inline constexpr double kPreampMaxDb = 12.0;
 
 /// REQ-AUD-086 — parametric mode limits.
 inline constexpr std::size_t kMaxParametricBands = 10;
 inline constexpr double kParametricGainMinDb = -24.0;
-inline constexpr double kParametricGainMaxDb =  24.0;
+inline constexpr double kParametricGainMaxDb = 24.0;
 inline constexpr double kParametricQMin = 0.1;
 inline constexpr double kParametricQMax = 18.0;
-inline constexpr double kParametricFreqMinHz =    20.0;
+inline constexpr double kParametricFreqMinHz = 20.0;
 inline constexpr double kParametricFreqMaxHz = 20000.0;
 
 /// REQ-AUD-085 — coefficient cross-ramp duration when gains change, in
@@ -60,19 +73,19 @@ enum class EqMode {
 
 /// One parametric band (REQ-AUD-086).
 struct ParametricBand {
-    FilterType type    = FilterType::Peaking;
-    double     freq_hz = 1000.0;
-    double     gain_db = 0.0;
-    double     q       = 1.0;
-    bool       enabled = true;
+    FilterType type = FilterType::Peaking;
+    double freq_hz = 1000.0;
+    double gain_db = 0.0;
+    double q = 1.0;
+    bool enabled = true;
 };
 
 /// The complete, serialisable EQ state. This is what a preset stores and what
 /// the parameter-snapshot publication in REQ-AUD-016 hands to the RT thread.
 struct EqSettings {
-    bool   enabled    = false;
-    EqMode mode       = EqMode::Graphic10;
-    double preamp_db  = 0.0;
+    bool enabled = false;
+    EqMode mode = EqMode::Graphic10;
+    double preamp_db = 0.0;
 
     /// Graphic gains, indexed to match kBands10 / kBands18. Extra entries are
     /// ignored; missing entries are treated as 0 dB.
@@ -98,8 +111,8 @@ struct EqSettings {
 /// Named presets — REQ-AUD-087.
 struct EqPreset {
     std::string name;
-    EqMode      mode = EqMode::Graphic10;
-    double      preamp_db = 0.0;
+    EqMode mode = EqMode::Graphic10;
+    double preamp_db = 0.0;
     std::vector<double> gains_db;
 };
 
@@ -115,12 +128,10 @@ struct EqPreset {
 /// transcendental functions). process() IS RT-safe. The intended pattern is that
 /// the UI thread calls configure() and publishes the result per REQ-AUD-016.
 class Equalizer {
-public:
+  public:
     /// Allocates per-channel cascades. NOT RT-safe.
     /// `channels` and `sample_rate_hz` must be > 0.
-    Status configure(const EqSettings& settings,
-                     std::size_t channels,
-                     double sample_rate_hz);
+    Status configure(const EqSettings& settings, std::size_t channels, double sample_rate_hz);
 
     /// Clears all delay lines. Call on seek and track change.
     void reset() noexcept;
@@ -139,7 +150,9 @@ public:
     [[nodiscard]] bool is_bypassed() const noexcept { return bypassed_; }
 
     [[nodiscard]] std::size_t channels() const noexcept { return cascades_.size(); }
+
     [[nodiscard]] std::size_t band_count() const noexcept { return band_count_; }
+
     [[nodiscard]] double sample_rate() const noexcept { return sample_rate_; }
 
     /// Combined response of pre-amp + all bands, in dB, at `freq_hz`.
@@ -160,14 +173,14 @@ public:
     /// Coefficients of band `index`, or the identity when out of range.
     [[nodiscard]] BiquadCoeffs band_coeffs(std::size_t index) const noexcept;
 
-private:
+  private:
     std::vector<BiquadCascade> cascades_;
-    std::vector<BiquadCoeffs>  designed_;      ///< one per band, shared by channels
-    double      preamp_linear_{1.0};
-    double      preamp_db_{0.0};
-    double      sample_rate_{48000.0};
+    std::vector<BiquadCoeffs> designed_;  ///< one per band, shared by channels
+    double preamp_linear_{1.0};
+    double preamp_db_{0.0};
+    double sample_rate_{48000.0};
     std::size_t band_count_{0};
-    bool        bypassed_{true};
+    bool bypassed_{true};
 };
 
 }  // namespace eclipse::audio

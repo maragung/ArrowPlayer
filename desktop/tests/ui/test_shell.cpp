@@ -10,9 +10,8 @@
 // because a literal here would pass while the About dialog showed something
 // else (the same reasoning as test_app.cpp's AppInfo::CurrentMatches... case).
 
-#include <QtTest>
-
 #include <QString>
+#include <QtTest>
 
 #include <eclipse/ui/main_window.hpp>
 #include <eclipse/ui/shell.hpp>
@@ -23,17 +22,15 @@ using eclipse::ui::ShellInfo;
 class ShellTest : public QObject {
     Q_OBJECT
 
-private slots:
+  private slots:
     void aboutTextCarriesTheFieldsThatWereHandedIn();
     void dirtyBuildIsStatedInTheAboutText();
     void windowOpensOffScreen();
     void windowIsNamedForTheProduct();
 
-private:
+  private:
     static ShellInfo sampleInfo() {
-        return ShellInfo{.version   = "0.1.0",
-                         .git_sha   = "abcdef123456",
-                         .git_dirty = false};
+        return ShellInfo{.version = "0.1.0", .git_sha = "abcdef123456", .git_dirty = false};
     }
 };
 

@@ -60,7 +60,7 @@ enum class ErrorCode {
     Cancelled,
     Timeout,
     ResourceExhausted,
-    InvalidState,              ///< the operation is legal, the object's state is not
+    InvalidState,  ///< the operation is legal, the object's state is not
 
     // ---- filesystem -------------------------------------------------------
     FileNotFound = 100,
@@ -80,7 +80,7 @@ enum class ErrorCode {
 
     // ---- audio device (§8.10) ---------------------------------------------
     DeviceNotFound = 300,
-    DeviceInUse,               ///< exclusive mode held by another application
+    DeviceInUse,  ///< exclusive mode held by another application
     DeviceFormatUnsupported,
     DeviceLost,
     ExclusiveModeUnavailable,
@@ -96,7 +96,7 @@ enum class ErrorCode {
     ChecksumMismatch,
     InputTooLarge,
     NestingTooDeep,
-    OutputCapExceeded,         ///< REQ-EFS-009
+    OutputCapExceeded,  ///< REQ-EFS-009
 
     // ---- theme / skin (§11.5) ---------------------------------------------
     SchemaViolation = 500,
@@ -105,11 +105,11 @@ enum class ErrorCode {
     UnknownComponent,
     UnknownBinding,
     UnknownAction,
-    ContrastBelowFloor,        ///< REQ-THM-041
-    ResourceBudgetExceeded,    ///< REQ-THM-033
-    ZipSlipDetected,           ///< REQ-THM-018
-    ZipBombDetected,           ///< REQ-THM-017
-    UnsafeSvg,                 ///< REQ-THM-042
+    ContrastBelowFloor,      ///< REQ-THM-041
+    ResourceBudgetExceeded,  ///< REQ-THM-033
+    ZipSlipDetected,         ///< REQ-THM-018
+    ZipBombDetected,         ///< REQ-THM-017
+    UnsafeSvg,               ///< REQ-THM-042
     MissingRequiredFile,
 
     // ---- database (§9.4) --------------------------------------------------
@@ -119,7 +119,7 @@ enum class ErrorCode {
     QueryFailed,
 
     // ---- network (§17) ----------------------------------------------------
-    NetworkDisabled = 700,     ///< REQ-NET-001 global switch is off
+    NetworkDisabled = 700,  ///< REQ-NET-001 global switch is off
     NetworkUnreachable,
     TlsError,
     HttpError,
@@ -131,30 +131,32 @@ enum class ErrorCode {
 
 /// An error value. Cheap to move, safe to copy, always loggable.
 class Error {
-public:
+  public:
     Error() = default;
 
     Error(ErrorCode code, std::string user_message)
-        : code_{code}, user_message_{std::move(user_message)} {}
+          : code_{code}, user_message_{std::move(user_message)} {}
 
     Error(ErrorCode code, std::string user_message, std::string technical_detail)
-        : code_{code},
-          user_message_{std::move(user_message)},
-          technical_detail_{std::move(technical_detail)} {}
+          : code_{code},
+            user_message_{std::move(user_message)},
+            technical_detail_{std::move(technical_detail)} {}
 
     Error(ErrorCode code,
           std::string user_message,
           std::string technical_detail,
           Severity severity,
           RecoveryAction recovery = RecoveryAction::None)
-        : code_{code},
-          user_message_{std::move(user_message)},
-          technical_detail_{std::move(technical_detail)},
-          severity_{severity},
-          recovery_{recovery} {}
+          : code_{code},
+            user_message_{std::move(user_message)},
+            technical_detail_{std::move(technical_detail)},
+            severity_{severity},
+            recovery_{recovery} {}
 
-    [[nodiscard]] ErrorCode      code() const noexcept { return code_; }
-    [[nodiscard]] Severity       severity() const noexcept { return severity_; }
+    [[nodiscard]] ErrorCode code() const noexcept { return code_; }
+
+    [[nodiscard]] Severity severity() const noexcept { return severity_; }
+
     [[nodiscard]] RecoveryAction recovery() const noexcept { return recovery_; }
 
     /// Translated, actionable, jargon-free. Never contains a numeric code.
@@ -162,33 +164,52 @@ public:
 
     /// For logs only. May contain paths, so it is subject to the redaction
     /// rules in REQ-SET-013 before it is written at info level or above.
-    [[nodiscard]] const std::string& technical_detail() const noexcept { return technical_detail_; }
+    [[nodiscard]] const std::string& technical_detail() const noexcept {
+        return technical_detail_;
+    }
 
-    Error& with_severity(Severity s) noexcept { severity_ = s; return *this; }
-    Error& with_recovery(RecoveryAction a) noexcept { recovery_ = a; return *this; }
-    Error& with_detail(std::string d) { technical_detail_ = std::move(d); return *this; }
+    Error& with_severity(Severity s) noexcept {
+        severity_ = s;
+        return *this;
+    }
+
+    Error& with_recovery(RecoveryAction a) noexcept {
+        recovery_ = a;
+        return *this;
+    }
+
+    Error& with_detail(std::string d) {
+        technical_detail_ = std::move(d);
+        return *this;
+    }
 
     /// Position information for parser errors, so an editor can point at the
     /// offending character rather than saying "invalid input".
     Error& at(std::size_t offset, std::size_t line = 0, std::size_t column = 0) noexcept {
-        offset_ = offset; line_ = line; column_ = column; return *this;
+        offset_ = offset;
+        line_ = line;
+        column_ = column;
+        return *this;
     }
+
     [[nodiscard]] std::size_t offset() const noexcept { return offset_; }
+
     [[nodiscard]] std::size_t line() const noexcept { return line_; }
+
     [[nodiscard]] std::size_t column() const noexcept { return column_; }
 
     /// Single-line rendering for logs and test failure output.
     [[nodiscard]] std::string to_log_string() const;
 
-private:
-    ErrorCode      code_{ErrorCode::Unknown};
-    std::string    user_message_;
-    std::string    technical_detail_;
-    Severity       severity_{Severity::Error};
+  private:
+    ErrorCode code_{ErrorCode::Unknown};
+    std::string user_message_;
+    std::string technical_detail_;
+    Severity severity_{Severity::Error};
     RecoveryAction recovery_{RecoveryAction::None};
-    std::size_t    offset_{0};
-    std::size_t    line_{0};
-    std::size_t    column_{0};
+    std::size_t offset_{0};
+    std::size_t line_{0};
+    std::size_t column_{0};
 };
 
 // ---------------------------------------------------------------------------
@@ -200,22 +221,27 @@ struct Unit {
     friend bool operator==(Unit, Unit) noexcept { return true; }
 };
 
-template <typename T>
+template<typename T>
 class [[nodiscard]] Result {
-public:
+  public:
     using value_type = T;
 
-    Result(T value) : storage_{std::move(value)} {}          // NOLINT(*-explicit-*)
-    Result(Error error) : storage_{std::move(error)} {}       // NOLINT(*-explicit-*)
+    Result(T value) : storage_{std::move(value)} {}  // NOLINT(*-explicit-*)
+
+    Result(Error error) : storage_{std::move(error)} {}  // NOLINT(*-explicit-*)
 
     [[nodiscard]] bool has_value() const noexcept { return storage_.index() == 0; }
+
     [[nodiscard]] explicit operator bool() const noexcept { return has_value(); }
 
     [[nodiscard]] T& value() & { return std::get<0>(storage_); }
+
     [[nodiscard]] const T& value() const& { return std::get<0>(storage_); }
+
     [[nodiscard]] T&& value() && { return std::get<0>(std::move(storage_)); }
 
     [[nodiscard]] const Error& error() const& { return std::get<1>(storage_); }
+
     [[nodiscard]] Error&& error() && { return std::get<1>(std::move(storage_)); }
 
     [[nodiscard]] T value_or(T fallback) const& {
@@ -223,22 +249,28 @@ public:
     }
 
     [[nodiscard]] T* operator->() { return &std::get<0>(storage_); }
+
     [[nodiscard]] const T* operator->() const { return &std::get<0>(storage_); }
+
     [[nodiscard]] T& operator*() & { return std::get<0>(storage_); }
+
     [[nodiscard]] const T& operator*() const& { return std::get<0>(storage_); }
 
-private:
+  private:
     std::variant<T, Error> storage_;
 };
 
 using Status = Result<Unit>;
 
-[[nodiscard]] inline Status ok() noexcept { return Status{Unit{}}; }
+[[nodiscard]] inline Status ok() noexcept {
+    return Status{Unit{}};
+}
 
 /// Convenience constructors, so call sites stay readable.
 [[nodiscard]] inline Error err(ErrorCode code, std::string user_message) {
     return Error{code, std::move(user_message)};
 }
+
 [[nodiscard]] inline Error err(ErrorCode code, std::string user_message, std::string detail) {
     return Error{code, std::move(user_message), std::move(detail)};
 }

@@ -24,18 +24,24 @@ double quantise_gain(double db) noexcept {
 
 std::span<const double> bands_for_mode(EqMode mode) noexcept {
     switch (mode) {
-        case EqMode::Graphic10:  return {kBands10.data(), kBands10.size()};
-        case EqMode::Graphic18:  return {kBands18.data(), kBands18.size()};
-        case EqMode::Parametric: return {};
+        case EqMode::Graphic10:
+            return {kBands10.data(), kBands10.size()};
+        case EqMode::Graphic18:
+            return {kBands18.data(), kBands18.size()};
+        case EqMode::Parametric:
+            return {};
     }
     return {};
 }
 
 double bandwidth_octaves_for_mode(EqMode mode) noexcept {
     switch (mode) {
-        case EqMode::Graphic10:  return 1.0;   // Q ~= 1.4142
-        case EqMode::Graphic18:  return 0.5;   // Q ~= 2.8710
-        case EqMode::Parametric: return 1.0;
+        case EqMode::Graphic10:
+            return 1.0;  // Q ~= 1.4142
+        case EqMode::Graphic18:
+            return 0.5;  // Q ~= 2.8710
+        case EqMode::Parametric:
+            return 1.0;
     }
     return 1.0;
 }
@@ -48,7 +54,10 @@ bool EqSettings::clamp_to_valid_ranges() {
     bool changed = false;
 
     const double p = clampd(preamp_db, kPreampMinDb, kPreampMaxDb);
-    if (p != preamp_db) { preamp_db = p; changed = true; }
+    if (p != preamp_db) {
+        preamp_db = p;
+        changed = true;
+    }
 
     const auto bands = bands_for_mode(mode);
     if (mode != EqMode::Parametric) {
@@ -58,7 +67,10 @@ bool EqSettings::clamp_to_valid_ranges() {
         }
         for (double& g : graphic_gains_db) {
             const double c = quantise_gain(clampd(g, kGainMinDb, kGainMaxDb));
-            if (c != g) { g = c; changed = true; }
+            if (c != g) {
+                g = c;
+                changed = true;
+            }
         }
     }
 
@@ -70,9 +82,18 @@ bool EqSettings::clamp_to_valid_ranges() {
         const double f = clampd(b.freq_hz, kParametricFreqMinHz, kParametricFreqMaxHz);
         const double g = clampd(b.gain_db, kParametricGainMinDb, kParametricGainMaxDb);
         const double q = clampd(b.q, kParametricQMin, kParametricQMax);
-        if (f != b.freq_hz) { b.freq_hz = f; changed = true; }
-        if (g != b.gain_db) { b.gain_db = g; changed = true; }
-        if (q != b.q)       { b.q = q;       changed = true; }
+        if (f != b.freq_hz) {
+            b.freq_hz = f;
+            changed = true;
+        }
+        if (g != b.gain_db) {
+            b.gain_db = g;
+            changed = true;
+        }
+        if (q != b.q) {
+            b.q = q;
+            changed = true;
+        }
     }
     return !changed;
 }
@@ -84,9 +105,9 @@ bool EqSettings::is_neutral() const noexcept {
     if (mode == EqMode::Parametric) {
         for (const auto& b : parametric) {
             if (!b.enabled) continue;
-            const bool gain_bearing = (b.type == FilterType::Peaking ||
-                                       b.type == FilterType::LowShelf ||
-                                       b.type == FilterType::HighShelf);
+            const bool gain_bearing =
+                (b.type == FilterType::Peaking || b.type == FilterType::LowShelf ||
+                 b.type == FilterType::HighShelf);
             // A non-gain-bearing filter (low-pass, notch, ...) always alters the
             // signal, so it is never neutral regardless of gain.
             if (!gain_bearing) return false;
@@ -109,21 +130,57 @@ const std::vector<EqPreset>& builtin_presets() {
     // 10-band gains aligned to kBands10:
     //   31.5  63  125  250  500  1k   2k   4k   8k   16k
     static const std::vector<EqPreset> kPresets = {
-        {"Flat",          EqMode::Graphic10, 0.0, { 0.0,  0.0,  0.0,  0.0, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0}},
-        {"Rock",          EqMode::Graphic10, -1.0,{ 5.0,  4.0,  3.0,  1.5, -0.5, -1.0,  0.5,  3.0,  4.5,  5.0}},
-        {"Pop",           EqMode::Graphic10, -1.0,{-1.5, -1.0,  0.0,  2.0,  4.0,  4.0,  2.0,  0.0, -1.0, -1.5}},
-        {"Jazz",          EqMode::Graphic10, 0.0, { 3.0,  2.0,  1.0,  2.0, -1.0, -1.0,  0.0,  1.0,  2.5,  3.5}},
-        {"Classical",     EqMode::Graphic10, 0.0, { 4.0,  3.0,  2.0,  0.0, -1.0, -1.0,  0.0,  2.0,  3.0,  4.0}},
-        {"Dance",         EqMode::Graphic10, -2.0,{ 6.0,  5.5,  3.5,  0.0, -1.0, -2.0,  1.0,  3.5,  5.0,  4.5}},
-        {"Hip-Hop",       EqMode::Graphic10, -2.0,{ 6.5,  5.0,  2.0,  1.0, -1.0, -1.0,  1.0,  2.0,  3.0,  3.5}},
-        {"Metal",         EqMode::Graphic10, -2.0,{ 5.0,  4.0,  1.0, -1.0, -2.0,  0.0,  2.5,  4.5,  5.0,  4.0}},
-        {"Acoustic",      EqMode::Graphic10, 0.0, { 3.5,  3.0,  2.0,  1.0,  0.5,  0.5,  1.5,  2.5,  3.0,  2.5}},
-        {"Vocal Boost",   EqMode::Graphic10, -1.0,{-2.0, -1.5, -0.5,  1.5,  4.0,  4.5,  3.5,  1.5, -0.5, -1.5}},
-        {"Bass Boost",    EqMode::Graphic10, -3.0,{ 8.0,  6.5,  4.5,  2.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0}},
-        {"Treble Boost",  EqMode::Graphic10, -3.0,{ 0.0,  0.0,  0.0,  0.0,  0.0,  1.0,  3.0,  5.5,  7.0,  8.0}},
-        {"Loudness",      EqMode::Graphic10, -3.0,{ 7.0,  5.5,  2.5,  0.0, -1.5, -1.5,  0.0,  2.5,  5.5,  7.0}},
-        {"Small Speakers",EqMode::Graphic10, -1.0,{-4.0, -2.0,  1.0,  3.0,  4.0,  3.0,  1.5,  0.5, -1.0, -3.0}},
-        {"Headphones",    EqMode::Graphic10, -1.0,{ 4.0,  3.0,  1.0, -0.5, -1.5, -1.0,  0.5,  2.0,  3.5,  4.0}},
+        {"Flat", EqMode::Graphic10, 0.0, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}},
+        {"Rock", EqMode::Graphic10, -1.0, {5.0, 4.0, 3.0, 1.5, -0.5, -1.0, 0.5, 3.0, 4.5, 5.0}},
+        {"Pop",
+         EqMode::Graphic10,
+         -1.0,
+         {-1.5, -1.0, 0.0, 2.0, 4.0, 4.0, 2.0, 0.0, -1.0, -1.5}},
+        {"Jazz", EqMode::Graphic10, 0.0, {3.0, 2.0, 1.0, 2.0, -1.0, -1.0, 0.0, 1.0, 2.5, 3.5}},
+        {"Classical",
+         EqMode::Graphic10,
+         0.0,
+         {4.0, 3.0, 2.0, 0.0, -1.0, -1.0, 0.0, 2.0, 3.0, 4.0}},
+        {"Dance",
+         EqMode::Graphic10,
+         -2.0,
+         {6.0, 5.5, 3.5, 0.0, -1.0, -2.0, 1.0, 3.5, 5.0, 4.5}},
+        {"Hip-Hop",
+         EqMode::Graphic10,
+         -2.0,
+         {6.5, 5.0, 2.0, 1.0, -1.0, -1.0, 1.0, 2.0, 3.0, 3.5}},
+        {"Metal",
+         EqMode::Graphic10,
+         -2.0,
+         {5.0, 4.0, 1.0, -1.0, -2.0, 0.0, 2.5, 4.5, 5.0, 4.0}},
+        {"Acoustic",
+         EqMode::Graphic10,
+         0.0,
+         {3.5, 3.0, 2.0, 1.0, 0.5, 0.5, 1.5, 2.5, 3.0, 2.5}},
+        {"Vocal Boost",
+         EqMode::Graphic10,
+         -1.0,
+         {-2.0, -1.5, -0.5, 1.5, 4.0, 4.5, 3.5, 1.5, -0.5, -1.5}},
+        {"Bass Boost",
+         EqMode::Graphic10,
+         -3.0,
+         {8.0, 6.5, 4.5, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}},
+        {"Treble Boost",
+         EqMode::Graphic10,
+         -3.0,
+         {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 3.0, 5.5, 7.0, 8.0}},
+        {"Loudness",
+         EqMode::Graphic10,
+         -3.0,
+         {7.0, 5.5, 2.5, 0.0, -1.5, -1.5, 0.0, 2.5, 5.5, 7.0}},
+        {"Small Speakers",
+         EqMode::Graphic10,
+         -1.0,
+         {-4.0, -2.0, 1.0, 3.0, 4.0, 3.0, 1.5, 0.5, -1.0, -3.0}},
+        {"Headphones",
+         EqMode::Graphic10,
+         -1.0,
+         {4.0, 3.0, 1.0, -0.5, -1.5, -1.0, 0.5, 2.0, 3.5, 4.0}},
     };
     return kPresets;
 }
@@ -154,7 +211,7 @@ Status Equalizer::configure(const EqSettings& settings,
     }
 
     sample_rate_ = sample_rate_hz;
-    preamp_db_   = clampd(settings.preamp_db, kPreampMinDb, kPreampMaxDb);
+    preamp_db_ = clampd(settings.preamp_db, kPreampMinDb, kPreampMaxDb);
     preamp_linear_ = std::pow(10.0, preamp_db_ / 20.0);
 
     designed_.clear();
@@ -164,11 +221,12 @@ Status Equalizer::configure(const EqSettings& settings,
         (void)bw;
         for (const auto& b : settings.parametric) {
             if (!b.enabled) continue;
-            designed_.push_back(design(b.type,
-                                       clampd(b.freq_hz, kParametricFreqMinHz, kParametricFreqMaxHz),
-                                       sample_rate_,
-                                       clampd(b.q, kParametricQMin, kParametricQMax),
-                                       clampd(b.gain_db, kParametricGainMinDb, kParametricGainMaxDb)));
+            designed_.push_back(
+                design(b.type,
+                       clampd(b.freq_hz, kParametricFreqMinHz, kParametricFreqMaxHz),
+                       sample_rate_,
+                       clampd(b.q, kParametricQMin, kParametricQMax),
+                       clampd(b.gain_db, kParametricGainMinDb, kParametricGainMaxDb)));
         }
     } else {
         const auto bands = bands_for_mode(settings.mode);
@@ -176,8 +234,8 @@ Status Equalizer::configure(const EqSettings& settings,
         const double q = q_for_bandwidth_octaves(bandwidth_octaves_for_mode(settings.mode));
         for (std::size_t i = 0; i < bands.size(); ++i) {
             const double gain = (i < settings.graphic_gains_db.size())
-                                    ? quantise_gain(clampd(settings.graphic_gains_db[i],
-                                                           kGainMinDb, kGainMaxDb))
+                                    ? quantise_gain(clampd(
+                                          settings.graphic_gains_db[i], kGainMinDb, kGainMaxDb))
                                     : 0.0;
             // design() returns identity for 0 dB and for bands above
             // 0.95*Nyquist (REQ-AUD-084), so both cases skip at process time.
@@ -196,7 +254,10 @@ Status Equalizer::configure(const EqSettings& settings,
     // Determine true bypass: disabled, or neutral gains and a unity pre-amp.
     bool any_active = false;
     for (const auto& c : designed_) {
-        if (!c.is_identity()) { any_active = true; break; }
+        if (!c.is_identity()) {
+            any_active = true;
+            break;
+        }
     }
     const bool unity_preamp = std::abs(preamp_db_) < 1e-9;
     bypassed_ = !settings.enabled || (!any_active && unity_preamp);
@@ -247,8 +308,9 @@ std::vector<double> Equalizer::response_curve_db(double from_hz,
 
     out.reserve(points);
     const double log_from = std::log10(from_hz);
-    const double log_to   = std::log10(to_hz);
-    const double step = (points > 1) ? (log_to - log_from) / static_cast<double>(points - 1) : 0.0;
+    const double log_to = std::log10(to_hz);
+    const double step =
+        (points > 1) ? (log_to - log_from) / static_cast<double>(points - 1) : 0.0;
 
     for (std::size_t i = 0; i < points; ++i) {
         const double f = std::pow(10.0, log_from + step * static_cast<double>(i));

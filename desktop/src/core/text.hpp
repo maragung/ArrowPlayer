@@ -98,11 +98,10 @@ void encode_utf8(char32_t cp, std::string& out);
 ///   casefold -> strip diacritics -> strip leading article -> collapse spaces.
 /// Sorting uses this; display always uses the original string.
 [[nodiscard]] std::string sort_key(std::string_view display,
-                                    const std::vector<std::string>& articles);
+                                   const std::vector<std::string>& articles);
 
 /// Convenience overload using `default_articles(locale)`.
-[[nodiscard]] std::string sort_key(std::string_view display,
-                                    std::string_view locale = "en");
+[[nodiscard]] std::string sort_key(std::string_view display, std::string_view locale = "en");
 
 // -------------------------------------------------------------------- splitting
 
@@ -114,15 +113,14 @@ void encode_utf8(char32_t cp, std::string& out);
 /// Splits on any of the multi-character separators, longest match first.
 /// REQ-LIB-028: used for multi-valued artist/genre fields. `,` is deliberately
 /// NOT a default separator ("Earth, Wind & Fire").
-[[nodiscard]] std::vector<std::string> split_multi(
-    std::string_view s, const std::vector<std::string>& separators);
+[[nodiscard]] std::vector<std::string> split_multi(std::string_view s,
+                                                   const std::vector<std::string>& separators);
 
-[[nodiscard]] std::string join(const std::vector<std::string>& parts,
-                                std::string_view glue);
+[[nodiscard]] std::string join(const std::vector<std::string>& parts, std::string_view glue);
 
 [[nodiscard]] std::string replace_all(std::string_view s,
-                                       std::string_view find,
-                                       std::string_view repl);
+                                      std::string_view find,
+                                      std::string_view repl);
 
 // -------------------------------------------------------------------- numbers
 
@@ -140,14 +138,14 @@ void encode_utf8(char32_t cp, std::string& out);
 /// regex: REQ-PLS-013 excludes regex because catastrophic backtracking is a
 /// denial-of-service surface in a shareable smart-playlist rule.
 [[nodiscard]] bool glob_match(std::string_view pattern,
-                               std::string_view subject,
-                               bool case_sensitive = false) noexcept;
+                              std::string_view subject,
+                              bool case_sensitive = false) noexcept;
 
 /// Damerau-Levenshtein distance, bounded by `max_distance`; returns
 /// max_distance + 1 when it would exceed the bound (§9.5 fuzzy stage).
 [[nodiscard]] std::size_t edit_distance(std::string_view a,
-                                         std::string_view b,
-                                         std::size_t max_distance) noexcept;
+                                        std::string_view b,
+                                        std::size_t max_distance) noexcept;
 
 // -------------------------------------------------------------------- paths
 

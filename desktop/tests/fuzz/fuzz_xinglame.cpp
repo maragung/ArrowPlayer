@@ -16,14 +16,14 @@
 /// tag must never stop playback), which makes it the interesting call here: it
 /// cannot report a problem, so every guarantee it offers has to hold structurally.
 
-#include "audio/decode/gapless_info.hpp"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <span>
 #include <string_view>
+
+#include "audio/decode/gapless_info.hpp"
 
 namespace {
 

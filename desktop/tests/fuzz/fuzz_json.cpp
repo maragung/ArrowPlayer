@@ -22,14 +22,14 @@
 /// The limits are left at their defaults so the depth, element and byte guards
 /// are part of what is under test (REQ-THM-017).
 
-#include "core/json/json.hpp"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <string_view>
+
+#include "core/json/json.hpp"
 
 namespace {
 
