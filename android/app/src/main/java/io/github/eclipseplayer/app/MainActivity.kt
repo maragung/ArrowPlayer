@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+@Suppress("FunctionNaming")
 fun AboutScreen() {
     Scaffold { innerPadding ->
         Column(

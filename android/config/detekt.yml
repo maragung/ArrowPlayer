@@ -2,6 +2,13 @@
 # Deliberately minimal: the defaults are strict enough for a scaffold, and a
 # config file that disables rules to make CI green would be the OQ-045 shape —
 # a gate tuned until it cannot fail.
+#
+# Compose composables are PascalCase by convention, which detekt 1.23.x's
+# FunctionNaming rule cannot exempt (its annotation-based opt-out arrived in
+# detekt 2.x). Rather than weaken functionPattern globally, the two composables
+# carry a scoped @Suppress("FunctionNaming") — the rule stays on, the exception
+# stays visible at the call site, and a future detekt upgrade can drop the
+# suppressions in favour of ignoreAnnotated: [Composable].
 build:
   maxIssues: 0
 
