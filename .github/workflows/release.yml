@@ -498,6 +498,11 @@ jobs:
       # REQ-BLD-016: smoke the artifact, not just the build tree — the binary
       # that ships must open a window and exit 0 doing so.
       - name: Smoke — window opens (REQ-BLD-016)
+        # Git Bash on windows-2022, not the default PowerShell: the smoke
+        # script is bash and `[ -f "$exe.exe" ]` is a bash test, not a
+        # PowerShell one. The matrix step's shell is otherwise pwsh and
+        # would fail on the first test.
+        shell: bash
         env:
           QT_QPA_PLATFORM: offscreen
           ECLIPSE_SMOKE_TEST: '1'
