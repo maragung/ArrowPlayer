@@ -384,8 +384,17 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build ${{ matrix.cxx }} \
-            libsqlite3-dev zlib1g-dev pkg-config
+          # For arm64 the matrix.cxx is the cross compiler (aarch64-linux-gnu-g++),
+          # which is provided by the g++-aarch64-linux-gnu package below; do not
+          # also try to apt-get install it as a native package.
+          if [ "${{ matrix.name }}" = "ubuntu-arm64" ]; then
+            sudo apt-get install -y ninja-build gcc-aarch64-linux-gnu \
+              g++-aarch64-linux-gnu \
+              libsqlite3-dev zlib1g-dev pkg-config
+          else
+            sudo apt-get install -y ninja-build ${{ matrix.cxx }} \
+              libsqlite3-dev zlib1g-dev pkg-config
+          fi
           if [ "${{ matrix.name }}" = "ubuntu-arm64" ]; then
             sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
           fi
