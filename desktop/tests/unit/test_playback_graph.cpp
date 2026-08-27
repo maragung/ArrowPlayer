@@ -24,13 +24,16 @@ class FakeDecoder final : public IDecoder {
             return err(ErrorCode::InvalidState, "decoder closed");
         }
         // The IDecoder contract is uint64_t; the underlying std::array
-        // is indexed by size_t. The narrowing happens implicitly here
-        // because the fake only ever holds 4 samples; an explicit cast
-        // would be -Wuseless-cast on LP64 where the two types coincide.
-        const auto count = std::min<std::size_t>(
-            destination.frames, samples.size() - static_cast<std::size_t>(position));
+        // is indexed by size_t. The implicit conversion from position
+        // to size_t is correct on every platform we test because the
+        // fake only ever holds 4 samples. An explicit cast would be
+        // -Wuseless-cast on LP64 where the two widths coincide, so the
+        // narrowing is left implicit here.
+        const std::size_t pos = position;
+        const auto count = std::min<std::size_t>(destination.frames,
+                                                  samples.size() - pos);
         for (std::size_t i = 0; i < count; ++i) {
-            destination.planes[0][i] = samples[static_cast<std::size_t>(position) + i];
+            destination.planes[0][i] = samples[pos + i];
         }
         position += count;
         return count;

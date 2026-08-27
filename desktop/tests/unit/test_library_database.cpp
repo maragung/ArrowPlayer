@@ -27,10 +27,9 @@ class LibraryDatabaseTest : public ::testing::Test {
         // themselves scheduled in parallel.
         const auto base =
             std::filesystem::temp_directory_path() / "eclipse-player-library-test";
-        path = base.string() + "-" + ::testing::UnitTest::GetInstance()
-                                       ->current_test_info()
-                                       ->name() +
-               "-" + std::to_string(static_cast<long>(getpid())) + ".sqlite";
+        path = base.string() + "-" +
+               ::testing::UnitTest::GetInstance()->current_test_info()->name() + "-" +
+               std::to_string(static_cast<long>(getpid())) + ".sqlite";
         std::filesystem::remove(path);
     }
 
