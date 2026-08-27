@@ -36,7 +36,7 @@ eclipse_set_hardening(eclipse-ui)   # REQ-SEC-018
 target_compile_features(eclipse-ui PUBLIC cxx_std_20)
 
 # ---------------------------------------------------------------------------
-#  Translations — §12.7 pipeline, Phase 0 ships `en` and `id` (status.md unit
+#  Translations — §12.7 pipeline, Phase 0 ships `en` and `id` (translation unit
 #  B). The .ts sources are committed in desktop/resources/i18n/; qt_add_lrelease
 #  compiles them to .qm in the build directory and qt_add_resources embeds them
 #  as the `:/i18n/eclipse_<locale>.qm` resource that shell.cpp loads. The
