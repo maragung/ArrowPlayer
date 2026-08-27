@@ -142,14 +142,16 @@ if(ECLIPSE_HAVE_ALSA)
     # to resolve the vtable. We compile the factory twice — once in
     # eclipse-audio-null (always) and once in eclipse-audio-alsa (when ALSA
     # is on, with the AlsaSink vtable available) — and the executable links
-    # the variant that matches the current platform.
+    # the variant that matches the current platform. The ALSA library still
+    # links against eclipse-audio-null because the factory references the
+    # NullSink vtable on the Automatic-preference fallback path.
     target_compile_definitions(eclipse-audio-null PRIVATE ECLIPSE_HAVE_ALSA=1)
     add_library(eclipse-audio-alsa STATIC
         "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/alsa_sink.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/sink_factory.cpp")
     target_compile_definitions(eclipse-audio-alsa PRIVATE ECLIPSE_HAVE_ALSA=1)
     target_include_directories(eclipse-audio-alsa PUBLIC src)
-    target_link_libraries(eclipse-audio-alsa PUBLIC eclipse-domain eclipse::alsa)
+    target_link_libraries(eclipse-audio-alsa PUBLIC eclipse-domain eclipse-audio-null eclipse::alsa)
     eclipse_set_warnings(eclipse-audio-alsa)
     eclipse_set_sanitizers(eclipse-audio-alsa)
     eclipse_set_hardening(eclipse-audio-alsa)
