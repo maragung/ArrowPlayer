@@ -65,7 +65,17 @@ int main(int argc, char** argv) {
         // step proves the linked executable opens a window rather than
         // crashing on the first frame. The env-var check happens after
         // startup so a failed lifecycle still produces a meaningful code.
+        // getenv is fine for a single read of a build-time-only variable;
+        // MSVC's C4996 deprecation is the documented case, so the local
+        // pragma is the narrowest suppression.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996)  // getenv is deprecated in favour of _dupenv_s
+#endif
         const char* smoke = std::getenv("ECLIPSE_SMOKE_TEST");
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
         if (smoke != nullptr) {
             static_cast<void>(application.lifecycle().shutdown());
             return Application::kExitOk;
