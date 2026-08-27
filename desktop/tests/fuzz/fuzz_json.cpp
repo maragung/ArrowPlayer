@@ -37,7 +37,7 @@ using eclipse::json::Type;
 using eclipse::json::Value;
 
 [[noreturn]] void fail(const char* what) {
-    std::fprintf(stderr, "fuzz_json: invariant violated: %s\n", what);
+    (void)std::fprintf(stderr, "fuzz_json: invariant violated: %s\n", what);
     std::abort();
 }
 

@@ -17,6 +17,8 @@
 // until Phase 4. Recorded as OQ-054 in docs/OPEN-QUESTIONS.md.
 
 #include <cstdio>
+#include <exception>
+#include <string_view>
 
 #include "app/app_info.hpp"
 #include "app/application.hpp"
@@ -29,45 +31,61 @@ int main(int argc, char** argv) {
     using eclipse::app::AppInfo;
     using eclipse::app::Application;
 
-    Application application{AppInfo::current()};
-    const AppInfo& info = application.info();
+    // bugprone-exception-escape (REQ-SEC-015): main must not let an exception
+    // escape. AppInfo/lifecycle/shell can throw (allocations), so the whole body
+    // is wrapped; a caught exception names itself on stderr and exits EX_SOFTWARE
+    // rather than terminating with a bare std::terminate.
+    try {
+        Application application{AppInfo::current()};
+        const AppInfo& info = application.info();
 
-    // Phase 0 registers no steps; see app/lifecycle.hpp for why an empty
-    // lifecycle is still started and stopped rather than skipped.
-    if (eclipse::Status started = application.lifecycle().start(); !started) {
-        const eclipse::Error& error = started.error();
-        std::fprintf(stderr,
-                     "%s\n%s: %s\n",
-                     info.to_log_string().c_str(),
-                     eclipse::to_string(error.code()).data(),
-                     error.technical_detail().c_str());
-        return Application::exit_code_for(error);
-    }
+        // Phase 0 registers no steps; see app/lifecycle.hpp for why an empty
+        // lifecycle is still started and stopped rather than skipped.
+        if (eclipse::Status started = application.lifecycle().start(); !started) {
+            const eclipse::Error& error = started.error();
+            // to_string returns a string_view over a literal; print it with an
+            // explicit length rather than assuming null termination.
+            const std::string_view code_name = eclipse::to_string(error.code());
+            (void)std::fprintf(stderr,
+                               "%s\n%.*s: %s\n",
+                               info.to_log_string().c_str(),
+                               static_cast<int>(code_name.size()),
+                               code_name.data(),
+                               error.technical_detail().c_str());
+            return Application::exit_code_for(error);
+        }
 
 #if defined(ECLIPSE_WITH_UI)
-    const int code = eclipse::ui::run_shell(argc,
-                                            argv,
-                                            eclipse::ui::ShellInfo{
-                                                .version = info.version,
-                                                .git_sha = info.git_sha,
-                                                .git_dirty = info.git_dirty,
-                                            });
-    static_cast<void>(application.lifecycle().shutdown());
-    return code;
+        const int code = eclipse::ui::run_shell(argc,
+                                                argv,
+                                                eclipse::ui::ShellInfo{
+                                                    .version = info.version,
+                                                    .git_sha = info.git_sha,
+                                                    .git_dirty = info.git_dirty,
+                                                });
+        static_cast<void>(application.lifecycle().shutdown());
+        return code;
 #else
-    // No window, and the exit code says so. Exit gate 1 is "window opens"; a
-    // build with no UI cannot satisfy it, and returning 0 here is precisely how
-    // a green smoke test would come to mean nothing (the OQ-042 shape recorded
-    // in docs/OPEN-QUESTIONS.md). EX_UNAVAILABLE is the honest answer: the
-    // program is intact, this build simply cannot do its job.
-    static_cast<void>(argc);
-    static_cast<void>(argv);
-    std::printf("%s\n", info.to_log_string().c_str());
-    std::fprintf(stderr,
-                 "This build contains no user interface, so no window can open.\n"
-                 "Reconfigure with -DECLIPSE_BUILD_UI=ON and a Qt 6.8+ installation\n"
-                 "that CMake can find (see docs/BUILDING.md).\n");
-    static_cast<void>(application.lifecycle().shutdown());
-    return Application::kExitUnavailable;
+        // No window, and the exit code says so. Exit gate 1 is "window opens"; a
+        // build with no UI cannot satisfy it, and returning 0 here is precisely how
+        // a green smoke test would come to mean nothing (the OQ-042 shape recorded
+        // in docs/OPEN-QUESTIONS.md). EX_UNAVAILABLE is the honest answer: the
+        // program is intact, this build simply cannot do its job.
+        static_cast<void>(argc);
+        static_cast<void>(argv);
+        (void)std::printf("%s\n", info.to_log_string().c_str());
+        (void)std::fprintf(stderr,
+                           "This build contains no user interface, so no window can open.\n"
+                           "Reconfigure with -DECLIPSE_BUILD_UI=ON and a Qt 6.8+ installation\n"
+                           "that CMake can find (see docs/BUILDING.md).\n");
+        static_cast<void>(application.lifecycle().shutdown());
+        return Application::kExitUnavailable;
 #endif
+    } catch (const std::exception& e) {
+        (void)std::fprintf(stderr, "unhandled exception: %s\n", e.what());
+        return Application::kExitStartupFailed;
+    } catch (...) {
+        (void)std::fprintf(stderr, "unhandled unknown exception in main\n");
+        return Application::kExitStartupFailed;
+    }
 }

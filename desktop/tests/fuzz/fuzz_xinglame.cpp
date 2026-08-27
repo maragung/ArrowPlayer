@@ -30,7 +30,7 @@ namespace {
 using namespace eclipse::audio;
 
 [[noreturn]] void fail(const char* what) {
-    std::fprintf(stderr, "fuzz_xinglame: invariant violated: %s\n", what);
+    (void)std::fprintf(stderr, "fuzz_xinglame: invariant violated: %s\n", what);
     std::abort();
 }
 

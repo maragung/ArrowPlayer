@@ -211,7 +211,6 @@ char32_t strip_diacritic(char32_t cp) noexcept {
         case 0x00C3:
         case 0x00C4:
         case 0x00C5:
-            return U'A';
         case 0x00C6:
             return U'A';  // AE -> A (single-char fold)
         case 0x00C7:
@@ -254,7 +253,6 @@ char32_t strip_diacritic(char32_t cp) noexcept {
         case 0x00E3:
         case 0x00E4:
         case 0x00E5:
-            return U'a';
         case 0x00E6:
             return U'a';
         case 0x00E7:
@@ -640,11 +638,11 @@ bool parse_hex(std::string_view s, std::uint64_t& out) noexcept {
     for (const char c : t) {
         std::uint64_t d;
         if (c >= '0' && c <= '9')
-            d = static_cast<std::uint64_t>(c - '0');
+            d = static_cast<std::uint64_t>(c) - '0';
         else if (c >= 'a' && c <= 'f')
-            d = static_cast<std::uint64_t>(c - 'a' + 10);
+            d = static_cast<std::uint64_t>(c) - 'a' + 10;
         else if (c >= 'A' && c <= 'F')
-            d = static_cast<std::uint64_t>(c - 'A' + 10);
+            d = static_cast<std::uint64_t>(c) - 'A' + 10;
         else
             return false;
         acc = (acc << 4) | d;
