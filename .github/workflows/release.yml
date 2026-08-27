@@ -374,7 +374,9 @@ jobs:
       matrix:
         include:
           - { name: ubuntu-x86_64, os: ubuntu-24.04, preset: linux-release, cc: gcc-13, cxx: g++-13 }
-          - { name: windows-x64,   os: windows-2022, preset: windows-release }
+          - { name: ubuntu-arm64,   os: ubuntu-24.04, preset: linux-release-arm64, cc: aarch64-linux-gnu-gcc, cxx: aarch64-linux-gnu-g++ }
+          - { name: windows-x64,    os: windows-2022, preset: windows-release }
+          - { name: windows-arm64,  os: windows-2022, preset: windows-release-arm64 }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -384,6 +386,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build ${{ matrix.cxx }} \
             libsqlite3-dev zlib1g-dev pkg-config
+          if [ "${{ matrix.name }}" = "ubuntu-arm64" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          fi
+          if [ "${{ matrix.name }}" = "ubuntu-arm64" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          fi
           # Qt 6.8's Gui config hard-requires WrapOpenGL, XKB and Vulkan headers
           # at find_package time; without them the artifact build silently
           # produces a UI-less binary and the smoke step fails (same fix as
@@ -488,13 +496,19 @@ jobs:
           set -euo pipefail
           version="$(tr -d '[:space:]' < desktop/version.txt)"
           qtver="$(cat desktop/qt-version.txt)"
+          arch="${{ matrix.name }}"
+          arch="${arch#ubuntu-}"
           qtprefix="$RUNNER_TOOL_CACHE/Qt/$qtver/gcc_64"
+          if [ "${{ matrix.name }}" = "ubuntu-arm64" ]; then
+            echo "::error::Qt arm64 cross-package requires an arm64 Qt toolchain archive; refusing to label an x86_64 binary as arm64."
+            exit 1
+          fi
           staging="$RUNNER_TEMP/pkg"
           rm -rf "$staging"; mkdir -p "$staging/bin" "$staging/lib" \
             "$staging/plugins" "$staging/share/doc/eclipse-player"
           # The real binary under its own name; a wrapper in front of it sets
           # LD_LIBRARY_PATH and QT_PLUGIN_PATH to the bundled copies.
-          cp build/linux-release/eclipse-player "$staging/bin/eclipse-player.bin"
+          cp build/${{ matrix.preset }}/eclipse-player "$staging/bin/eclipse-player.bin"
           cp -rL "$qtprefix"/lib/libQt6*.so* "$staging/lib/"
           cp -rL "$qtprefix"/lib/libicu*.so* "$staging/lib/" 2>/dev/null || true
           cp -r "$qtprefix/plugins/platforms" "$staging/plugins/"
@@ -511,9 +525,9 @@ jobs:
           WRAPPER
           chmod +x "$staging/bin/eclipse-player"
           (cd "$staging" && tar czf \
-            "$RUNNER_TEMP/eclipse-player-$version-linux-x86_64.tar.gz" .)
-          sha256sum "$RUNNER_TEMP/eclipse-player-$version-linux-x86_64.tar.gz" \
-            > "$RUNNER_TEMP/eclipse-player-$version-linux-x86_64.tar.gz.sha256"
+            "$RUNNER_TEMP/eclipse-player-$version-linux-$arch.tar.gz" .)
+          sha256sum "$RUNNER_TEMP/eclipse-player-$version-linux-$arch.tar.gz" \
+            > "$RUNNER_TEMP/eclipse-player-$version-linux-$arch.tar.gz.sha256"
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
@@ -521,6 +535,7 @@ jobs:
         run: |
           $version = (Get-Content desktop/version.txt).Trim()
           $qtver = Get-Content desktop/qt-version.txt
+          $arch = "${{ matrix.name }}" -replace '^windows-', ''
           $qtbin = "$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64\bin"
           $staging = "$env:RUNNER_TEMP\pkg"
           New-Item -ItemType Directory -Force -Path $staging | Out-Null
@@ -530,10 +545,10 @@ jobs:
           & "$qtbin\windeployqt.exe" --release --no-translations "$staging\eclipse-player.exe"
           Copy-Item LICENSE $staging
           Copy-Item desktop/qt-version.txt "$staging\qt-version.txt"
-          $zip = "$env:RUNNER_TEMP\eclipse-player-$version-windows-x64.zip"
+          $zip = "$env:RUNNER_TEMP\eclipse-player-$version-windows-$arch.zip"
           Compress-Archive -Path "$staging\*" -DestinationPath $zip
           $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  eclipse-player-$version-windows-x64.zip" | Out-File "$zip.sha256"
+          "$hash  eclipse-player-$version-windows-$arch.zip" | Out-File "$zip.sha256"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -616,9 +631,9 @@ jobs:
             echo
             echo "### Desktop"
             echo
-            echo "- \`eclipse-player-$version-windows-x64.zip\` — self-contained, Qt bundled"
+            echo "- Windows x64/arm64 ZIPs — self-contained, Qt bundled by windeployqt"
             echo "  by windeployqt"
-            echo "- \`eclipse-player-$version-linux-x86_64.tar.gz\` — binary plus the Qt"
+            echo "- Linux x86_64/arm64 tarballs — binary plus the Qt"
             echo "  libraries and plugins it needs; built on Ubuntu 24.04, needs a"
             echo "  stock desktop with X11/libxcb"
             echo
