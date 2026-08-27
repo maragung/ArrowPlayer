@@ -55,7 +55,7 @@ zero-connection test asserts no outbound traffic during a full session.
 | Library index, scanner, tagging | not started | — |
 | Format strings, smart playlists, theme engine | not started | — |
 | Application object, lifecycle, exit codes (§5, §28 gate 7) | done | 17 |
-| Qt UI shell, About dialog | in progress | — |
+| Qt UI shell, About dialog (Qt 6.8+, Widgets) | written, CI-verified only | 4 QTest (offscreen) |
 
 **210 tests, all passing** from a clean build — the 206 GoogleTest cases in the
 table above plus the four fuzz-corpus replays — clean under `-Werror` with a

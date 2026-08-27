@@ -27,6 +27,40 @@ stable yet.
 
 ### Added
 
+- **The Qt shell — window, About dialog, offscreen tests (Phase 0 exit gates 1
+  and 7)** — `desktop/ui/` grew from one header into a real layer-5 Widgets
+  shell: `run_shell` constructs the `QApplication`, installs the en+id
+  translators compiled from the committed `.ts` sources, and shows a
+  `MainWindow` whose Help → About dialog renders the git-generated version
+  fields handed in by `main.cpp` (REQ-BLD-007). An `ECLIPSE_SMOKE_TEST` seam
+  quits the event loop after the first show, so a headless CI run can assert
+  "window opens" without a display. Four offscreen QTest cases pin the About
+  text and the window. Written but never compiled: Qt is absent on the
+  development machine (OQ-017), so CI is the first compiler.
+
+- **The Qt cache lane — OQ-026's second half.** `desktop-ci.yml` now installs
+  Qt via aqtinstall at the `qt-version.txt` pin, cached by version key
+  (REQ-BLD-022), and runs the real binary offscreen as the gate-1 smoke test;
+  the asan/tsan presets turn the UI off so the sanitizer suites stay about the
+  domain layer.
+
+- **Android restored — ADR 0012 supersedes ADR 0011.** `android/` is a Gradle
+  8.9 + Kotlin 2.1 + Compose scaffold (single `:app` module, About screen,
+  adaptive vector icon, version from `gradle.properties`), and
+  `android-ci.yml` runs ktlint, detekt, `assembleDebug`, unit tests and an
+  emulator install/launch job, uploading the debug APK; on a tag it builds the
+  release APKs and uploads them to the same GitHub Release as the desktop
+  binaries. What the scaffold is not is stated in OQ-018 rather than glossed:
+  the engine, Auto surface and conformance validator are unwritten.
+
+- **A pragmatic release pipeline in `release.yml`.** The publish boundary now
+  publishes: on a `vX.Y.Z` tag the `artifacts` job builds and packages the
+  Windows (windeployqt zip) and Ubuntu (Qt-bundled tar.gz) binaries,
+  android-ci contributes the APKs, and `publish` creates one GitHub Release
+  with SBOM, SHA-256 checksums and changelog. §25.5 step 5 (signing,
+  REQ-SEC-016) is refused and named — every artifact ships unsigned until a
+  signing identity exists.
+
 - **`REQ-GEN-050` rule 1 is now enforced (OQ-031 closed)** —
   `tools/check-layers.py` gained a `layer ordering` check: one table maps
   directory prefixes under `desktop/` to §7.1's five layers, defaults
@@ -389,16 +423,20 @@ and tested, and this section is what keeps that promise honest:
   `-fsanitize=fuzzer`, and Clang is not installed here, so every finding so far
   came from replaying seeds a human wrote. The 60-second-per-target smoke in
   `desktop-ci.yml` has not executed either, because nothing has been pushed.
-- **No Android application.** `android/` does not exist, so `REQ-GEN-030` (the
-  repository layout) is unmet and Phase 0 exit gate 2 stays red. Recorded in
-  `docs/adr/0011-desktop-first-sequencing.md`.
-- **`REQ-GEN-031` is half-proven.** One implementation conforming to the
-  fixtures is not two implementations agreeing on them.
 - **The Qt UI is unverified anywhere but CI.** Qt is the one dependency that is
   not installed on the development machine, so Phase 0 exit gates 1 ("the window
-  opens") and 7 ("the version is shown in About") are CI-only. It is not claimed
-  that a window has been observed to open. Tracked as `OQ-017` in
+  opens") and 7 ("the version is shown in About") are CI-only. The shell is
+  written and its offscreen tests are committed; it is not claimed that a
+  window has been observed to open. Tracked as `OQ-017` in
   `docs/OPEN-QUESTIONS.md`.
+- **Android is a scaffold, not a product.** The `:app` module builds a debug
+  APK; `REQ-GEN-030` is only partially met and Phase 0 exit gate 2 needs its
+  first green run. `REQ-GEN-031` stays half-proven: one implementation
+  conforming to the fixtures is not two implementations agreeing. Recorded in
+  `docs/adr/0012-restore-android.md` and `OQ-018`.
+- **Nothing has been pushed, so no workflow has ever executed** — including the
+  new Qt lane, the Android pipeline and the release pipeline. Every claim about
+  them is about the files, not about runs.
 - **Windows and `arm64` are CI-only.** WASAPI, the jump list and the installer
   have no local test evidence (`OQ-022`, `OQ-023`).
 
