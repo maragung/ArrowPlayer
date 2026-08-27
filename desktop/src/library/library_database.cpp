@@ -72,13 +72,15 @@ Status LibraryDatabase::insert_track(const Track& track) {
     sqlite3_bind_text(statement, 3, track.artist.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int64(statement, 4, track.duration_ms);
     const int result = sqlite3_step(statement);
-    sqlite3_finalize(statement);
     if (result != SQLITE_DONE) {
+        const char* detail = sqlite3_errmsg(db_);
+        sqlite3_finalize(statement);
         return err(result == SQLITE_CONSTRAINT ? ErrorCode::ConstraintViolation
                                                : ErrorCode::QueryFailed,
                    "The track could not be added to the library.",
-                   sqlite3_errmsg(db_));
+                   detail == nullptr ? "" : detail);
     }
+    sqlite3_finalize(statement);
     return ok();
 }
 
