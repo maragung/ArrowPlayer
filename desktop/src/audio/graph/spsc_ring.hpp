@@ -82,8 +82,11 @@ class SpscPcmRing final {
     const std::size_t channels_;
     std::vector<float> samples_;
 #ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4324)  // structure was padded due to alignment
     __declspec(align(64)) std::atomic<std::size_t> write_index_{0};
     __declspec(align(64)) std::atomic<std::size_t> read_index_{0};
+#pragma warning(pop)
 #else
     alignas(64) std::atomic<std::size_t> write_index_{0};
     alignas(64) std::atomic<std::size_t> read_index_{0};
