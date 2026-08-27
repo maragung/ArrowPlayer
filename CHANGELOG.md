@@ -27,6 +27,19 @@ stable yet.
 
 ### Added
 
+- **`REQ-GEN-050` rule 1 is now enforced (OQ-031 closed)** —
+  `tools/check-layers.py` gained a `layer ordering` check: one table maps
+  directory prefixes under `desktop/` to §7.1's five layers, defaults
+  everything else under `src/` to the domain layer, and refuses an
+  upward include. Writing that map surfaced a real inversion the abstract
+  rule had hidden: §7.1 numbers **ADAPTERS 1 and PORTS 2**, so rule 1's
+  arithmetic forbids an adapter from including the port it implements and
+  *permits* a port to name an adapter — the exact thing rule 3 exists to
+  prevent. Both directions are therefore stated outright and the conflict
+  is recorded as OQ-055 rather than resolved in silence. Proven by 13
+  synthetic trees, 6 of them planted violations, a same-file flip test,
+  and one upward include planted in the real tree, which it located.
+
 - **The application layer and the player executable** — `desktop/src/app/`
   holds the build identity (`AppInfo`, read once from the git-generated
   version header so the binary and the About dialog cannot disagree), an
