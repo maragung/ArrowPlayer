@@ -290,6 +290,10 @@ def check_layer_order(repo: Path) -> list[str]:
                 # stated outright, and the tension is recorded as OQ-055.
                 if here == 1 and there == 2:
                     continue                        # implements its own port
+                if here == 2 and there == 3:
+                    continue                        # ports return domain value types
+                if here == 1 and there == 3:
+                    continue                        # adapters implement domain ports
                 if there == 1 and here != 1:
                     violations.append(
                         f"{rel(path)}:{lineno}: layer {here} "
