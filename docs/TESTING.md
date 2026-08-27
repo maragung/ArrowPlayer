@@ -101,7 +101,7 @@ python3 tools/validate-shared-spec.py --self-test
 ```
 
 ```text
-layers self-test: 29 synthetic tree(s) over all four checks, 16 of them planted
+layers self-test: 45 synthetic tree(s) over all five checks, 23 of them planted
 violations that must be caught
 sql-safety self-test: 10 injection site(s) caught, 8 safe construct(s) left alone,
 1 documented blind spot still blind
@@ -121,7 +121,7 @@ The four differ in how they get their synthetic input, which follows from how
 each one reads the tree:
 
 - `check-layers.py` materialises whole throwaway trees under `/tmp`, since its
-  rules are about which *directory* a file sits in. Its four checks take their
+  rules are about which *directory* a file sits in. Its five checks take their
   roots as arguments for this reason.
 - `check-sql-safety.py` and `check-rt-safety.py` split a `scan_lines(name,
   lines)` core out of `scan(path)`, and the self-test drives it with strings.
@@ -133,10 +133,12 @@ each one reads the tree:
 
 What each gate does **not** catch is as important as what it does:
 
-- `check-layers.py` verifies rule 2 (domain purity) and rule 3 (adapter
-  confinement) by grepping includes against an explicit directory list; the
-  general downward-only include check of `REQ-GEN-050(1)` is not written
-  ([OQ-031](OPEN-QUESTIONS.md)). It reads text, not the compiled graph, so a
+- `check-layers.py` verifies rules 1, 2 and 3 by grepping includes against an
+  explicit directory-to-layer map. Rule 1's map defaults to layer 3, so a new
+  *pure* directory needs no entry while a new **adapter** directory does — and an
+  adapter nobody mapped fails the moment it includes its port, which is the
+  intended direction for that mistake to fall. It reads text, not the compiled
+  graph, so a
   forbidden dependency introduced by a macro or a transitive header it does not
   model would pass it — the CMake include-path partition is the backstop, not
   this script.

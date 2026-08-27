@@ -146,11 +146,34 @@ costs to break, today:
 
 | Rule | Enforcement | State |
 |---|---|---|
-| 1 · Layer *N* may depend only on layers *< N* | the domain half is enforced (rule 2's check); a general downward-only include check is not written | **partial** — [OQ-031](OPEN-QUESTIONS.md) |
+| 1 · Layer *N* may depend only on layers *< N* | `check_layer_order()` maps directories to layers and refuses an upward include; layer 1 is reachable only from the composition root | enforced — [OQ-031](OPEN-QUESTIONS.md) closed, [OQ-055](OPEN-QUESTIONS.md) records the numbering inversion it found |
 | 2 · Domain imports no Qt/FFmpeg/SQLite/adapter | `check_domain_purity()` + the CMake include-path partition | enforced |
 | 3 · Adapters reachable only through their port | `check_adapter_confinement()` | enforced |
 | 4 · `android/**` ⇄ `desktop/**` never cross; `shared-spec/**` holds no code | `check_android_isolation()`, `check_shared_spec_has_no_code()` | enforced |
 | 5 · Android feature modules depend only on `core-*` | Gradle assertion test | not applicable — no `android/` (ADR 0011) |
+
+### Rule 1 — direction
+
+`check_layer_order()` holds one table, `LAYER_PREFIXES`, mapping directory
+prefixes under `desktop/` to layers: `ui` → 5, `src/app` → 4, `src/ports` → 2,
+`src/audio/sink`, `src/library` and `src/platform` → 1, and **everything else
+under `src/` → 3**. Longest prefix wins. The default is the useful part: pure
+code needs no entry, an adapter directory does, and an unmapped adapter fails the
+moment it includes its port rather than being silently exempted.
+
+The same table classifies both sides of an include, so the file's layer and the
+included header's layer are read off one source of truth. `<eclipse/ui/…>` is
+layer 5 by its include prefix; standard and third-party headers are not
+classified at all, because rules 2 and 3 own those.
+
+Two facts about the port/adapter boundary are stated rather than computed, because
+§7.1's numbering puts adapters *below* ports and so inverts rule 1's arithmetic
+there ([OQ-055](OPEN-QUESTIONS.md)): layer 1 **may** include layer 2, and nothing
+but the composition root may include a layer-1 header.
+
+`desktop/src/main.cpp` is exempt by name. It constructs layer 4 and hands control
+to layer 5, which is what a composition root is for; the exemption is a named
+constant so it reads as a decision rather than as an oversight.
 
 ### Rule 2 — domain purity
 

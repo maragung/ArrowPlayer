@@ -526,7 +526,7 @@ outside the enum, an 84-character header, and a trailing full stop — and three
 well-formed ones pass, including a `revert` carrying `Reverts <sha>` in place of a
 requirement id.
 
-### OQ-031 — `REQ-GEN-050(1)` is enforced only for the domain layer · **Gap**
+### OQ-031 — `REQ-GEN-050(1)` is enforced only for the domain layer · **Settled**
 
 Rule 1 of `REQ-GEN-050` is the general statement — layer *N* may depend on layers
 *< N* and must not depend on layers *> N*. `tools/check-layers.py` enforces the
@@ -547,6 +547,26 @@ a reason it is enforced.
   enforcement.
 - **Interim:** `docs/ARCHITECTURE.md` states the rule's enforcement state as
   *partial* in its own table rather than claiming five-for-five.
+- **Closed** by the commit that added the `layer ordering` check, exactly as
+  proposed: the map was written from directories that exist, in the commit after
+  the one that created `desktop/src/app/`. `LAYER_PREFIXES` maps five directory
+  prefixes to layers and defaults everything else under `desktop/src/` to layer
+  3, so a new *pure* directory needs no entry while a new **adapter** directory
+  does — and forgetting one makes the adapter fail the moment it includes its
+  port, which is a loud failure rather than a silent exemption.
+- **What the closure found:** writing the map surfaced a real inversion in §7.1's
+  numbering that the abstract rule had hidden. It is recorded separately as
+  OQ-055, and the check states both directions of the port/adapter relationship
+  outright rather than deriving them from the arithmetic.
+- **What it is proven against:** 13 synthetic trees, 6 of them planted
+  violations, plus a same-file flip test — one include reversed in direction must
+  flip the verdict — because a rule table that classifies nothing passes every
+  negative case without walking a file (the OQ-045 shape). It was also run
+  against the real tree with one upward include planted in
+  `desktop/src/app/application.hpp`, which it reported and located.
+- **`src/main.cpp` is exempt, by name.** The composition root constructs layer 4
+  and hands control to layer 5; something has to. The exemption is a named
+  constant in the gate rather than a skip nobody would notice.
 
 ### OQ-032 — `REQ-GEN-054`'s doc-comment check does not exist · **Gap**
 
@@ -1578,6 +1598,41 @@ The **DI container** and the **CLI** did not.
 - **Closes when:** Phase 1 defines the first layer-2 ports and a container has
   real registrations to hold, and Phase 4 lands the CLI alongside the
   single-instance check that shares its entry path.
+
+### OQ-055 — §7.1 numbers adapters *below* ports, which inverts rule 1 · **Open**
+
+§7.1 stacks the layers 5 down to 1 with **PORTS at 2** and **ADAPTERS at 1**.
+`REQ-GEN-050` rule 1 then says layer *N* may depend on layers *< N* and never on
+layers *> N*. Applied to that numbering, the arithmetic says:
+
+- an adapter (1) may depend on **nothing** — including the port it implements;
+- a port (2) **may** depend on an adapter (1).
+
+Both conclusions are backwards, and the second directly contradicts rule 3 of the
+same requirement: *"adapters are reachable only through their layer-2 port"* is
+unsatisfiable if the port itself is allowed to name the adapter.
+
+- **Assumption in force:** the diagram's bottom two rows are a listing order, not
+  a dependency order. `tools/check-layers.py` therefore states both directions
+  outright instead of computing them: layer 1 **may** include layer 2 (an adapter
+  implements its port), and **nothing but the composition root** may include a
+  layer-1 header — not a port, not the domain, not the application layer. Rule 1's
+  arithmetic governs layers 2 through 5, where it is correct.
+- **Why this reading and not the literal one:** the literal one forbids every
+  adapter this project intends to ship. FFmpeg's decoder cannot implement
+  `IDecoder` without including it. A rule whose only consistent outcome is an
+  empty adapter layer is a numbering error, not a design.
+- **Why it was not visible before:** rule 1 was enforced only for the domain
+  layer (OQ-031), and rule 3 was enforced only against *third-party* headers.
+  Neither view could see an internal include crossing the port/adapter boundary,
+  so the inversion sat in the specification unremarked until the map was written.
+- **Recommendation:** either renumber — PORTS 1, ADAPTERS 2, with the diagram
+  redrawn so "lower" means "depended upon" — or add one sentence to §7.2 saying
+  that layer 1 may depend on layer 2 and on nothing else. The second is a smaller
+  edit and matches what the gate now enforces.
+- **Consequence if unfixed:** the specification and the gate disagree on paper
+  while agreeing in practice, and the next person to read rule 1 literally will
+  either "fix" the gate or conclude the adapters are all illegal.
 
 ---
 
