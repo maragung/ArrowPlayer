@@ -4,6 +4,13 @@
 function(eclipse_set_warnings target)
     if(MSVC)
         target_compile_options(${target} PRIVATE
+            # The tests carry non-ASCII as universal-character-names in narrow
+            # literals (e.g. "\u00E9") and the domain layer is UTF-8 end to end.
+            # MSVC's default execution charset is the system code page (1252 on
+            # the CI runner): UCNs outside it emit C4566 and, worse, encode the
+            # string wrongly. /utf-8 makes source and execution charset match
+            # GCC/Clang's UTF-8 default. REQ-GEN-046 is the UTF-8 requirement.
+            /utf-8
             /W4 /permissive-
             /w14242 /w14254 /w14263 /w14265 /w14287 /we4289
             /w14296 /w14311 /w14545 /w14546 /w14547 /w14549

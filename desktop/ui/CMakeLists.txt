@@ -15,12 +15,17 @@
 # LinguistTools is only needed here and is requested only by this directory.
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools)
 
-# Q_OBJECT (MainWindow) needs the meta-object compiler.
+# Q_OBJECT (MainWindow) needs the meta-object compiler. AUTOMOC only mocs
+# headers that are listed as target sources (or pulled in via `moc_X.cpp`
+# includes); a Q_OBJECT header merely reachable through the include path is
+# silently skipped, which the first green Linux build proved by linking a UI
+# whose MainWindow vtable and staticMetaObject were missing.
 set(CMAKE_AUTOMOC ON)
 
 add_library(eclipse-ui STATIC
     src/shell.cpp
     src/main_window.cpp
+    include/eclipse/ui/main_window.hpp
 )
 target_include_directories(eclipse-ui PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"

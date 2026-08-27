@@ -34,6 +34,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# CMake 3.28+ turns C++20 module scanning on by default with the Ninja
+# generator, which then injects `-fmodules-ts -fmodule-mapper=...modmap` into
+# every compile command. This project compiles no C++ modules, but clang-tidy
+# reads that compile database and fails on the mapper path ("no such file or
+# directory: '@...o.modmap'") — so the scanning has a real cost and no use.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -138,6 +145,16 @@ target_compile_features(eclipse-app PUBLIC cxx_std_20)
 #  Tools
 # ---------------------------------------------------------------------------
 
+# enable_testing() before the UI subdirectory: ui/tests-ui registers test_ui
+# via add_test, and a test registered before enable_testing() takes effect is
+# silently dropped from ctest — which is exactly what the first UI-enabled run
+# proved (the off-screen suite executed 6/6 locally while ctest listed 211, not
+# 212). Testing is on whenever tests are built; the block below is only about
+# ordering, so the call lives here rather than next to add_subdirectory(tests).
+if(ECLIPSE_BUILD_TESTS)
+    enable_testing()
+endif()
+
 # ---------------------------------------------------------------------------
 #  Qt UI  (optional; §6.1)
 # ---------------------------------------------------------------------------
@@ -171,7 +188,6 @@ endif()
 #  Tests
 # ---------------------------------------------------------------------------
 if(ECLIPSE_BUILD_TESTS)
-    enable_testing()
     add_subdirectory(tests)
 endif()
 
