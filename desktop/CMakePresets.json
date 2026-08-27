@@ -35,7 +35,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "ECLIPSE_WERROR": "ON",
-        "ECLIPSE_SANITIZE_ADDRESS": "ON"
+        "ECLIPSE_SANITIZE_ADDRESS": "ON",
+        "ECLIPSE_BUILD_UI": "OFF"
       }
     },
     {
@@ -46,7 +47,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "ECLIPSE_WERROR": "ON",
-        "ECLIPSE_SANITIZE_THREAD": "ON"
+        "ECLIPSE_SANITIZE_THREAD": "ON",
+        "ECLIPSE_BUILD_UI": "OFF"
       }
     },
     {
