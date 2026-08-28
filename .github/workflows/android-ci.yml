@@ -161,7 +161,13 @@ jobs:
         # the mergeReleaseJniLibFolders task has reused an earlier debug
         # artifact set in the past — disabling the build cache here
         # forces every step to re-execute against the current tree.
-        run: gradle assembleRelease --no-daemon --rerun-tasks --no-build-cache
+        # --info and -Pkotlin.compiler.execution.strategy=in-process: the
+        # previous run's compileReleaseKotlin took 0.4s, which is what
+        # an UP-TO-DATE no-op looks like; --info forces Gradle to log
+        # the input source set so we can see whether MainActivity is on
+        # the list, and the in-process strategy forces a real invocation
+        # even when the task is up-to-date.
+        run: gradle assembleRelease --no-daemon --rerun-tasks --no-build-cache --info -Pkotlin.compiler.execution.strategy=in-process 2>&1 | tee /tmp/gradle.log
         working-directory: android
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
