@@ -34,7 +34,7 @@ class MediaLibraryService : MediaLibraryService() {
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this).build()
-        mediaLibrarySession = MediaLibrarySession.Builder(this, player, LibraryCallback())
+        mediaLibrarySession = MediaLibrarySession.Builder(this, player)
             .build()
     }
 
