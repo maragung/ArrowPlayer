@@ -163,10 +163,38 @@ dependencies {
     // with "resource style/Theme.Material3.DayNight.NoActionBar not
     // found" the first time the activity is inflated.
     implementation(libs.google.android.material)
+    // REQ-OSI-040 / REQ-AUT-002: MediaLibraryService + MediaSession
+    // (Media3). Pinned in the catalog (REQ-SEC-013) so the version
+    // the subagent 11 service code lands on matches the one the
+    // androidTest surface here exercises. media3-session transitively
+    // pulls media3-common; we declare both so the test sources do
+    // not need a `common` import that would otherwise be implicit.
+    implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.common)
     testImplementation(libs.junit)
+    // REQ-OSI-041 / REQ-OSI-042: the audio-focus matrix and the
+    // becoming-noisy broadcast path are pure JVM-side contract
+    // assertions on platform classes (AudioManager,
+    // AudioFocusRequest, Intent.ACTION_AUDIO_BECOMING_NOISY). They
+    // run on the host JVM via Robolectric, NOT on a device. Espresso
+    // lives under androidTestImplementation only — the two runners
+    // do not overlap so a single test never has both available.
+    testImplementation(libs.robolectric)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
+    // MainActivityEspressoTest renders the About Compose screen and
+    // asserts on its semantic text. Espresso's onView() only sees
+    // Android Views — Compose nodes are reachable through
+    // `composeTestRule`, which lives in `ui-test-junit4` (version
+    // managed by the compose-bom above). `ui-test-manifest` is
+    // intentionally NOT pulled in here: that artifact provides an
+    // `androidx.activity.ComponentActivity` placeholder for tests
+    // that do not have an activity of their own, and
+    // `createAndroidComposeRule<MainActivity>()` uses our real
+    // activity — the placeholder would be dead weight on the
+    // classpath.
+    androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
 }
 

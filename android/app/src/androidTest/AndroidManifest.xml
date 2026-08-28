@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Variant manifest for the androidTest source set (AGP merges this
+    into the test APK's manifest, NOT the main app's). The
+    `TestNotificationForegroundService` lives only in the test
+    source tree, so it has to be declared here for the test runner
+    to be able to start it. The `android:exported` is the API 31+
+    requirement: a service that is started by an explicit Intent
+    from within the same process does not need an intent filter,
+    but the attribute itself must be present (the merger fails
+    without it on API 31+ runtimes).
+
+    `android:foregroundServiceType="mediaPlayback"` matches the
+    production service's typed-FG declaration (REQ-OSI-040 /
+    REQ-GEN-005); without it, the API 34+ validator rejects the
+    FGS start. `dataSync` would also be accepted but a media-
+    typed service is the right shape for the test — a future
+    contributor turning this into a real call into
+    `MediaSession` would otherwise have to switch the type and
+    the corresponding `FOREGROUND_SERVICE_MEDIA_PLAYBACK`
+    permission.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <application>
+        <service
+            android:name="io.github.arrowplayer.app.TestNotificationForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+    </application>
+</manifest>
