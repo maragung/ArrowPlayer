@@ -232,9 +232,18 @@ jobs:
       - name: Download the per-ABI APKs the build job produced
         uses: actions/download-artifact@v5
         with:
-          pattern: apk-*
-          path: ${{ runner.temp }}/apks
-          merge-multiple: true
+          name: apk-arm64-v8a
+          path: ${{ runner.temp }}/apks/arm64-v8a
+      - name: Download armeabi-v7a APK
+        uses: actions/download-artifact@v5
+        with:
+          name: apk-armeabi-v7a
+          path: ${{ runner.temp }}/apks/armeabi-v7a
+      - name: Download x86_64 APK
+        uses: actions/download-artifact@v5
+        with:
+          name: apk-x86_64
+          path: ${{ runner.temp }}/apks/x86_64
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
         env:
@@ -253,18 +262,14 @@ jobs:
           version="${VERSION#v}"
           out_dir="$RUNNER_TEMP/renamed-apks"
           rm -rf "$out_dir"; mkdir -p "$out_dir"
-          # Debug: what is actually there?
-          find "$RUNNER_TEMP/apks" -name "*.apk" 2>/dev/null | sort || true
-          ls -la "$RUNNER_TEMP/apks" 2>/dev/null || true
-          shopt -s nullglob
-          # AGP names per-ABI release APKs as app-<abi>-release-unsigned.apk
-          # when the build is unsigned. Bash glob `*` does not match the `-`
-          # separator inside the ABI name, so the pattern needs a second
-          # `*` to span "release" and the optional "-unsigned" suffix. The
-          # regex below allows the underscore in `x86_64` to land in the
-          # ABI capture group. The destination filename keeps the spec name.
-          for apk in "$RUNNER_TEMP"/apks/app-*-release*.apk; do
-            abi=$(basename "$apk" | sed -E 's/^app-(.+)-release(-unsigned)?\.apk$/\1/')
+          # Each download step puts the APK into a subdirectory named after
+          # the ABI (arm64-v8a, armeabi-v7a, x86_64). Copy each to the
+          # output directory with the spec's naming scheme.
+          for subdir in "$RUNNER_TEMP"/apks/*/; do
+            [ -d "$subdir" ] || continue
+            apk=$(find "$subdir" -name "*.apk" -type f 2>/dev/null | head -1)
+            [ -n "$apk" ] || continue
+            abi=$(basename "$subdir")
             dest="$out_dir/arrow-player-$version-android-$abi.apk"
             cp "$apk" "$dest"
             sha256sum "$dest" > "$dest.sha256"
