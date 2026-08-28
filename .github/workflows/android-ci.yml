@@ -122,7 +122,7 @@ jobs:
       # signing-identity phase. The rename to arrow-player-<ver>-android-<abi>.apk
       # for the GitHub Release asset happens in the `release` job below; this
       # step uploads what AGP actually produced.
-      - uses: actions/upload-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/upload-artifact@v5
         with:
           name: apks-release
           path: android/app/build/outputs/apk/release/app-*-release*.apk
@@ -131,7 +131,7 @@ jobs:
 
       # Unit-test report. Always uploaded, not just on failure: a green
       # report is the evidence the gate ran, not a missing file.
-      - uses: actions/upload-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: test-report
@@ -217,7 +217,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Download the per-ABI APKs the build job produced
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@v5
         with:
           name: apks-release
           path: ${{ runner.temp }}/apks
