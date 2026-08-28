@@ -672,15 +672,6 @@ Value Evaluator::eval_node(const Node& node) noexcept {
     return Value{};
 }
 
-Value Evaluator::eval_pattern(const Pattern& pattern) noexcept {
-    std::string s;
-    for (const Node& n : pattern) {
-        Value v = eval_node(n);
-        if (!v.absent()) s += v.str();
-    }
-    return Value{std::move(s)};
-}
-
 bool Evaluator::any_present_field(const Pattern& pattern) noexcept {
     // A block with no field references renders in full (OQ-012).
     bool found_any = false;

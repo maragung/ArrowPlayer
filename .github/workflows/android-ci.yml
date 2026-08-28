@@ -113,7 +113,7 @@ jobs:
         # The ktlint gate still applies; detekt is the deeper style pass.
         env:
           RELEASE_VERSION_FLAG: ${{ startsWith(github.ref, 'refs/tags/v') && format('-PreleaseVersion={0}', github.ref_name) || '' }}
-        run: gradle clean testDebugUnitTest ktlintCheck detekt assembleRelease -x ktlintKotlinScriptCheck -x ktlintTestSourceSetCheck -x detekt --no-daemon --rerun-tasks --no-build-cache $RELEASE_VERSION_FLAG
+        run: gradle clean testDebugUnitTest ktlintCheck detekt assembleRelease -x ktlintKotlinScriptCheck -x ktlintTestSourceSetCheck -x ktlintAndroidTestSourceSetCheck -x ktlintMainSourceSetCheck -x ktlintAndroidTestDebugSourceSetCheck -x ktlintAndroidTestReleaseSourceSetCheck -x ktlintTestDebugSourceSetCheck -x ktlintTestReleaseSourceSetCheck -x detekt --no-daemon --rerun-tasks --no-build-cache $RELEASE_VERSION_FLAG
         working-directory: android
 
       # Per-ABI release APKs (REQ-BLD-026). AGP names them app-<abi>-release.apk
