@@ -18,3 +18,11 @@ ktlint_function_naming_ignore_when_annotated_with = Composable
 # cap. The override is scoped to the test path only.
 [app/src/test/**.{kt,kts}]
 max_line_length = 120
+
+# The fixture in app/src/test/resources/sample-build.gradle.kts is a
+# sample read as plain text by VersionMappingTest; it is not compiled.
+# Skip ktlint for it so the assertion can carry a slightly-longer
+# line that mirrors the production build script without inheriting
+# the 100/120-char caps the live sources follow.
+[app/src/test/resources/**.{kt,kts}]
+ktlint_excludes = true
