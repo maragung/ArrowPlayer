@@ -16,6 +16,8 @@
 package io.github.arrowplayer.app
 
 import androidx.annotation.OptIn
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.LibraryParams
@@ -27,18 +29,16 @@ import com.google.common.util.concurrent.ListenableFuture
 @OptIn(UnstableApi::class)
 class MediaLibraryService : MediaLibraryService() {
 
-    private var mediaLibrarySession: MediaLibrarySession? = null
+    private lateinit var mediaLibrarySession: MediaLibrarySession
 
     override fun onCreate() {
         super.onCreate()
-
         val player = ExoPlayer.Builder(this).build()
-
         mediaLibrarySession = MediaLibrarySession.Builder(this, player, LibraryCallback())
             .build()
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession {
         return mediaLibrarySession
     }
 
@@ -47,13 +47,13 @@ class MediaLibraryService : MediaLibraryService() {
         params: LibraryParams?,
     ): ListenableFuture<LibraryResult<MediaItem>> {
         if (!isPackageAllowed(controllerInfo.packageName)) {
-            return Futures.immediateFuture(LibraryResult.ERROR_PERMISSION_DENIED)
+            return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.ERROR_PERMISSION_DENIED))
         }
 
         val root = MediaItem.Builder()
             .setMediaId(ROOT_ID)
             .setMediaMetadata(
-                androidx.media3.common.MediaMetadata.Builder()
+                MediaMetadata.Builder()
                     .setTitle("Arrow Player")
                     .setIsPlayable(false)
                     .setIsBrowsable(true)
@@ -72,7 +72,7 @@ class MediaLibraryService : MediaLibraryService() {
         params: LibraryParams?,
     ): ListenableFuture<LibraryResult<List<MediaItem>>> {
         if (!isPackageAllowed(controllerInfo.packageName)) {
-            return Futures.immediateFuture(LibraryResult.ERROR_PERMISSION_DENIED)
+            return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.ERROR_PERMISSION_DENIED))
         }
 
         val children = when (parentMediaId) {
@@ -82,40 +82,26 @@ class MediaLibraryService : MediaLibraryService() {
                 makeBrowsableTab(CHILDREN_ID_ARTISTS, "Artists"),
                 makeBrowsableTab(CHILDREN_ID_RECENT, "Recent"),
             )
-            CHILDREN_ID_PLAYLISTS -> emptyList() // Phase 1 stub — populated from library
-            CHILDREN_ID_ALBUMS -> emptyList()    // Phase 1 stub — populated from library
-            CHILDREN_ID_ARTISTS -> emptyList()   // Phase 1 stub — populated from library
-            CHILDREN_ID_RECENT -> emptyList()    // Phase 1 stub — populated from library
-            else -> return Futures.immediateFuture(LibraryResult.ERROR_NOT_SUPPORTED)
+            CHILDREN_ID_PLAYLISTS -> emptyList()
+            CHILDREN_ID_ALBUMS -> emptyList()
+            CHILDREN_ID_ARTISTS -> emptyList()
+            CHILDREN_ID_RECENT -> emptyList()
+            else -> return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.ERROR_NOT_SUPPORTED))
         }
 
         return Futures.immediateFuture(LibraryResult.ofList(children))
     }
 
     override fun onDestroy() {
-        mediaLibrarySession?.run {
+        mediaLibrarySession.run {
             player.release()
             release()
         }
-        mediaLibrarySession = null
         super.onDestroy()
     }
 
     private fun isPackageAllowed(packageName: String?): Boolean {
         return packageName in ALLOWED_PACKAGES
-    }
-
-    private fun makeBrowsableTab(mediaId: String, title: String): MediaItem {
-        return MediaItem.Builder()
-            .setMediaId(mediaId)
-            .setMediaMetadata(
-                androidx.media3.common.MediaMetadata.Builder()
-                    .setTitle(title)
-                    .setIsPlayable(false)
-                    .setIsBrowsable(true)
-                    .build(),
-            )
-            .build()
     }
 
     private inner class LibraryCallback : MediaLibrarySession.Callback {
@@ -139,6 +125,19 @@ class MediaLibraryService : MediaLibraryService() {
         }
     }
 
+    private fun makeBrowsableTab(mediaId: String, title: String): MediaItem {
+        return MediaItem.Builder()
+            .setMediaId(mediaId)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setIsPlayable(false)
+                    .setIsBrowsable(true)
+                    .build(),
+            )
+            .build()
+    }
+
     companion object {
         const val ROOT_ID = "/"
         const val CHILDREN_ID_PLAYLISTS = "/playlists"
@@ -146,12 +145,11 @@ class MediaLibraryService : MediaLibraryService() {
         const val CHILDREN_ID_ARTISTS = "/artists"
         const val CHILDREN_ID_RECENT = "/recent"
 
-        // REQ-AUT-002: validated calling package names
         val ALLOWED_PACKAGES = setOf(
-            "com.google.android.projection.gearhead",   // Android Auto (car)
-            "com.google.android.car.kitchensink",        // Auto test harness
-            "androidx.car.app",                          // AndroidX Car App
-            "com.google.android.googlequicksearchbox",    // Google Assistant
+            "com.google.android.projection.gearhead",
+            "com.google.android.car.kitchensink",
+            "androidx.car.app",
+            "com.google.android.googlequicksearchbox",
         )
     }
 }
