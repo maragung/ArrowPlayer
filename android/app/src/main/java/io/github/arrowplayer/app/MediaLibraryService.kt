@@ -56,7 +56,7 @@ class MediaLibraryService : MediaLibraryService() {
         params: LibraryParams?,
     ): LibraryResult<MediaItem> {
         if (!isPackageAllowed(controllerInfo.packageName)) {
-            return LibraryResult.error(LibraryResult.ERROR_PERMISSION_DENIED)
+            return LibraryResult.ofError(LibraryResult.ERROR_PERMISSION_DENIED)
         }
 
         val root = MediaItem.Builder()
@@ -81,7 +81,7 @@ class MediaLibraryService : MediaLibraryService() {
         params: LibraryParams?,
     ): LibraryResult<kotlin.collections.List<MediaItem>> {
         if (!isPackageAllowed(controllerInfo.packageName)) {
-            return LibraryResult.error(LibraryResult.ERROR_PERMISSION_DENIED)
+            return LibraryResult.ofError(LibraryResult.ERROR_PERMISSION_DENIED)
         }
 
         val children = when (parentMediaId) {
@@ -95,7 +95,7 @@ class MediaLibraryService : MediaLibraryService() {
             CHILDREN_ID_ALBUMS -> emptyList()    // Phase 1 stub — populated from library
             CHILDREN_ID_ARTISTS -> emptyList()   // Phase 1 stub — populated from library
             CHILDREN_ID_RECENT -> emptyList()    // Phase 1 stub — populated from library
-            else -> return LibraryResult.error(LibraryResult.ERROR_NOT_SUPPORTED)
+            else -> return LibraryResult.ofError(LibraryResult.ERROR_NOT_SUPPORTED)
         }
 
         return LibraryResult.items(children)
