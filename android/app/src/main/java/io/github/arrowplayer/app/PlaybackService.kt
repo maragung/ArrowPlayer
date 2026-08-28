@@ -267,7 +267,7 @@ class PlaybackService : MediaSessionService() {
         )
 
         val style = androidx.media.app.NotificationCompat.MediaStyle()
-            .setShowActionsCompactButtons(0, 2, 4) // prev, play/pause, next
+            .setShowActionsInCompactView(0, 2, 4) // prev, play/pause, next
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
