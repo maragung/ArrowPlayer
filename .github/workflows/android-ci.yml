@@ -154,7 +154,14 @@ jobs:
         # output that no longer matches the source on main; rerunning
         # tasks forces a fresh Kotlin compile so the MainActivity the
         # current build adds actually lands in classes.dex.
-        run: gradle assembleRelease --no-daemon --rerun-tasks
+        # --no-build-cache: prevents the cache from serving a debug build
+        # in place of the release one. gradle/actions/setup-gradle caches
+        # the per-task output; the key for `compileReleaseKotlin` includes
+        # the variant, so debug outputs cannot replace release ones, but
+        # the mergeReleaseJniLibFolders task has reused an earlier debug
+        # artifact set in the past — disabling the build cache here
+        # forces every step to re-execute against the current tree.
+        run: gradle assembleRelease --no-daemon --rerun-tasks --no-build-cache
         working-directory: android
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
