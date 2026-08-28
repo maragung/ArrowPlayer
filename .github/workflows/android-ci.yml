@@ -9,10 +9,18 @@
 #  macrobenchmarks and the conformance-fixture agreement (REQ-GEN-031) arrive
 #  with the phases that own their code — nothing here claims them.
 #
-#  On a version tag it builds the release APKs and uploads them to the same
-#  GitHub Release release.yml creates. The create/upload pair is idempotent
-#  (`|| true` on create, `--clobber` on upload) because the two workflows run
-#  concurrently and either may reach the release first.
+#  On a version tag it builds the per-ABI release APKs and uploads them to
+#  the same GitHub Release release.yml creates. The create/upload pair is
+#  idempotent (`|| true` on create, `--clobber` on upload) because the two
+#  workflows run concurrently and either may reach the release first.
+#
+#  The `assemble + lint + unit tests` job owns the whole gate: `clean`,
+#  then the tests, then the two linters (ktlint + detekt), then the release
+#  assembly, in that order, so a failing lint short-circuits the slow Kotlin
+#  compile, and a failing test short-circuits both. The release job is a
+#  download-and-rename that hands the same artifacts off to `gh release
+#  upload` — the assemble runs in the cheap, cacheable job, not the one
+#  that has a contents:write token.
 # ---------------------------------------------------------------------------
 name: android-ci
 
@@ -51,28 +59,51 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      # Phase 0 exit gate 4 names ktlint. detekt is §25.1's own list. Both run
-      # before assemble so a style regression fails in seconds.
-      - name: ktlint (exit gate 4)
-        run: gradle ktlintCheck --no-daemon
+      # One invocation, in the order the spec names: clean, tests, linters,
+      # then the release assembly. ktlint and detekt are the configured
+      # linters (their plugins live in app/build.gradle.kts); gradle's own
+      # `lint` task is also wired and would run `lintRelease` if invoked.
+      # The wrapper jar is intentionally not committed (gradle-wrapper.properties
+      # states this), so CI uses the system `gradle` that setup-gradle just
+      # placed on PATH — the same 8.9 the wrapper properties pin, so local
+      # and CI cannot diverge.
+      #
+      # --rerun-tasks: the gradle-actions cache can hold an old compile
+      # output that no longer matches the source on main; rerunning tasks
+      # forces a fresh Kotlin compile so the MainActivity the current build
+      # adds actually lands in classes.dex.
+      # --no-build-cache: prevents the cache from serving a debug build in
+      # place of the release one. gradle/actions/setup-gradle caches the
+      # per-task output; the key for `compileReleaseKotlin` includes the
+      # variant, so debug outputs cannot replace release ones, but the
+      # mergeReleaseJniLibFolders task has reused an earlier debug artifact
+      # set in the past — disabling the build cache here forces every step
+      # to re-execute against the current tree.
+      - name: clean → testDebugUnitTest → ktlintCheck → detekt → assembleRelease
+        run: gradle clean testDebugUnitTest ktlintCheck detekt assembleRelease --no-daemon --rerun-tasks --no-build-cache
         working-directory: android
 
-      - name: detekt
-        run: gradle detekt --no-daemon
-        working-directory: android
-
-      - name: Assemble debug APK
-        run: gradle assembleDebug --no-daemon
-        working-directory: android
-
-      - name: Unit tests
-        run: gradle testDebugUnitTest --no-daemon
-        working-directory: android
-
+      # Per-ABI release APKs (REQ-BLD-026). AGP names them app-<abi>-release.apk
+      # when the build is signed and app-<abi>-release-unsigned.apk when it
+      # is not; the trailing wildcard spans both so the glob survives the
+      # signing-identity phase. The rename to arrow-player-<ver>-android-<abi>.apk
+      # for the GitHub Release asset happens in the `release` job below; this
+      # step uploads what AGP actually produced.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: apk-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: apks-release
+          path: android/app/build/outputs/apk/release/app-*-release*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      # Unit-test report. Always uploaded, not just on failure: a green
+      # report is the evidence the gate ran, not a missing file.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: test-report
+          path: android/app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: warn
           retention-days: 30
 
   # -------------------------------------------------------------------------
@@ -82,6 +113,10 @@ jobs:
   #  and the condition for removing it is the same — the first green run on
   #  this job, recorded in OQ-018. A red emulator must not be read as a red
   #  scaffold; it is evidence about the runner, not about the APK.
+  #
+  #  The build job above no longer emits a debug APK, so this job builds
+  #  one locally. assembleDebug is independent of the release pipeline and
+  #  the cache is already warm from the build job's assembleRelease pass.
   # -------------------------------------------------------------------------
   emulator:
     name: install on emulator (exit gate 2)
@@ -124,45 +159,34 @@ jobs:
 
   # -------------------------------------------------------------------------
   #  §25.1: "On a version tag: build … per-ABI APKs … and upload to the
-  #  release." Unsigned until a signing identity exists (REQ-SEC-016, Phase 9);
-  #  the release notes name that, so an unsigned artifact is a stated fact
-  #  rather than a surprise. Naming follows REQ-BLD-026.
+  #  release." The APKs were already built and uploaded as artifacts by the
+  #  `build` job; this job only renames them to the spec's release asset name
+  #  and hands them to `gh release upload`. Unsigned until a signing identity
+  #  exists (REQ-SEC-016, Phase 9); the release notes name that, so an
+  #  unsigned artifact is a stated fact rather than a surprise. Naming follows
+  #  REQ-BLD-026.
+  #
+  #  Gated on `needs: emulator` so the cheap, deterministic job's verdict
+  #  decides the upload. continue-on-error on the emulator keeps this job
+  #  running even when the runner image breaks (OQ-044), which is the
+  #  intended behaviour — a red emulator must not be read as a red scaffold.
   # -------------------------------------------------------------------------
   release:
     name: per-ABI release APKs
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: emulator
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+      - name: Download the per-ABI APKs the build job produced
+        uses: actions/download-artifact@fa0a91b2d4014b474f1f80a76e22c9886d1af707 # v4.1.8
         with:
-          distribution: temurin
-          java-version: '21'
-
-      - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
-        with:
-          gradle-version: '8.9'
-
-      - name: Build release APKs (all ABIs)
-        # --rerun-tasks: the gradle-actions cache can hold an old compile
-        # output that no longer matches the source on main; rerunning
-        # tasks forces a fresh Kotlin compile so the MainActivity the
-        # current build adds actually lands in classes.dex.
-        # --no-build-cache: prevents the cache from serving a debug build
-        # in place of the release one. gradle/actions/setup-gradle caches
-        # the per-task output; the key for `compileReleaseKotlin` includes
-        # the variant, so debug outputs cannot replace release ones, but
-        # the mergeReleaseJniLibFolders task has reused an earlier debug
-        # artifact set in the past — disabling the build cache here
-        # forces every step to re-execute against the current tree.
-        run: gradle assembleRelease --no-daemon --rerun-tasks --no-build-cache
-        working-directory: android
+          name: apks-release
+          path: ${{ runner.temp }}/apks
+          if-no-files-found: error
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
         env:
@@ -179,21 +203,19 @@ jobs:
           # already in place, android-ci's create is a no-op (`|| true`).
           gh release create "$TAG" --title "$TAG" --notes "Arrow Player $TAG — see the desktop artifacts in this release too." >/dev/null 2>&1 || true
           version="${VERSION#v}"
-          out_dir="$RUNNER_TEMP/apks"
-          mkdir -p "$out_dir"
+          out_dir="$RUNNER_TEMP/renamed-apks"
+          rm -rf "$out_dir"; mkdir -p "$out_dir"
           # Debug: what is actually there?
-          find android/app/build/outputs -name "*.apk" 2>/dev/null | sort || true
-          ls -la android/app/build/outputs/apk/ 2>/dev/null || true
-          ls -la android/app/build/outputs/apk/release/ 2>/dev/null || true
+          find "$RUNNER_TEMP/apks" -name "*.apk" 2>/dev/null | sort || true
+          ls -la "$RUNNER_TEMP/apks" 2>/dev/null || true
           shopt -s nullglob
           # AGP names per-ABI release APKs as app-<abi>-release-unsigned.apk
-          # when the build is unsigned. Bash glob `*` does not match the
-          # `-` separator inside the ABI name, so the pattern needs a
-          # second `*` to span "release" and the optional "-unsigned"
-          # suffix. The regex below allows the underscore in `x86_64`
-          # to land in the ABI capture group. The destination filename
-          # keeps the spec name.
-          for apk in android/app/build/outputs/apk/release/app-*-release*.apk; do
+          # when the build is unsigned. Bash glob `*` does not match the `-`
+          # separator inside the ABI name, so the pattern needs a second
+          # `*` to span "release" and the optional "-unsigned" suffix. The
+          # regex below allows the underscore in `x86_64` to land in the
+          # ABI capture group. The destination filename keeps the spec name.
+          for apk in "$RUNNER_TEMP"/apks/app-*-release*.apk; do
             abi=$(basename "$apk" | sed -E 's/^app-([a-z0-9_-]+)-release(-unsigned)?\.apk$/\1/')
             dest="$out_dir/arrow-player-$version-android-$abi.apk"
             cp "$apk" "$dest"
