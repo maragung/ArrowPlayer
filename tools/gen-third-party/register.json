@@ -1,7 +1,7 @@
 {
   "$comment": [
     "The §4.2 dependency licence register, as DATA. Transcribed from",
-    "arrow-player.md §4.2 (the binding requirement is REQ-GEN-012). This file is",
+    "eclipse-player.md §4.2 (the binding requirement is REQ-GEN-012). This file is",
     "the single source of truth; docs/THIRD-PARTY.md is generated from it by",
     "tools/gen-third-party/gen-third-party.py and MUST NOT be hand-edited. To change",
     "the register, edit this file, run the generator, and commit both.",

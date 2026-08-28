@@ -509,7 +509,7 @@ def render(register: dict, mode: str, graph: dict | None, graph_source: str | No
     L.append("# Third-Party Licences — Arrow Player")
     L.append("")
     L.append(
-        "`arrow-player.md` §27 requires this document: *Generated; the §4.2 "
+        "`eclipse-player.md` §27 requires this document: *Generated; the §4.2 "
         "register with SPDX ids, versions, licence texts, and source URLs*. This is "
         "that document. It is **generated** by `tools/gen-third-party/gen-third-party.py` "
         "from `tools/gen-third-party/register.json` and MUST NOT be edited by hand — "
@@ -908,7 +908,7 @@ def render_source_offer(register: dict, ledger: dict, pins: dict) -> str:
     L.append("# LGPL Source Offer — Arrow Player")
     L.append("")
     L.append(
-        "`arrow-player.md` §27 requires this document, and `REQ-GEN-020` states it "
+        "`eclipse-player.md` §27 requires this document, and `REQ-GEN-020` states it "
         "verbatim:"
     )
     L.append("")

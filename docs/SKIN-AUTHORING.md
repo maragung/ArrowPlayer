@@ -7,7 +7,7 @@ to write a **theme**, how to build a **skin**, what the validator will and will
 not accept, and why the format refuses to run your code.
 
 It is a specification document as much as a tutorial. Everything here is
-traceable to a requirement in [`arrow-player.md`](../arrow-player.md) §10–§12
+traceable to a requirement in [`eclipse-player.md`](../eclipse-player.md) §10–§12
 and, more usefully, to a schema under [`shared-spec/`](../shared-spec/), which is
 the artefact that actually decides what validates. Where this document and a
 schema disagree, **the schema is right** and this document has a bug — say so in
@@ -1194,5 +1194,5 @@ because it is.
   decision record behind `REQ-THM-002`
 - [`shared-spec/README.md`](../shared-spec/README.md) — the versioning policy for
   the schemas and the corpus
-- [`arrow-player.md`](../arrow-player.md) §10–§12 — the normative source for
+- [`eclipse-player.md`](../eclipse-player.md) §10–§12 — the normative source for
   everything here

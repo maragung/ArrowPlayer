@@ -1,7 +1,7 @@
 # Contributing to Arrow Player
 
 Thank you for considering it. This document is the short version; the long
-version is [`arrow-player.md`](arrow-player.md), which is the specification
+version is [`eclipse-player.md`](eclipse-player.md), which is the specification
 every change in this repository answers to.
 
 Two things are worth knowing before you read further:
@@ -136,7 +136,7 @@ is silent rather than loud:
   ran a version nobody had chosen.
 - `.markdownlintignore` is **not** read by cli2. Exclusions live in the `ignores`
   array of `.markdownlint-cli2.jsonc`.
-- `arrow-player.md` is excluded on purpose — it is the upstream specification,
+- `eclipse-player.md` is excluded on purpose — it is the upstream specification,
   and rewrapping it would churn the line numbers that commit messages, ADRs, and
   code comments cite.
 
@@ -227,7 +227,7 @@ a malformed length field.
 
 ## Changing the specification
 
-`arrow-player.md` is not immutable, but it is not edited casually either. §0.1
+`eclipse-player.md` is not immutable, but it is not edited casually either. §0.1
 rule 2 is the governing rule: **do not silently downgrade a requirement to make
 an implementation pass.**
 

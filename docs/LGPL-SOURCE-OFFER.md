@@ -1,6 +1,6 @@
 # LGPL Source Offer — Arrow Player
 
-`arrow-player.md` §27 requires this document, and `REQ-GEN-020` states it verbatim:
+`eclipse-player.md` §27 requires this document, and `REQ-GEN-020` states it verbatim:
 
 > `REQ-GEN-020` `[v1.0]` The project MUST publish a **written source offer** page (`docs/LGPL-SOURCE-OFFER.md`, mirrored on the website) linking the precise source archive for every LGPL component in every release, keyed by release tag. This mirrors AIMP's published practice and is the cheapest way to be unambiguously compliant.
 

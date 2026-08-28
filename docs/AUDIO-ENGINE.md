@@ -5,7 +5,7 @@ bit-perfect*. It also carries §8.11 — how each audio claim is **proven** — 
 `REQ-TST-001` is unambiguous on the point: an audio feature without its
 verification test is not done.
 
-Everything here is transcribed from `arrow-player.md` §8, with the arithmetic
+Everything here is transcribed from `eclipse-player.md` §8, with the arithmetic
 kept exact and the reasoning kept attached to it. Where the tree does not yet
 implement something, this document says so in the section that describes it
 rather than in a footnote.

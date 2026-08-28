@@ -1,11 +1,11 @@
 name: Feature request
-description: Something arrow-player.md does not cover, or covers differently.
+description: Something eclipse-player.md does not cover, or covers differently.
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        `arrow-player.md` is 525 numbered requirements across 10 phases, and
+        `eclipse-player.md` is 525 numbered requirements across 10 phases, and
         §2.3 lists things this project **rejects on purpose** — bitmap
         sprite-sheet skins, a scripting language inside skins, bundled installer
         offers, video playback. A request for one of those is not going to be
