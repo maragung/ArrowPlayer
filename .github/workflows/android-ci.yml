@@ -251,7 +251,7 @@ jobs:
           # regex below allows the underscore in `x86_64` to land in the
           # ABI capture group. The destination filename keeps the spec name.
           for apk in "$RUNNER_TEMP"/apks/app-*-release*.apk; do
-            abi=$(basename "$apk" | sed -E 's/^app-([a-z0-9_-]+)-release(-unsigned)?\.apk$/\1/')
+            abi=$(basename "$apk" | sed -E 's/^app-(.+)-release(-unsigned)?\.apk$/\1/')
             dest="$out_dir/arrow-player-$version-android-$abi.apk"
             cp "$apk" "$dest"
             sha256sum "$dest" > "$dest.sha256"
