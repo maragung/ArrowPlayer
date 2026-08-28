@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://eclipse-player.org/schemas/smart-playlist/v1",
+  "$id": "https://arrow-player.org/schemas/smart-playlist/v1",
   "title": "Eclipse Player Smart Playlist Rule",
   "description": "The stored form of a smart playlist (`playlists.rule_json`). Specification: eclipse-player.md §9.6 (REQ-PLS-010 … REQ-PLS-015). This JSON tree and the text grammar at grammars/smart-playlist.ebnf are two surfaces over one model: REQ-PLS-015 requires the visual builder and the text editor to stay in sync bidirectionally, which is only possible if one of them is canonical — this file is. Compilation target: PARAMETERISED SQL. Every literal below becomes a bound parameter; string interpolation into SQL is forbidden by REQ-PLS-010 and REQ-SEC-009 and is enforced mechanically by tools/check-sql-safety.py, so this schema needs no opinion about quoting.",
   "type": "object",

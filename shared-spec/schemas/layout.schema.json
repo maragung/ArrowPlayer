@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://eclipse-player.org/schemas/layout/v1",
+  "$id": "https://arrow-player.org/schemas/layout/v1",
   "title": "Eclipse Player Layout Document (.eclayout)",
   "description": "A layout document is JSON and is INTERPRETED — never compiled or evaluated as code (REQ-THM-025). Specification: eclipse-player.md §11.4 (REQ-THM-025 … REQ-THM-034). The three properties that make a downloaded skin safe are encoded structurally here: the component vocabulary is a closed enum (REQ-THM-026), bindings are read-only paths into a whitelisted state model (REQ-THM-027), and actions are an enum drawn from the §13.2 command registry (REQ-THM-028). There is no expression syntax anywhere except EFS (§10, itself total and output-capped) and the restricted `when:` predicate (REQ-THM-030). The REQ-THM-033 budgets — 500 component instances, nesting depth 24, 64 bindings per tree — are counted by the validator during the §11.5 pipeline; JSON Schema cannot count recursive instances, so they live in code with their own tests rather than as an unenforceable comment here.",
   "type": "object",

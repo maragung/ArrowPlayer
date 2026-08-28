@@ -159,7 +159,7 @@
     {
       "file": "invalid/manifest-capabilities-empty.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`minItems: 1` — a package that declares no capability does nothing.",
       "req": "REQ-THM-016"
@@ -167,7 +167,7 @@
     {
       "file": "invalid/manifest-capability-duplicate.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`uniqueItems`.",
       "req": "REQ-THM-016"
@@ -175,7 +175,7 @@
     {
       "file": "invalid/manifest-capability-unknown.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`scripts` is not in the enum, and never will be (ADR 0003).",
       "req": "REQ-THM-016",
@@ -184,7 +184,7 @@
     {
       "file": "invalid/manifest-checksum-not-a-string.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Digest must be a string.",
       "req": "REQ-THM-016"
@@ -192,7 +192,7 @@
     {
       "file": "invalid/manifest-checksum-truncated.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "A SHA-256 is 64 hex characters.",
       "req": "REQ-THM-016"
@@ -200,7 +200,7 @@
     {
       "file": "invalid/manifest-checksum-uppercase-hex.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Digests are lower-case hex so verification is a byte compare.",
       "req": "REQ-THM-016"
@@ -208,7 +208,7 @@
     {
       "file": "invalid/manifest-checksums-too-few.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`minProperties: 3`: theme.json, LICENSE and preview.png are all mandatory.",
       "req": "REQ-THM-016"
@@ -216,7 +216,7 @@
     {
       "file": "invalid/manifest-i18n-bad-tag.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "BCP-47 shape: 2–3 letters plus optional subtags.",
       "req": "REQ-THM-016"
@@ -224,7 +224,7 @@
     {
       "file": "invalid/manifest-minappversion-missing.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Required: without it the loader cannot refuse a package built for a newer app.",
       "req": "REQ-THM-016"
@@ -232,7 +232,7 @@
     {
       "file": "invalid/manifest-missing-checksums.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`checksums` is required — it is the integrity check, not an optimisation.",
       "req": "REQ-THM-016"
@@ -240,7 +240,7 @@
     {
       "file": "invalid/manifest-preview-renamed.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`const \"preview.png\"` — REQ-THM-015 fixes the name.",
       "req": "REQ-THM-016"
@@ -248,7 +248,7 @@
     {
       "file": "invalid/manifest-surface-unknown.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Four surfaces only; adding one is a schemaVersion change.",
       "req": "REQ-THM-016"
@@ -256,7 +256,7 @@
     {
       "file": "invalid/manifest-unknown-member.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`additionalProperties: false`.",
       "req": "REQ-THM-016",
@@ -265,7 +265,7 @@
     {
       "file": "malicious/manifest-checksum-key-absolute.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Absolute path.",
       "req": "REQ-THM-018"
@@ -273,7 +273,7 @@
     {
       "file": "malicious/manifest-checksum-key-backslash.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Backslash separator.",
       "req": "REQ-THM-018"
@@ -281,7 +281,7 @@
     {
       "file": "malicious/manifest-checksum-key-control-char.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Control character.",
       "req": "REQ-THM-018"
@@ -289,7 +289,7 @@
     {
       "file": "malicious/manifest-checksum-key-depth-5.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Depth beyond the two segments the pattern allows.",
       "req": "REQ-THM-018"
@@ -297,7 +297,7 @@
     {
       "file": "malicious/manifest-checksum-key-drive-letter.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Drive letter.",
       "req": "REQ-THM-018"
@@ -305,7 +305,7 @@
     {
       "file": "malicious/manifest-checksum-key-manifest-self.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "manifest.json is excluded from the pattern: it cannot checksum itself, and an entry claiming to is either confused or an attempt to make verification circular.",
       "req": "REQ-THM-018"
@@ -313,7 +313,7 @@
     {
       "file": "malicious/manifest-checksum-key-nul.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "Embedded NUL, expressed in JSON as \\u0000 — legal JSON, illegal path.",
       "req": "REQ-THM-018",
@@ -322,7 +322,7 @@
     {
       "file": "malicious/manifest-checksum-key-too-long.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`maxLength: 200`.",
       "req": "REQ-THM-018"
@@ -330,7 +330,7 @@
     {
       "file": "malicious/manifest-checksum-key-traversal.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`packagePath` is an allowlist pattern; traversal cannot match it.",
       "req": "REQ-THM-018",
@@ -339,7 +339,7 @@
     {
       "file": "malicious/manifest-checksum-key-unlisted-dir.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "reject",
       "reason": "`bin/` is not a permitted top-level directory.",
       "req": "REQ-THM-018"
@@ -347,7 +347,7 @@
     {
       "file": "valid/manifest-full.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "accept",
       "reason": "All five capabilities, three surfaces, i18n, fonts with their licence file.",
       "req": "REQ-THM-016",
@@ -356,7 +356,7 @@
     {
       "file": "valid/manifest-minimal.json",
       "pipelineStep": 3,
-      "schema": "https://eclipse-player.org/schemas/skin-manifest/v1",
+      "schema": "https://arrow-player.org/schemas/skin-manifest/v1",
       "verdict": "accept",
       "reason": "Theme-only package: the three mandatory files, one capability.",
       "req": "REQ-THM-016",
@@ -365,7 +365,7 @@
     {
       "file": "invalid/theme-a11y-contrast-target-aaaa.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "AA or AAA.",
       "req": "REQ-THM-010"
@@ -373,7 +373,7 @@
     {
       "file": "invalid/theme-a11y-touch-target-too-small.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "Minimum 24. REQ-UIX-057's floor is not a skin's decision.",
       "req": "REQ-THM-016"
@@ -381,7 +381,7 @@
     {
       "file": "invalid/theme-assets-backgroundfit-unknown.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "Not in the enum — and parallax is forbidden by design-system/motion.md.",
       "req": "REQ-THM-010",
@@ -390,7 +390,7 @@
     {
       "file": "invalid/theme-bezier-out-of-range.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "Control points are clamped to [-2, 2]; 9 produces an unusable overshoot.",
       "req": "REQ-THM-010"
@@ -398,7 +398,7 @@
     {
       "file": "invalid/theme-bezier-three-items.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "A cubic-bezier is exactly four numbers.",
       "req": "REQ-THM-010"
@@ -406,7 +406,7 @@
     {
       "file": "invalid/theme-color-named.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "CSS colour names are not a colour.",
       "req": "REQ-THM-010"
@@ -414,7 +414,7 @@
     {
       "file": "invalid/theme-color-rgb-function.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "Functional notation is not accepted.",
       "req": "REQ-THM-010"
@@ -422,7 +422,7 @@
     {
       "file": "invalid/theme-color-three-digit-hex.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`#fff` fails the colour pattern: 6 or 8 hex digits only.",
       "req": "REQ-THM-010",
@@ -431,7 +431,7 @@
     {
       "file": "invalid/theme-duration-too-long.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "2000 ms is the ceiling. A skin must not be able to make the UI feel broken.",
       "req": "REQ-THM-010"
@@ -439,7 +439,7 @@
     {
       "file": "invalid/theme-elevation-missing-blur.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "offsetY, blur and color are all required.",
       "req": "REQ-THM-010"
@@ -447,7 +447,7 @@
     {
       "file": "invalid/theme-elevation-seven-levels.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`maxItems: 6` on the elevation ladder.",
       "req": "REQ-THM-010"
@@ -455,7 +455,7 @@
     {
       "file": "invalid/theme-extends-accent-only.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`color` requires background, surface, text, accent and border; `typography` is required at the root. This five-line theme cannot validate.",
       "req": "REQ-THM-011",
@@ -465,7 +465,7 @@
     {
       "file": "invalid/theme-fontstack-empty.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`fontStack` requires at least one family.",
       "req": "REQ-THM-010"
@@ -473,7 +473,7 @@
     {
       "file": "invalid/theme-fontstack-string-not-array.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "A font stack is an array, so fallbacks are explicit and ordered.",
       "req": "REQ-THM-010"
@@ -481,7 +481,7 @@
     {
       "file": "invalid/theme-icons-setid-uppercase.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`setId` pattern is lower-case.",
       "req": "REQ-THM-010"
@@ -489,7 +489,7 @@
     {
       "file": "invalid/theme-icons-strokewidth-zero.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "Minimum 0.5; 0 makes an outline icon invisible.",
       "req": "REQ-THM-010"
@@ -497,7 +497,7 @@
     {
       "file": "invalid/theme-id-leading-dash.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`id` must start and end alphanumeric.",
       "req": "REQ-THM-010"
@@ -505,7 +505,7 @@
     {
       "file": "invalid/theme-id-too-long.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`id` exceeds 64 characters.",
       "req": "REQ-THM-010"
@@ -513,7 +513,7 @@
     {
       "file": "invalid/theme-id-uppercase.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`id` must be lower-case kebab.",
       "req": "REQ-THM-010",
@@ -522,7 +522,7 @@
     {
       "file": "invalid/theme-missing-color.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`color` is required.",
       "req": "REQ-THM-010"
@@ -530,7 +530,7 @@
     {
       "file": "invalid/theme-missing-text-secondary.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`color.text` requires both primary and secondary.",
       "req": "REQ-THM-010",
@@ -539,7 +539,7 @@
     {
       "file": "invalid/theme-mode-auto.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`mode` is light or dark. Following the system is an app setting that picks between two themes; it is not a third mode a theme can declare.",
       "req": "REQ-THM-010"
@@ -547,7 +547,7 @@
     {
       "file": "invalid/theme-opacity-above-one.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "Opacity is a unit interval.",
       "req": "REQ-THM-010"
@@ -555,7 +555,7 @@
     {
       "file": "invalid/theme-radius-full-wrong-const.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`full` is `const 9999` — the sentinel for a pill, not a number to tune.",
       "req": "REQ-THM-010",
@@ -564,7 +564,7 @@
     {
       "file": "invalid/theme-schemaversion-2.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`schemaVersion` is `const 1`; a future version must be refused by a v1 loader, not partially read.",
       "req": "REQ-THM-010"
@@ -572,7 +572,7 @@
     {
       "file": "invalid/theme-schemaversion-string.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`const 1` is the number 1, not the string.",
       "req": "REQ-THM-010"
@@ -580,7 +580,7 @@
     {
       "file": "invalid/theme-spacing-scale-too-short.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`minItems: 4`.",
       "req": "REQ-THM-010"
@@ -588,7 +588,7 @@
     {
       "file": "invalid/theme-typestyle-missing-size.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`size` is the one required member of a type style.",
       "req": "REQ-THM-010"
@@ -596,7 +596,7 @@
     {
       "file": "invalid/theme-typestyle-size-too-large.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`size` maximum is 96.",
       "req": "REQ-THM-010"
@@ -604,7 +604,7 @@
     {
       "file": "invalid/theme-typography-missing-label.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`scale` requires body and label.",
       "req": "REQ-THM-010",
@@ -613,7 +613,7 @@
     {
       "file": "invalid/theme-unknown-color-role.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "Unknown member inside `color.text`.",
       "req": "REQ-THM-010",
@@ -622,7 +622,7 @@
     {
       "file": "invalid/theme-unknown-top-level-key.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`additionalProperties: false` at the root.",
       "req": "REQ-THM-010",
@@ -631,7 +631,7 @@
     {
       "file": "invalid/theme-version-prerelease.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "The pattern is anchored; a pre-release suffix does not match.",
       "req": "REQ-THM-010",
@@ -640,7 +640,7 @@
     {
       "file": "invalid/theme-version-two-part.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`version` must be three dot-separated integers.",
       "req": "REQ-THM-010"
@@ -648,7 +648,7 @@
     {
       "file": "invalid/theme-visualizer-palette-empty.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`minItems: 1` — an empty palette would render nothing.",
       "req": "REQ-THM-010"
@@ -656,7 +656,7 @@
     {
       "file": "invalid/theme-visualizer-palette-seventeen.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`maxItems: 16`.",
       "req": "REQ-THM-010"
@@ -664,7 +664,7 @@
     {
       "file": "malicious/theme-assetref-absolute.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "Absolute path.",
       "req": "REQ-THM-012"
@@ -672,7 +672,7 @@
     {
       "file": "malicious/theme-assetref-data-uri.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "A data: URI does not match the pattern either.",
       "req": "REQ-THM-012",
@@ -681,7 +681,7 @@
     {
       "file": "malicious/theme-assetref-http-url.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "A URL would turn applying a theme into a network request — a fingerprinting beacon in a format that promises no network access.",
       "req": "REQ-THM-012"
@@ -689,7 +689,7 @@
     {
       "file": "malicious/theme-assetref-outside-permitted-dir.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "Only images/, icons/ and fonts/ are asset directories.",
       "req": "REQ-THM-012"
@@ -697,7 +697,7 @@
     {
       "file": "malicious/theme-assetref-traversal.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "`assetRef` allows one directory and a flat filename; no traversal fits.",
       "req": "REQ-THM-012",
@@ -706,7 +706,7 @@
     {
       "file": "malicious/theme-assetref-windows-unc.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "reject",
       "reason": "UNC path.",
       "req": "REQ-THM-012"
@@ -714,7 +714,7 @@
     {
       "file": "valid/theme-full.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "accept",
       "reason": "Every token group populated; no unknown members.",
       "req": "REQ-THM-010",
@@ -723,7 +723,7 @@
     {
       "file": "valid/theme-minimal.json",
       "pipelineStep": 4,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "accept",
       "reason": "Exactly the required members and nothing else.",
       "req": "REQ-THM-010",
@@ -741,7 +741,7 @@
     {
       "file": "contrast/theme-below-aa.json",
       "pipelineStep": 5,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "accept-with-warning",
       "reason": "Schema-valid and installable; primary text on base background is 2.1946:1, well under the 4.5 floor, so the loader warns and names the offending pairs.",
       "req": "REQ-THM-041",
@@ -752,7 +752,7 @@
     {
       "file": "contrast/theme-high-contrast-aaa.json",
       "pipelineStep": 5,
-      "schema": "https://eclipse-player.org/schemas/theme/v1",
+      "schema": "https://arrow-player.org/schemas/theme/v1",
       "verdict": "accept",
       "reason": "21:1 on every text pair; meets the AAA target §29.1 requires of the High Contrast theme.",
       "req": "REQ-THM-041",
@@ -761,7 +761,7 @@
     {
       "file": "invalid/layout-asset-ref-traversal.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "`assetRef` forbids traversal; only `images/` and `icons/` with a flat name match.",
       "req": "REQ-THM-018",
@@ -770,7 +770,7 @@
     {
       "file": "invalid/layout-dimension-out-of-range.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "Maximum dimension is 16384.",
       "req": "REQ-THM-026"
@@ -778,7 +778,7 @@
     {
       "file": "invalid/layout-freeform-typestyle.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "`typeStyleRef` is one of the seven §12.1 tokens.",
       "req": "REQ-THM-026"
@@ -786,7 +786,7 @@
     {
       "file": "invalid/layout-icon-name-is-not-a-path.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "`icon` names an icon in the active set; a filename with a slash and an extension does not match its pattern.",
       "req": "REQ-THM-026",
@@ -795,7 +795,7 @@
     {
       "file": "invalid/layout-id-with-space.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "Node ids are identifier-shaped so validation messages can name them unambiguously.",
       "req": "REQ-THM-026"
@@ -803,7 +803,7 @@
     {
       "file": "invalid/layout-literal-hex-color.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "`colorRef` requires a dotted token path; literal hex is rejected.",
       "req": "REQ-THM-026",
@@ -812,7 +812,7 @@
     {
       "file": "invalid/layout-missing-root.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "`root` is required.",
       "req": "REQ-THM-026"
@@ -820,7 +820,7 @@
     {
       "file": "invalid/layout-node-unknown-property.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "`additionalProperties: false` on every node — an `on*` handler is unrepresentable.",
       "req": "REQ-THM-026",
@@ -829,7 +829,7 @@
     {
       "file": "invalid/layout-percent-over-hundred.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "The percentage pattern admits 0–100 only.",
       "req": "REQ-THM-026"
@@ -837,7 +837,7 @@
     {
       "file": "invalid/layout-predicate-function-call.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "No functions in a predicate.",
       "req": "REQ-THM-030",
@@ -846,7 +846,7 @@
     {
       "file": "invalid/layout-predicate-nested-parens.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "No nesting beyond one level: the grammar admits a flat and/or chain, no parentheses.",
       "req": "REQ-THM-030",
@@ -855,7 +855,7 @@
     {
       "file": "invalid/layout-predicate-word-operator.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "REQ-THM-030's grammar uses symbolic comparison operators; `greaterThan` is the smart-playlist spelling and does not belong here.",
       "req": "REQ-THM-030",
@@ -864,7 +864,7 @@
     {
       "file": "invalid/layout-schemaversion-2.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "`const 1`.",
       "req": "REQ-THM-026"
@@ -872,7 +872,7 @@
     {
       "file": "invalid/layout-surface-unknown.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "Four surfaces only.",
       "req": "REQ-THM-026"
@@ -880,7 +880,7 @@
     {
       "file": "invalid/layout-unknown-action.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "Actions are enum-only and mirror the §13.2 command registry.",
       "req": "REQ-THM-028"
@@ -888,7 +888,7 @@
     {
       "file": "invalid/layout-unknown-component.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "`WebView` is not one of the 30 components.",
       "req": "REQ-THM-026",
@@ -897,7 +897,7 @@
     {
       "file": "invalid/layout-unknown-statepath.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "reject",
       "reason": "`bind` must name a whitelisted presentation-state path.",
       "req": "REQ-THM-027",
@@ -906,7 +906,7 @@
     {
       "file": "valid/main-window.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "accept",
       "reason": "Exercises 20 of the 30 components, both binding kinds, a `when` and an `enabledWhen` predicate, and one action per interactive node.",
       "req": "REQ-THM-026",
@@ -915,7 +915,7 @@
     {
       "file": "valid/mini-player-req-thm-031.eclayout",
       "pipelineStep": 6,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "accept",
       "reason": "The REQ-THM-031 worked example from §11.4, transcribed so the specification's own illustration is a test.",
       "req": "REQ-THM-031",
@@ -1120,7 +1120,7 @@
     {
       "file": "malicious/layout-efs-output-bomb.eclayout",
       "pipelineStep": 10,
-      "schema": "https://eclipse-player.org/schemas/layout/v1",
+      "schema": "https://arrow-player.org/schemas/layout/v1",
       "verdict": "accept",
       "reason": "Schema-valid: `efs` is a string and the pattern is syntactically fine. Step 10 is the judge, not step 6.",
       "req": "REQ-EFS-009",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://eclipse-player.org/schemas/settings/v1",
+  "$id": "https://arrow-player.org/schemas/settings/v1",
   "title": "Eclipse Player Settings Export",
   "description": "The settings export/import bundle (§19.4) and, inside it, the complete settings inventory (§19.1). REQ-SET-002 requires this file to enumerate EVERY key with its type, range, and default, and requires CI to assert the application's real defaults match what is written here — so this schema is the source of truth for defaults, not a description of them. REQ-SET-007 additionally requires the export be human-readable, so a user can inspect exactly what leaves their machine. What must never appear is as load-bearing as what must: REQ-SET-008 and REQ-SET-009 forbid credentials, tokens, the sync device key, machine identifiers, and absolute paths where a relative form suffices. `additionalProperties: false` throughout is how that prohibition is enforced rather than merely stated — a future field carrying a secret cannot be added without editing this file, which is a reviewable act.",
   "type": "object",
