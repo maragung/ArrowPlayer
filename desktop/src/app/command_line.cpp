@@ -12,6 +12,8 @@ Result<CommandLine> parse_command_line(int argc, char* const argv[]) noexcept {
         const std::string_view arg = argv[i] == nullptr ? std::string_view{} : argv[i];
         if (arg == "--help" || arg == "-h") {
             result.help = true;
+        } else if (arg == "--version" || arg == "-v") {
+            result.version = true;
         } else if (arg == "--play") {
             if (result.play || i + 1 >= argc || argv[i + 1] == nullptr ||
                 std::string_view{argv[i + 1]}.empty()) {
@@ -49,6 +51,11 @@ Result<CommandLine> parse_command_line(int argc, char* const argv[]) noexcept {
                    "--help cannot be combined with playback.",
                    "--help --play");
     }
+    if (result.version && (result.play || result.help)) {
+        return err(ErrorCode::InvalidArgument,
+                   "--version cannot be combined with other options.",
+                   "--version --play");
+    }
     if (!result.play && result.sink != SinkChoice::Automatic) {
         return err(
             ErrorCode::InvalidArgument, "--sink requires --play.", "sink without playback");
@@ -57,7 +64,11 @@ Result<CommandLine> parse_command_line(int argc, char* const argv[]) noexcept {
 }
 
 std::string_view command_line_usage() noexcept {
-    return "Usage: arrow-player [--help] [--play FILE] [--sink auto|null|alsa]\n";
+    return "Usage: arrow-player [--help] [--version] [--play FILE] [--sink auto|null|alsa]\n"
+           "  --help, -h       show this help and exit\n"
+           "  --version, -v    print the version and exit\n"
+           "  --play FILE      play a single audio file and exit\n"
+           "  --sink CHOICE    output sink to use with --play: auto, null, or alsa\n";
 }
 
 }  // namespace arrow::app

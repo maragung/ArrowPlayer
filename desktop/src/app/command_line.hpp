@@ -16,6 +16,7 @@ enum class SinkChoice {
 
 struct CommandLine {
     bool help{false};
+    bool version{false};
     bool play{false};
     std::string path;
     SinkChoice sink{SinkChoice::Automatic};

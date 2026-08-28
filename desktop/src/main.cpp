@@ -46,6 +46,14 @@ int main(int argc, char** argv) {
             (void)std::printf("%s", arrow::app::command_line_usage().data());
             return Application::kExitOk;
         }
+        if (command->version) {
+            // Mirrors the Qt About dialog (MainWindow::aboutText) so a `--version`
+            // invocation and Help → About cannot report different build
+            // identities. Exits 0 before the lifecycle is started: a request for
+            // version information must not require the audio stack.
+            (void)std::printf("%s", info.to_about_text().c_str());
+            return Application::kExitOk;
+        }
         if (command->play) {
             arrow::audio::WavDecoder decoder;
             auto sink_result = arrow::audio::make_sink(sink_options(command->sink));

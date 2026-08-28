@@ -32,4 +32,21 @@ std::string AppInfo::to_log_string() const {
     return out;
 }
 
+std::string AppInfo::to_about_text() const {
+    // Kept in lock-step with desktop/ui/src/main_window.cpp `aboutText()`. The
+    // strings here are English on purpose: the CLI is not the surface a
+    // translator sees. The Qt dialog owns the translated text; this function
+    // exists so `arrow-player --version` cannot show something different from
+    // what the user reads in Help → About.
+    std::string out;
+    out.reserve(name.size() + version.size() + git_sha.size() + 80);
+    out.append(name).append(" ").append(version).append("\n");
+    out.append("Commit: ").append(git_sha);
+    if (git_dirty) {
+        out.append("\nBuilt from a working tree with uncommitted changes");
+    }
+    out.push_back('\n');
+    return out;
+}
+
 }  // namespace arrow::app

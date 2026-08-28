@@ -45,6 +45,16 @@ struct AppInfo {
     /// §22.2 specifies as machine-parseable rather than localised.
     [[nodiscard]] std::string to_log_string() const;
 
+    /// Untranslated multi-line rendering that mirrors the Qt About dialog, for
+    /// the `--version` CLI flag.
+    ///
+    /// The fields and their order match `MainWindow::aboutText()` so the two
+    /// surfaces cannot drift: same `name version`, same `Commit: sha`, same
+    /// dirty-tree line. No translation here either — the CLI is not the path a
+    /// translator sees, and the Qt path remains the one that reaches REQ-UIX-070
+    /// and REQ-UIX-078.
+    [[nodiscard]] std::string to_about_text() const;
+
     /// True when the build came from a tree that was not clean. Kept as its own
     /// predicate because a dirty build is the single most useful fact in a bug
     /// report and the easiest one to drop by accident when formatting.
