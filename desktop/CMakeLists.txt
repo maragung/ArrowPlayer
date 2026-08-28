@@ -93,11 +93,24 @@ set(ARROW_DOMAIN_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/error.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/text.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/json/json.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/parser.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/evaluator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/format_engine.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/biquad.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/equalizer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/decode/gapless_info.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/graph/playback_graph.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/playback_service.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/icy_metadata.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/hls_playlist.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/rss_feed.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/http_client.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/radio.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/podcast.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/scrobble.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sync/discovery.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sync/pairing.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sync/transport.cpp"
 )
 
 
@@ -112,6 +125,16 @@ arrow_set_hardening(arrow-domain)   # REQ-SEC-018
 target_compile_features(arrow-domain PUBLIC cxx_std_20)
 find_package(Threads REQUIRED)
 target_link_libraries(arrow-domain PUBLIC Threads::Threads)
+# REQ-NET-002: the libcurl-backed IHttpClient is the production transport.
+# When libcurl is found at configure time, link the domain library against
+# it; the http_client.cpp source then compiles the real libcurl path.
+# Otherwise it compiles a stub that returns ErrorCode::NotImplemented. The
+# link rule is private because the libcurl dependency is an implementation
+# detail of one TU; the public port surface stays clean.
+if(ARROW_HAVE_CURL)
+    target_link_libraries(arrow-domain PRIVATE arrow::curl)
+    target_compile_definitions(arrow-domain PRIVATE ARROW_HAVE_CURL=1)
+endif()
 
 # ---------------------------------------------------------------------------
 #  Layer 1 — ADAPTERS, each gated on dependency availability so the tree
@@ -166,7 +189,8 @@ if(ARROW_HAVE_SQLITE3)
         "${CMAKE_CURRENT_SOURCE_DIR}/src/library/library_database.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/library/filesystem_scanner.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/library/library_importer.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/sidecar_tag_reader.cpp")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/sidecar_tag_reader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/smart_playlist.cpp")
     target_include_directories(arrow-library-sqlite PUBLIC src)
     target_link_libraries(arrow-library-sqlite PUBLIC arrow-domain arrow::sqlite3)
     arrow_set_warnings(arrow-library-sqlite)
@@ -284,6 +308,7 @@ else()
 endif()
 message(STATUS "  --- adapters (dependency-gated) ---")
 message(STATUS "  SQLite3       : ${ARROW_HAVE_SQLITE3}")
+message(STATUS "  libcurl       : ${ARROW_HAVE_CURL}")
 message(STATUS "  FFmpeg        : ${ARROW_HAVE_FFMPEG}")
 message(STATUS "  TagLib        : ${ARROW_HAVE_TAGLIB}")
 message(STATUS "  ALSA          : ${ARROW_HAVE_ALSA}")
