@@ -10,18 +10,19 @@
 // Package validation per REQ-AUT-002:
 //   com.google.android.projection.gearhead  — Android Auto (car head unit)
 //   com.google.android.car.kitchensink      — Auto test harness
-//   androidx.car.app                        — AndroidX Car App library
+//   androidx.car.app                      — AndroidX Car App library
 //   com.google.android.googlequicksearchbox — Google Assistant
 
 package io.github.arrowplayer.app
 
-import android.content.Intent
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.LibraryParams
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
-import androidx.media3.session.LibraryResult
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 
 @OptIn(UnstableApi::class)
 class MediaLibraryService : MediaLibraryService() {
@@ -41,22 +42,12 @@ class MediaLibraryService : MediaLibraryService() {
         return mediaLibrarySession
     }
 
-    override fun onDestroy() {
-        mediaLibrarySession?.run {
-            player.release()
-            release()
-        }
-        mediaLibrarySession = null
-        super.onDestroy()
-    }
-
     override fun onGetLibraryRoot(
         controllerInfo: MediaSession.ControllerInfo,
-        immediate: Boolean,
         params: LibraryParams?,
-    ): LibraryResult<MediaItem> {
+    ): ListenableFuture<LibraryResult<MediaItem>> {
         if (!isPackageAllowed(controllerInfo.packageName)) {
-            return LibraryResult.ofError(LibraryResult.ERROR_PERMISSION_DENIED)
+            return Futures.immediateFuture(LibraryResult.ERROR_PERMISSION_DENIED)
         }
 
         val root = MediaItem.Builder()
@@ -70,7 +61,7 @@ class MediaLibraryService : MediaLibraryService() {
             )
             .build()
 
-        return LibraryResult.item(root)
+        return Futures.immediateFuture(LibraryResult.ofItem(root))
     }
 
     override fun onGetChildren(
@@ -79,9 +70,9 @@ class MediaLibraryService : MediaLibraryService() {
         page: Int,
         pageSize: Int,
         params: LibraryParams?,
-    ): LibraryResult<kotlin.collections.List<MediaItem>> {
+    ): ListenableFuture<LibraryResult<List<MediaItem>>> {
         if (!isPackageAllowed(controllerInfo.packageName)) {
-            return LibraryResult.ofError(LibraryResult.ERROR_PERMISSION_DENIED)
+            return Futures.immediateFuture(LibraryResult.ERROR_PERMISSION_DENIED)
         }
 
         val children = when (parentMediaId) {
@@ -95,10 +86,19 @@ class MediaLibraryService : MediaLibraryService() {
             CHILDREN_ID_ALBUMS -> emptyList()    // Phase 1 stub — populated from library
             CHILDREN_ID_ARTISTS -> emptyList()   // Phase 1 stub — populated from library
             CHILDREN_ID_RECENT -> emptyList()    // Phase 1 stub — populated from library
-            else -> return LibraryResult.ofError(LibraryResult.ERROR_NOT_SUPPORTED)
+            else -> return Futures.immediateFuture(LibraryResult.ERROR_NOT_SUPPORTED)
         }
 
-        return LibraryResult.items(children)
+        return Futures.immediateFuture(LibraryResult.ofList(children))
+    }
+
+    override fun onDestroy() {
+        mediaLibrarySession?.run {
+            player.release()
+            release()
+        }
+        mediaLibrarySession = null
+        super.onDestroy()
     }
 
     private fun isPackageAllowed(packageName: String?): Boolean {
@@ -122,10 +122,9 @@ class MediaLibraryService : MediaLibraryService() {
         override fun onGetLibraryRoot(
             session: MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
-            immediate: Boolean,
             params: LibraryParams?,
-        ): LibraryResult<MediaItem> {
-            return this@MediaLibraryService.onGetLibraryRoot(browser, immediate, params)
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            return this@MediaLibraryService.onGetLibraryRoot(browser, params)
         }
 
         override fun onGetChildren(
@@ -135,7 +134,7 @@ class MediaLibraryService : MediaLibraryService() {
             page: Int,
             pageSize: Int,
             params: LibraryParams?,
-        ): LibraryResult<kotlin.collections.List<MediaItem>> {
+        ): ListenableFuture<LibraryResult<List<MediaItem>>> {
             return this@MediaLibraryService.onGetChildren(browser, parentMediaId, page, pageSize, params)
         }
     }
@@ -152,7 +151,7 @@ class MediaLibraryService : MediaLibraryService() {
             "com.google.android.projection.gearhead",   // Android Auto (car)
             "com.google.android.car.kitchensink",        // Auto test harness
             "androidx.car.app",                          // AndroidX Car App
-            "com.google.android.googlequicksearchbox",   // Google Assistant
+            "com.google.android.googlequicksearchbox",    // Google Assistant
         )
     }
 }
