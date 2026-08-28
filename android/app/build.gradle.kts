@@ -174,33 +174,9 @@ dependencies {
     implementation(libs.androidx.media3.common)
     // REQ-UIX-027: NotificationCompat.MediaStyle requires androidx.media
     implementation(libs.androidx.media)
-    // REQ-AUT-001: ListenableFuture for MediaLibraryService async results
-    implementation(libs.guava)
     testImplementation(libs.junit)
-    // REQ-OSI-041 / REQ-OSI-042: the audio-focus matrix and the
-    // becoming-noisy broadcast path are pure JVM-side contract
-    // assertions on platform classes (AudioManager,
-    // AudioFocusRequest, Intent.ACTION_AUDIO_BECOMING_NOISY). They
-    // run on the host JVM via Robolectric, NOT on a device. Espresso
-    // lives under androidTestImplementation only — the two runners
-    // do not overlap so a single test never has both available.
-    testImplementation(libs.robolectric)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    // MainActivityEspressoTest renders the About Compose screen and
-    // asserts on its semantic text. Espresso's onView() only sees
-    // Android Views — Compose nodes are reachable through
-    // `composeTestRule`, which lives in `ui-test-junit4` (version
-    // managed by the compose-bom above). `ui-test-manifest` is
-    // intentionally NOT pulled in here: that artifact provides an
-    // `androidx.activity.ComponentActivity` placeholder for tests
-    // that do not have an activity of their own, and
-    // `createAndroidComposeRule<MainActivity>()` uses our real
-    // activity — the placeholder would be dead weight on the
-    // classpath.
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
 }
 
 // REQ-BLD-002: mirror versionName/versionCode onto `project.extra` so
