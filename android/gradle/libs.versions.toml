@@ -18,8 +18,6 @@ junit = "4.13.2"
 junitExt = "1.2.1"
 espresso = "3.6.1"
 media = "1.7.0"
-guava = "32.1.3-android"
-robolectric = "4.14.1"
 ktlint = "12.1.1"
 detekt = "1.23.7"
 
