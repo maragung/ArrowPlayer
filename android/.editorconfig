@@ -16,7 +16,13 @@ ktlint_function_naming_ignore_when_annotated_with = Composable
 # "X must be > Y" formulation reads more cleanly as a single line
 # than as a wrapped one. Production sources keep the 100-char
 # cap. The override is scoped to the test path only.
-[app/src/test/**.{kt,kts}]
+# ktlint's editorconfig globbing matches paths segment-by-segment;
+# `app/src/test/**` does NOT match `app/src/test/java/.../Foo.kt`
+# because the `**` must consume at least one segment, and the
+# `app/src/test/` segment is the exact prefix. Use `**/test/**` so
+# the pattern hits every test file under any depth, with the `kt,kts`
+# extension filter applied after the directory glob resolves.
+[**/test/**.{kt,kts}]
 max_line_length = 120
 
 # The fixture in app/src/test/resources/sample-build.gradle.kts is a
@@ -26,3 +32,14 @@ max_line_length = 120
 # the 100/120-char caps the live sources follow.
 [app/src/test/resources/**.{kt,kts}]
 ktlint_excludes = true
+
+# The production Gradle build scripts at app/build.gradle.kts and
+# root settings.gradle.kts are reviewed by ktlint's
+# `runKtlintCheckOverMainSourceSet` and `ktlintKotlinScriptCheck` tasks.
+# Their line length cap stays at 100; their concern is that
+# long interpolated messages are easy to overlook in code review
+# and a 100-char cap forces a wrap that makes the message readable.
+# The test source override above is the one place where a longer
+# cap is acceptable, and only because the assertion reads the
+# message back. Production build scripts keep the same 100-char
+# cap the rest of the project follows.
