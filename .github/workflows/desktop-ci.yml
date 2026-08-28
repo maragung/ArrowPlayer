@@ -32,7 +32,7 @@ jobs:
     name: architecture gates
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # A gate that has never failed is not evidence. All three below run over a
       # tree that contains no violations, and check-sql-safety.py has never had
@@ -89,7 +89,7 @@ jobs:
           - { name: 'windows-2022 · msvc',    os: windows-2022, preset: windows-release }
 
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # §3.2: Ubuntu 22.04 defaults to GCC 11, whose C++20 support is incomplete.
       # The spec requires GCC 12+, so it must be installed and selected explicitly.
@@ -371,7 +371,7 @@ jobs:
     env:
       VCPKG_DISABLE_METRICS: '1'
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build dependencies vcpkg itself needs
         run: |
@@ -557,7 +557,7 @@ jobs:
     needs: gates
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install toolchain
         run: |
@@ -649,7 +649,7 @@ jobs:
     needs: gates
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install
         run: |
