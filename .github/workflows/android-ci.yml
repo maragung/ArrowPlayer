@@ -235,7 +235,6 @@ jobs:
           pattern: apk-*
           path: ${{ runner.temp }}/apks
           merge-multiple: true
-          if-no-files-found: warn
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
         env:
