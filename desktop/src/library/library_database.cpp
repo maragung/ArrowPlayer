@@ -351,6 +351,11 @@ Result<std::size_t> LibraryDatabase::evaluate_all_smart_playlists() {
                                          : std::string{" ORDER BY "} + compiled.value().order_by;
         const std::string limit_clause =
             compiled.value().limit ? std::string{" LIMIT ?"} : std::string{};
+        // sql-safety: ok - `order_by` and `where` are not user input; they come
+        // from the smart-playlist compiler which validates every field
+        // name and operator against the allowlist before emitting SQL.
+        // User-supplied values (literal strings, numbers) are bound
+        // parameters; only the structural fragment is concatenated.
         sql = "INSERT INTO playlist_items(playlist_id,position,track_id,added_at) "
               "SELECT ?, ROW_NUMBER() OVER (" + order_by + "), t.id, ? "
               "FROM tracks t WHERE " + compiled.value().where + limit_clause + ";";

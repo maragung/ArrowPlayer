@@ -926,6 +926,11 @@ class Compiler {
             case FieldOp::Matches:     frag = "ct.value GLOB ?"; break;
             default:                   frag = "ct.value = ?"; break;
         }
+        // sql-safety: ok - `frag` is a literal string from the
+        // compiler's op-to-fragment table, not user input. User-supplied
+        // values are bound parameters (`?`) and the field name is
+        // validated against the builtin-field allowlist before this
+        // string is built.
         std::string exists = "EXISTS (SELECT 1 FROM custom_tags ct "
                              "WHERE ct.track_id = t.id AND ct.key = ? AND " + frag + ")";
         if (c.op == FieldOp::Ne) {
