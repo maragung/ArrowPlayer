@@ -64,13 +64,13 @@ struct SchemaEntry {
 
 constexpr std::array<SchemaEntry, 3> kSchemaTable = {{
     {"theme-schema.json",
-     "https://eclipse-player.org/schemas/theme/v1",
+     "https://arrow-player.org/schemas/theme/v1",
      "theme"},
     {"skin-manifest.schema.json",
-     "https://eclipse-player.org/schemas/skin-manifest/v1",
+     "https://arrow-player.org/schemas/skin-manifest/v1",
      "skin-manifest"},
     {"layout.schema.json",
-     "https://eclipse-player.org/schemas/layout/v1",
+     "https://arrow-player.org/schemas/layout/v1",
      "layout"},
 }};
 

@@ -45,9 +45,9 @@ namespace arrow::theme {
 // ---------------------------------------------------------------------------
 
 enum class SchemaId : std::uint8_t {
-    Theme,         // https://eclipse-player.org/schemas/theme/v1
-    SkinManifest,  // https://eclipse-player.org/schemas/skin-manifest/v1
-    Layout,        // https://eclipse-player.org/schemas/layout/v1
+    Theme,         // https://arrow-player.org/schemas/theme/v1
+    SkinManifest,  // https://arrow-player.org/schemas/skin-manifest/v1
+    Layout,        // https://arrow-player.org/schemas/layout/v1
 };
 
 // A single validation finding. `instance_pointer` is the JSON Pointer
