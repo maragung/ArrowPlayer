@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 PlaybackGraph::PlaybackGraph(IDecoder& decoder,
                              IAudioSink& sink,
@@ -115,4 +115,4 @@ void PlaybackGraph::close() noexcept {
     at_end_ = false;
 }
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

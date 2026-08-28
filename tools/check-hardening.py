@@ -8,7 +8,7 @@ that makes it a gate rather than a preference:
     the build files.
 
 That sentence is the whole reason this script reads ELF and PE headers instead of
-grepping the CMake. `cmake/EclipseWarnings.cmake` defined `eclipse_set_hardening`
+grepping the CMake. `cmake/ArrowWarnings.cmake` defined `arrow_set_hardening`
 for several commits and called it from nowhere: every flag was present in the
 build files and absent from every binary. Reading the build files would have
 reported success.
@@ -89,7 +89,7 @@ SHT_SYMTAB = 2
 SHT_DYNSYM = 11
 
 # A sanitizer or libFuzzer build is an analysis artifact, never a shipped one, and
-# eclipse_set_hardening deliberately no-ops under those presets: ASan's own
+# arrow_set_hardening deliberately no-ops under those presets: ASan's own
 # allocator and redzones are what make the suite meaningful, and stacking release
 # hardening on top would weaken the analysis to satisfy a flag check. So the gate
 # recognises them and puts them out of scope instead of failing them — while
@@ -805,8 +805,8 @@ def main() -> int:
               f"hardening the build claims to apply.", file=sys.stderr)
         for rep, bad in failed:
             print(f"  {rep.path}: {', '.join(bad)}", file=sys.stderr)
-        print("\nThe flags live in cmake/EclipseWarnings.cmake "
-              "(eclipse_set_hardening). If a target is new, it needs the call —"
+        print("\nThe flags live in cmake/ArrowWarnings.cmake "
+              "(arrow_set_hardening). If a target is new, it needs the call —"
               "\ndo not relax this gate to match a target that does not have it.",
               file=sys.stderr)
         return 1

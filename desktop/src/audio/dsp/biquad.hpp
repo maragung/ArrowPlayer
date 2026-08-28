@@ -14,7 +14,7 @@
 #include <span>
 #include <vector>
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 /// Filter topologies. All use the RBJ formulas for the named response.
 enum class FilterType {
@@ -158,4 +158,4 @@ class BiquadCascade {
     std::vector<Biquad> sections_;
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

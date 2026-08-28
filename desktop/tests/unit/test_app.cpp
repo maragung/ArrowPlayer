@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include <eclipse/version.hpp>
+#include <arrow/version.hpp>
 
 #include "app/app_info.hpp"
 #include "app/application.hpp"
@@ -19,11 +19,11 @@
 
 #include <gtest/gtest.h>
 
-using eclipse::ErrorCode;
-using eclipse::app::AppInfo;
-using eclipse::app::Application;
-using eclipse::app::Lifecycle;
-using eclipse::app::LifecycleState;
+using arrow::ErrorCode;
+using arrow::app::AppInfo;
+using arrow::app::Application;
+using arrow::app::Lifecycle;
+using arrow::app::LifecycleState;
 
 // --------------------------------------------------------------------- AppInfo
 
@@ -33,19 +33,19 @@ TEST(AppInfo, CurrentMatchesTheGeneratedHeader) {
     // than against a literal — a literal here would pass while the About dialog
     // showed something else.
     const AppInfo info = AppInfo::current();
-    EXPECT_EQ(info.name, eclipse::version::kName);
-    EXPECT_EQ(info.version, eclipse::version::kString);
-    EXPECT_EQ(info.git_sha, eclipse::version::kGitSha);
-    EXPECT_EQ(info.git_dirty, eclipse::version::kGitDirty != 0);
-    EXPECT_EQ(info.major, eclipse::version::kMajor);
-    EXPECT_EQ(info.minor, eclipse::version::kMinor);
-    EXPECT_EQ(info.patch, eclipse::version::kPatch);
+    EXPECT_EQ(info.name, arrow::version::kName);
+    EXPECT_EQ(info.version, arrow::version::kString);
+    EXPECT_EQ(info.git_sha, arrow::version::kGitSha);
+    EXPECT_EQ(info.git_dirty, arrow::version::kGitDirty != 0);
+    EXPECT_EQ(info.major, arrow::version::kMajor);
+    EXPECT_EQ(info.minor, arrow::version::kMinor);
+    EXPECT_EQ(info.patch, arrow::version::kPatch);
     EXPECT_FALSE(info.version.empty());
     EXPECT_FALSE(info.name.empty());
 }
 
 TEST(AppInfo, LogStringCarriesEverythingABugReportNeeds) {
-    const AppInfo info{.name = "Eclipse Player",
+    const AppInfo info{.name = "Arrow Player",
                        .version = "1.2.3",
                        .git_sha = "abcdef123456",
                        .git_dirty = false,
@@ -53,7 +53,7 @@ TEST(AppInfo, LogStringCarriesEverythingABugReportNeeds) {
                        .minor = 2,
                        .patch = 3};
     const std::string s = info.to_log_string();
-    EXPECT_NE(s.find("Eclipse Player"), std::string::npos);
+    EXPECT_NE(s.find("Arrow Player"), std::string::npos);
     EXPECT_NE(s.find("1.2.3"), std::string::npos);
     EXPECT_NE(s.find("abcdef123456"), std::string::npos);
     EXPECT_EQ(s.find("modified"), std::string::npos);
@@ -61,7 +61,7 @@ TEST(AppInfo, LogStringCarriesEverythingABugReportNeeds) {
 }
 
 TEST(AppInfo, DirtyTreeIsStatedInWordsNotDropped) {
-    AppInfo info{.name = "Eclipse Player", .version = "1.2.3", .git_sha = "abcdef123456"};
+    AppInfo info{.name = "Arrow Player", .version = "1.2.3", .git_sha = "abcdef123456"};
     info.git_dirty = true;
     EXPECT_NE(info.to_log_string().find("working tree modified"), std::string::npos);
     EXPECT_FALSE(info.is_reproducible_build());
@@ -90,7 +90,7 @@ TEST(Lifecycle, StepsStartInOrderAndStopInReverse) {
             step,
             [&trace, step] {
                 trace.push_back("start:" + step);
-                return eclipse::ok();
+                return arrow::ok();
             },
             [&trace, step] { trace.push_back("stop:" + step); }));
     }
@@ -109,7 +109,7 @@ TEST(Lifecycle, StepsStartInOrderAndStopInReverse) {
 
 TEST(Lifecycle, AStepMayOmitItsTeardown) {
     Lifecycle lc;
-    ASSERT_TRUE(lc.add_step("no-teardown", [] { return eclipse::ok(); }));
+    ASSERT_TRUE(lc.add_step("no-teardown", [] { return arrow::ok(); }));
     ASSERT_TRUE(lc.start());
     ASSERT_TRUE(lc.shutdown());
 }
@@ -123,26 +123,26 @@ TEST(Lifecycle, FailedStartUnwindsOnlyWhatStarted) {
         "ok-one",
         [&trace] {
             trace.push_back("start:ok-one");
-            return eclipse::ok();
+            return arrow::ok();
         },
         [&trace] { trace.push_back("stop:ok-one"); }));
     ASSERT_TRUE(lc.add_step(
         "ok-two",
         [&trace] {
             trace.push_back("start:ok-two");
-            return eclipse::ok();
+            return arrow::ok();
         },
         [&trace] { trace.push_back("stop:ok-two"); }));
     ASSERT_TRUE(lc.add_step(
         "broken",
         [&trace] {
             trace.push_back("start:broken");
-            return eclipse::Status{eclipse::err(
+            return arrow::Status{arrow::err(
                 ErrorCode::DeviceNotFound, "No audio device was found.", "no sink")};
         },
         [&trace] { trace.push_back("stop:broken"); }));
 
-    const eclipse::Status result = lc.start();
+    const arrow::Status result = lc.start();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code(), ErrorCode::DeviceNotFound);
     // The failing step is named, so the log says which subsystem died.
@@ -159,7 +159,7 @@ TEST(Lifecycle, FailedStartUnwindsOnlyWhatStarted) {
 TEST(Lifecycle, FailedIsTerminal) {
     Lifecycle lc;
     ASSERT_TRUE(lc.add_step("broken", [] {
-        return eclipse::Status{eclipse::err(ErrorCode::IoError, "Failed.", "d")};
+        return arrow::Status{arrow::err(ErrorCode::IoError, "Failed.", "d")};
     }));
     ASSERT_FALSE(lc.start());
     EXPECT_EQ(lc.start().error().code(), ErrorCode::InvalidState);
@@ -170,7 +170,7 @@ TEST(Lifecycle, FailedIsTerminal) {
 
 TEST(Lifecycle, RejectsAStepWithNoName) {
     Lifecycle lc;
-    const eclipse::Status s = lc.add_step("", [] { return eclipse::ok(); });
+    const arrow::Status s = lc.add_step("", [] { return arrow::ok(); });
     ASSERT_FALSE(s);
     EXPECT_EQ(s.error().code(), ErrorCode::InvalidArgument);
     EXPECT_EQ(lc.step_count(), 0U);
@@ -178,7 +178,7 @@ TEST(Lifecycle, RejectsAStepWithNoName) {
 
 TEST(Lifecycle, RejectsAStepWithNothingToRun) {
     Lifecycle lc;
-    const eclipse::Status s = lc.add_step("empty", Lifecycle::StartFn{});
+    const arrow::Status s = lc.add_step("empty", Lifecycle::StartFn{});
     ASSERT_FALSE(s);
     EXPECT_EQ(s.error().code(), ErrorCode::InvalidArgument);
     EXPECT_EQ(lc.step_count(), 0U);
@@ -187,7 +187,7 @@ TEST(Lifecycle, RejectsAStepWithNothingToRun) {
 TEST(Lifecycle, RejectsAStepAddedAfterStart) {
     Lifecycle lc;
     ASSERT_TRUE(lc.start());
-    const eclipse::Status s = lc.add_step("late", [] { return eclipse::ok(); });
+    const arrow::Status s = lc.add_step("late", [] { return arrow::ok(); });
     ASSERT_FALSE(s);
     EXPECT_EQ(s.error().code(), ErrorCode::InvalidState);
     EXPECT_EQ(lc.step_count(), 0U);
@@ -223,7 +223,7 @@ TEST(Lifecycle, EveryStateHasAName) {
                                        LifecycleState::ShuttingDown,
                                        LifecycleState::Stopped,
                                        LifecycleState::Failed}) {
-        EXPECT_NE(eclipse::app::to_string(state), "unknown");
+        EXPECT_NE(arrow::app::to_string(state), "unknown");
     }
 }
 
@@ -231,12 +231,12 @@ TEST(Lifecycle, EveryStateHasAName) {
 
 TEST(Application, CarriesTheIdentityItWasGiven) {
     Application app{AppInfo::current()};
-    EXPECT_EQ(app.info().version, eclipse::version::kString);
+    EXPECT_EQ(app.info().version, arrow::version::kString);
     EXPECT_EQ(app.lifecycle().state(), LifecycleState::Created);
 }
 
 TEST(Application, ExitCodesDistinguishBrokenProgramFromMissingEnvironment) {
-    using eclipse::err;
+    using arrow::err;
     EXPECT_EQ(Application::exit_code_for(err(ErrorCode::Ok, "")), Application::kExitOk);
     EXPECT_EQ(Application::exit_code_for(err(ErrorCode::DeviceNotFound, "")),
               Application::kExitUnavailable);

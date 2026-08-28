@@ -7,7 +7,7 @@
 
 #include "core/text.hpp"
 
-namespace eclipse::json {
+namespace arrow::json {
 
 // ===========================================================================
 //  Value
@@ -636,4 +636,4 @@ Result<Value> parse(std::string_view input, const Limits& limits) {
     return p.run();
 }
 
-}  // namespace eclipse::json
+}  // namespace arrow::json

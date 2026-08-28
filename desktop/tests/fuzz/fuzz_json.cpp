@@ -33,8 +33,8 @@
 
 namespace {
 
-using eclipse::json::Type;
-using eclipse::json::Value;
+using arrow::json::Type;
+using arrow::json::Value;
 
 [[noreturn]] void fail(const char* what) {
     (void)std::fprintf(stderr, "fuzz_json: invariant violated: %s\n", what);
@@ -105,7 +105,7 @@ std::size_t walk(const Value& root, const Value& node, const std::string& pointe
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
     const std::string_view input(reinterpret_cast<const char*>(data), size);
 
-    auto parsed = eclipse::json::parse(input);
+    auto parsed = arrow::json::parse(input);
     if (!parsed) {
         // A rejection must still carry a usable message: an error with an empty
         // user-facing string is how a validation failure becomes unreportable.
@@ -119,9 +119,9 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     (void)walk(root, root, std::string{});
 
     const std::string dumped = root.dump();
-    const eclipse::json::Limits limits;
+    const arrow::json::Limits limits;
     if (dumped.size() <= limits.max_bytes) {
-        auto again = eclipse::json::parse(dumped);
+        auto again = arrow::json::parse(dumped);
         if (!again) {
             fail("dump() produced a document the parser rejects");
         }

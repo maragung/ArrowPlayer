@@ -6,7 +6,7 @@
 
 #include "core/error.hpp"
 
-namespace eclipse::app {
+namespace arrow::app {
 
 enum class SinkChoice {
     Automatic,
@@ -24,4 +24,4 @@ struct CommandLine {
 [[nodiscard]] Result<CommandLine> parse_command_line(int argc, char* const argv[]) noexcept;
 [[nodiscard]] std::string_view command_line_usage() noexcept;
 
-}  // namespace eclipse::app
+}  // namespace arrow::app

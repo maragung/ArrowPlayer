@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 //
 // Error taxonomy — spec §22.1 (REQ-GEN-060 .. REQ-GEN-063).
 //
@@ -16,7 +16,7 @@
 #include <utility>
 #include <variant>
 
-namespace eclipse {
+namespace arrow {
 
 /// Severity ladder. §22.1 REQ-GEN-062 binds each level to a required UI
 /// behaviour; the UI layer must not invent its own mapping.
@@ -283,4 +283,4 @@ using Status = Result<Unit>;
     return Error{code, std::move(user_message), std::move(detail)};
 }
 
-}  // namespace eclipse
+}  // namespace arrow

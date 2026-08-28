@@ -270,7 +270,7 @@ jobs:
           set -euo pipefail
           stamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           serial="urn:uuid:$(cat /proc/sys/kernel/random/uuid)"
-          out="eclipse-player-${VERSION}.cdx.json"
+          out="arrow-player-${VERSION}.cdx.json"
           python3 tools/gen-sbom.py --timestamp "$stamp" --serial-number "$serial" -o "$out"
           sha256sum "$out" > "$out.sha256"
           {
@@ -295,8 +295,8 @@ jobs:
         with:
           name: sbom
           path: |
-            eclipse-player-*.cdx.json
-            eclipse-player-*.cdx.json.sha256
+            arrow-player-*.cdx.json
+            arrow-player-*.cdx.json.sha256
           retention-days: 90
 
   # -------------------------------------------------------------------------
@@ -505,10 +505,10 @@ jobs:
         shell: bash
         env:
           QT_QPA_PLATFORM: offscreen
-          ECLIPSE_SMOKE_TEST: '1'
+          ARROW_SMOKE_TEST: '1'
         run: |
           set -euo pipefail
-          exe="build/${{ matrix.preset }}/eclipse-player"
+          exe="build/${{ matrix.preset }}/arrow-player"
           [ -f "$exe.exe" ] && exe="$exe.exe"
           "$exe"
 
@@ -527,29 +527,29 @@ jobs:
           fi
           staging="$RUNNER_TEMP/pkg"
           rm -rf "$staging"; mkdir -p "$staging/bin" "$staging/lib" \
-            "$staging/plugins" "$staging/share/doc/eclipse-player"
+            "$staging/plugins" "$staging/share/doc/arrow-player"
           # The real binary under its own name; a wrapper in front of it sets
           # LD_LIBRARY_PATH and QT_PLUGIN_PATH to the bundled copies.
-          cp build/${{ matrix.preset }}/eclipse-player "$staging/bin/eclipse-player.bin"
+          cp build/${{ matrix.preset }}/arrow-player "$staging/bin/arrow-player.bin"
           cp -rL "$qtprefix"/lib/libQt6*.so* "$staging/lib/"
           cp -rL "$qtprefix"/lib/libicu*.so* "$staging/lib/" 2>/dev/null || true
           cp -r "$qtprefix/plugins/platforms" "$staging/plugins/"
           cp -r "$qtprefix/plugins/imageformats" "$staging/plugins/" 2>/dev/null || true
           cp -r "$qtprefix/plugins/xcbglintegrations" "$staging/plugins/" 2>/dev/null || true
-          cp LICENSE "$staging/share/doc/eclipse-player/"
-          cp desktop/qt-version.txt "$staging/share/doc/eclipse-player/qt-version.txt"
-          cat > "$staging/bin/eclipse-player" <<'WRAPPER'
+          cp LICENSE "$staging/share/doc/arrow-player/"
+          cp desktop/qt-version.txt "$staging/share/doc/arrow-player/qt-version.txt"
+          cat > "$staging/bin/arrow-player" <<'WRAPPER'
           #!/bin/sh
           DIR="$(cd "$(dirname "$0")/.." && pwd)"
           export LD_LIBRARY_PATH="$DIR/lib:${LD_LIBRARY_PATH:-}"
           export QT_PLUGIN_PATH="$DIR/plugins"
-          exec "$DIR/bin/eclipse-player.bin" "$@"
+          exec "$DIR/bin/arrow-player.bin" "$@"
           WRAPPER
-          chmod +x "$staging/bin/eclipse-player"
+          chmod +x "$staging/bin/arrow-player"
           (cd "$staging" && tar czf \
-            "$RUNNER_TEMP/eclipse-player-$version-linux-$arch.tar.gz" .)
-          sha256sum "$RUNNER_TEMP/eclipse-player-$version-linux-$arch.tar.gz" \
-            > "$RUNNER_TEMP/eclipse-player-$version-linux-$arch.tar.gz.sha256"
+            "$RUNNER_TEMP/arrow-player-$version-linux-$arch.tar.gz" .)
+          sha256sum "$RUNNER_TEMP/arrow-player-$version-linux-$arch.tar.gz" \
+            > "$RUNNER_TEMP/arrow-player-$version-linux-$arch.tar.gz.sha256"
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
@@ -561,26 +561,26 @@ jobs:
           $qtbin = "$env:RUNNER_TOOL_CACHE\Qt\$qtver\msvc2022_64\bin"
           $staging = "$env:RUNNER_TEMP\pkg"
           New-Item -ItemType Directory -Force -Path $staging | Out-Null
-          Copy-Item build/windows-release/eclipse-player.exe $staging
+          Copy-Item build/windows-release/arrow-player.exe $staging
           # windeployqt bundles the Qt DLLs and the platform plugin, so the zip
           # runs on a stock Windows 10/11 without installing Qt.
-          & "$qtbin\windeployqt.exe" --release --no-translations "$staging\eclipse-player.exe"
+          & "$qtbin\windeployqt.exe" --release --no-translations "$staging\arrow-player.exe"
           Copy-Item LICENSE $staging
           Copy-Item desktop/qt-version.txt "$staging\qt-version.txt"
-          $zip = "$env:RUNNER_TEMP\eclipse-player-$version-windows-$arch.zip"
+          $zip = "$env:RUNNER_TEMP\arrow-player-$version-windows-$arch.zip"
           Compress-Archive -Path "$staging\*" -DestinationPath $zip
           $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  eclipse-player-$version-windows-$arch.zip" | Out-File "$zip.sha256"
+          "$hash  arrow-player-$version-windows-$arch.zip" | Out-File "$zip.sha256"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: success() || matrix.allow_failure != 'true'
         with:
           name: artifact-${{ matrix.name }}
           path: |
-            ${{ runner.temp }}/eclipse-player-*.tar.gz
-            ${{ runner.temp }}/eclipse-player-*.tar.gz.sha256
-            ${{ runner.temp }}/eclipse-player-*.zip
-            ${{ runner.temp }}/eclipse-player-*.zip.sha256
+            ${{ runner.temp }}/arrow-player-*.tar.gz
+            ${{ runner.temp }}/arrow-player-*.tar.gz.sha256
+            ${{ runner.temp }}/arrow-player-*.zip
+            ${{ runner.temp }}/arrow-player-*.zip.sha256
           if-no-files-found: warn
           retention-days: 90
 
@@ -646,7 +646,7 @@ jobs:
           version="${TAG#v}"
           notes="$RUNNER_TEMP/release-notes.md"
           {
-            echo "## Eclipse Player $TAG"
+            echo "## Arrow Player $TAG"
             echo
             echo "**Unsigned.** No \`RELEASE_SIGNING_IDENTITY\` exists (REQ-SEC-016 is"
             echo "Phase 9 work), so every artifact below is distributed without a"

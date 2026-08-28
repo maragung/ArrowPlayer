@@ -3,11 +3,11 @@
 
 #include "audio/ports/audio_ports.hpp"
 
-#if defined(ECLIPSE_HAVE_ALSA)
+#if defined(ARROW_HAVE_ALSA)
 #include <alsa/asoundlib.h>
 #endif
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 class AlsaSink final : public IAudioSink {
   public:
@@ -20,11 +20,11 @@ class AlsaSink final : public IAudioSink {
     [[nodiscard]] std::string_view device_name() const noexcept override { return "default"; }
 
   private:
-#if defined(ECLIPSE_HAVE_ALSA)
+#if defined(ARROW_HAVE_ALSA)
     snd_pcm_t* handle_{nullptr};
 #endif
     SinkConfig config_{};
     bool opened_{false};
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

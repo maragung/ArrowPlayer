@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Eclipse Player</string>
+    <string name="app_name">Arrow Player</string>
     <string name="version_label">Version %1$s</string>
     <string name="about_hint">Free, open-source, privacy-first music player.</string>
 </resources>

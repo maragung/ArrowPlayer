@@ -3,11 +3,11 @@
 
 #include "ports/tag_port.hpp"
 
-namespace eclipse::library {
+namespace arrow::library {
 
 class SidecarTagReader final : public ITagReader {
   public:
     [[nodiscard]] Result<Track> read(const std::filesystem::path& path) const override;
 };
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

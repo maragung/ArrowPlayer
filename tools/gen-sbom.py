@@ -122,7 +122,7 @@ REPO = SCRIPT_DIR.parent
 GEN_THIRD_PARTY = SCRIPT_DIR / "gen-third-party" / "gen-third-party.py"
 DEFAULT_REGISTER = SCRIPT_DIR / "gen-third-party" / "register.json"
 DEFAULT_RELEASES = SCRIPT_DIR / "gen-third-party" / "releases.json"
-DEFAULT_OUTPUT = REPO / "docs" / "sbom" / "eclipse-player.cdx.json"
+DEFAULT_OUTPUT = REPO / "docs" / "sbom" / "arrow-player.cdx.json"
 VERSION_FILE = REPO / "desktop" / "version.txt"
 QT_VERSION_FILE = REPO / "desktop" / "qt-version.txt"
 VCPKG_MANIFEST = REPO / "desktop" / "vcpkg.json"
@@ -130,9 +130,9 @@ VCPKG_MANIFEST = REPO / "desktop" / "vcpkg.json"
 SPEC_VERSION = "1.6"
 SCHEMA_URL = f"http://cyclonedx.org/schema/bom-{SPEC_VERSION}.schema.json"
 
-ROOT_NAME = "eclipse-player"
+ROOT_NAME = "arrow-player"
 ROOT_LICENCE = "MPL-2.0"          # REQ-GEN-010
-PROP_NS = "eclipse:"
+PROP_NS = "arrow:"
 
 
 class SbomError(Exception):
@@ -166,7 +166,7 @@ def gtp():
             raise SbomError(f"{rel(GEN_THIRD_PARTY)} does not exist; this tool reuses "
                             f"its register loader and vcpkg graph parser")
         spec = importlib.util.spec_from_file_location(
-            "eclipse_gen_third_party", GEN_THIRD_PARTY)
+            "arrow_gen_third_party", GEN_THIRD_PARTY)
         if spec is None or spec.loader is None:
             raise SbomError(f"cannot import {rel(GEN_THIRD_PARTY)}")
         module = importlib.util.module_from_spec(spec)
@@ -1275,8 +1275,8 @@ PURL_CASES = [
           source_url="https://github.com/nlohmann/json"),
      "pkg:generic/nlohmann-json"),
     ("the application itself",
-     dict(component="eclipse-player", version="0.1.0"),
-     "pkg:generic/eclipse-player@0.1.0"),
+     dict(component="arrow-player", version="0.1.0"),
+     "pkg:generic/arrow-player@0.1.0"),
     ("pins are ignored for a component that came through no package manager",
      dict(component="qt6", version="6.8.2", pins=_PURL_PINS, port_version=5),
      "pkg:generic/qt6@6.8.2"),

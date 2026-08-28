@@ -11,7 +11,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace eclipse::text;
+using namespace arrow::text;
 
 // ===========================================================================
 //  UTF-8 — REQ-LIB-033

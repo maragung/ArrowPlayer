@@ -1,6 +1,6 @@
-# Third-Party Licences — Eclipse Player
+# Third-Party Licences — Arrow Player
 
-`eclipse-player.md` §27 requires this document: *Generated; the §4.2 register with SPDX ids, versions, licence texts, and source URLs*. This is that document. It is **generated** by `tools/gen-third-party/gen-third-party.py` from `tools/gen-third-party/register.json` and MUST NOT be edited by hand — fix the generator or the register, never the output (`REQ-GEN-012`).
+`arrow-player.md` §27 requires this document: *Generated; the §4.2 register with SPDX ids, versions, licence texts, and source URLs*. This is that document. It is **generated** by `tools/gen-third-party/gen-third-party.py` from `tools/gen-third-party/register.json` and MUST NOT be edited by hand — fix the generator or the register, never the output (`REQ-GEN-012`).
 
 Scope: the **desktop** build. The Android half of the §4.2 register is listed at the end for completeness and is **not in the current Android build** — the app exists as a Phase 0 scaffold, but the NDK-level components below are not in it yet, and the Gradle version catalog is reconciled with this half of the register when they arrive (ADR 0012, OQ-018). §0.1 rule 2 forbids silently downgrading a requirement, so those entries are kept and marked, not dropped.
 
@@ -63,23 +63,23 @@ SPDX texts: each identifier above resolves at `https://spdx.org/licenses/<id>.ht
   - REQ-GEN-014 fixes the configure flags above; REQ-GEN-015 asserts at build time that the linked FFmpeg reports LGPL and not `GPL version`/`nonfree` via `avutil_license()` — a mechanical guard, not a review step (ADR 0006).
   - v1.0 decodes only. Encoders are enabled selectively and only for LGPL-clean codecs when the converter lands (REQ-GEN-016); `libfdk_aac` is permanently excluded as non-free.
 - **TagLib** — LGPL-2.1-or-later OR MPL-1.1. vcpkg (pinned baseline).
-  - Dual-licensed. Eclipse takes the LGPL-2.1-or-later arm, so the source-offer obligation applies (recorded in the companion source-offer document).
-- **SoundTouch** — LGPL-2.1-or-later. vcpkg, behind the `tempo` feature (on by default) mirroring the ECLIPSE tempo/BPM options (REQ-AUD-090..093).
+  - Dual-licensed. Arrow takes the LGPL-2.1-or-later arm, so the source-offer obligation applies (recorded in the companion source-offer document).
+- **SoundTouch** — LGPL-2.1-or-later. vcpkg, behind the `tempo` feature (on by default) mirroring the ARROW tempo/BPM options (REQ-AUD-090..093).
 - **libsamplerate** — BSD-2-Clause. vcpkg (pinned baseline).
-  - The ≥ 0.2.2 floor folds in two separate limits: releases before 0.1.9 were GPL and MUST NOT be used (they are incompatible with the MPL-2.0 core, §4.1), and anything below the registered version is a dependency the register does not describe, which REQ-GEN-012 makes a build failure. EclipseDependencies.cmake enforces `samplerate>=0.2.2`.
+  - The ≥ 0.2.2 floor folds in two separate limits: releases before 0.1.9 were GPL and MUST NOT be used (they are incompatible with the MPL-2.0 core, §4.1), and anything below the registered version is a dependency the register does not describe, which REQ-GEN-012 makes a build failure. ArrowDependencies.cmake enforces `samplerate>=0.2.2`.
 - **Chromaprint** — LGPL-2.1-or-later. vcpkg, behind the `fingerprint` feature (on by default). Local and offline; the AcoustID network lookup is a separate opt-in (§9.9).
 - **projectM** — LGPL-2.1-or-later. vcpkg, behind the `visualizer` feature (on by default). Pulls transitive ports (see the transitive section) — glm, projectm-eval, and the OpenGL/EGL registries.
   - ADR 0009 records the choice of projectM for MilkDrop-compatible visualisation.
 - **SQLite** — Public domain (SQLite Blessing; SPDX `blessing`). vcpkg, with the `fts5` feature for full-text search.
   - SQLite is dedicated to the public domain; SPDX records this as the `blessing` identifier (the 'SQLite Blessing'). No obligation, no attribution required.
-- **nlohmann/json** — MIT. Listed in the §4.2 register. NOT currently in the build: the desktop tree uses a bespoke, hardened in-house parser (`eclipse::json`, MPL-2.0, desktop/src/core/json/) rather than nlohmann/json, so it is registered but not linked today.
+- **nlohmann/json** — MIT. Listed in the §4.2 register. NOT currently in the build: the desktop tree uses a bespoke, hardened in-house parser (`arrow::json`, MPL-2.0, desktop/src/core/json/) rather than nlohmann/json, so it is registered but not linked today.
   - Kept in the register because §4.2 lists it and REQ-GEN-012 forbids silently dropping a registered dependency; the honest status is 'registered, not linked in the current build'.
 - **libzip** — BSD-3-Clause. vcpkg with `default-features: false`. The default features pull in bzip2 and OpenSSL; both are refused — REQ-THM-015 allows a skin archive only 'deflate or stored, no encryption, no other compression methods', and OpenSSL has no row in §4.2 (see OQ-025).
-  - The register offers `libzip` or `minizip-ng`; Eclipse uses libzip (BSD-3-Clause). minizip-ng would be the zlib-licensed alternative.
+  - The register offers `libzip` or `minizip-ng`; Arrow uses libzip (BSD-3-Clause). minizip-ng would be the zlib-licensed alternative.
 - **zlib** — Zlib. vcpkg (pinned baseline).
 - **GoogleTest** — BSD-3-Clause. vcpkg behind the `tests` feature, and pinned as a vendored tarball desktop/third_party/googletest-1.15.2.tar.gz with its SHA-256 asserted at build time. Test-only; never present in a shipped artifact.
   - Because it is test-only and not shipped, it carries no runtime attribution or source-offer obligation.
-- **RtAudio** — MIT-like (SPDX `MIT`; RtAudio adds a request to notify upstream of modifications). vcpkg behind the `rtaudio` feature, which is OFF by default (matches the ECLIPSE_ENABLE_RTAUDIO CMake option). Optional last-resort Linux fallback sink only (REQ-AUD-073, [v1.x], §8.7.7); never bit-perfect, never a platform default.
+- **RtAudio** — MIT-like (SPDX `MIT`; RtAudio adds a request to notify upstream of modifications). vcpkg behind the `rtaudio` feature, which is OFF by default (matches the ARROW_ENABLE_RTAUDIO CMake option). Optional last-resort Linux fallback sink only (REQ-AUD-073, [v1.x], §8.7.7); never bit-perfect, never a platform default.
   - The RtAudio licence is MIT with an added request that modifications be sent upstream; there is no distinct SPDX identifier, so it is recorded as `MIT` with this note.
 
 ## Qt — exact version, configuration, and source
@@ -88,7 +88,7 @@ SPDX texts: each identifier above resolves at `https://spdx.org/licenses/<id>.ht
 
 - **Exact version:** 6.8.2 (pinned in `desktop/qt-version.txt`; the register names the 6.8 LTS series).
 - **Configuration:** official prebuilt **shared** libraries obtained via `aqtinstall`, not built from source and not from vcpkg (ADR 0005 / `REQ-BLD-001`). `desktop/vcpkg.json` MUST NOT list Qt. Qt is therefore **dynamically linked, always** — static Qt is forbidden in every shipped artifact (`REQ-GEN-013`(1)).
-- **Relinking duty (`REQ-GEN-013`(2),(5)):** the user MUST be able to replace a Qt shared library with a compatible build and still run Eclipse Player. No checksums or signature checks are applied over Qt binaries, and the application is not shipped in a form that prevents installing a modified Qt.
+- **Relinking duty (`REQ-GEN-013`(2),(5)):** the user MUST be able to replace a Qt shared library with a compatible build and still run Arrow Player. No checksums or signature checks are applied over Qt binaries, and the application is not shipped in a form that prevents installing a modified Qt.
 - **Licence text (`REQ-GEN-013`(3)):** the full LGPL-3.0 text ships in the installed tree at `licenses/LGPL-3.0.txt` and is reachable from Help → Licences.
 - **Corresponding source:** [https://download.qt.io/archive/qt/6.8/6.8.2/single/qt-everywhere-src-6.8.2.tar.xz](https://download.qt.io/archive/qt/6.8/6.8.2/single/qt-everywhere-src-6.8.2.tar.xz)
 
@@ -125,11 +125,11 @@ This document was generated **without** a resolved graph, so the transitive set 
 To regenerate with the transitive set covered, once vcpkg is available:
 
 ```sh
-vcpkg install --dry-run --triplet x64-linux-eclipse > /tmp/graph.txt
+vcpkg install --dry-run --triplet x64-linux-arrow > /tmp/graph.txt
 python3 tools/gen-third-party/gen-third-party.py --resolved-graph /tmp/graph.txt
 ```
 
-OQ-025 in the open-questions log ([OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)) records the design: §4.2 is the register of **direct** dependencies, and this document additionally carries the transitive set when a graph is supplied, so the CI gate compares the resolved graph against this document rather than against §4.2 alone. docs/OPEN-QUESTIONS.md OQ-025 also records that one resolved graph for `x64-linux-eclipse` pulled in six transitive components (`utfcpp`, `glm`, `projectm-eval`, and the OpenGL/EGL registries), all licence-compatible, and that `libzip`'s bzip2/OpenSSL default features were removed rather than registered.
+OQ-025 in the open-questions log ([OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)) records the design: §4.2 is the register of **direct** dependencies, and this document additionally carries the transitive set when a graph is supplied, so the CI gate compares the resolved graph against this document rather than against §4.2 alone. docs/OPEN-QUESTIONS.md OQ-025 also records that one resolved graph for `x64-linux-arrow` pulled in six transitive components (`utfcpp`, `glm`, `projectm-eval`, and the OpenGL/EGL registries), all licence-compatible, and that `libzip`'s bzip2/OpenSSL default features were removed rather than registered.
 
 ## Codec patent notes
 

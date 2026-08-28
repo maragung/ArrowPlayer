@@ -32,7 +32,7 @@
 
 namespace {
 
-using namespace eclipse::audio;
+using namespace arrow::audio;
 
 [[noreturn]] void fail(const char* what) {
     (void)std::fprintf(stderr, "fuzz_gapless: invariant violated: %s\n", what);

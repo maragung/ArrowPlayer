@@ -8,7 +8,7 @@
 #include <cstring>
 #include <limits>
 
-namespace eclipse::text {
+namespace arrow::text {
 namespace {
 
 constexpr char32_t kReplacement = 0xFFFD;
@@ -828,4 +828,4 @@ bool normalize_relative_path(std::string_view p, std::string& out) {
     return true;
 }
 
-}  // namespace eclipse::text
+}  // namespace arrow::text

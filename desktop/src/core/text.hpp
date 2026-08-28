@@ -19,7 +19,7 @@
 #include <string_view>
 #include <vector>
 
-namespace eclipse::text {
+namespace arrow::text {
 
 // --------------------------------------------------------------------- UTF-8
 
@@ -163,4 +163,4 @@ void encode_utf8(char32_t cp, std::string& out);
 /// checks only this function has not skipped the security control.
 [[nodiscard]] bool normalize_relative_path(std::string_view p, std::string& out);
 
-}  // namespace eclipse::text
+}  // namespace arrow::text

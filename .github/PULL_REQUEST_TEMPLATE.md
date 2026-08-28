@@ -1,5 +1,5 @@
 <!--
-  §1.3 of eclipse-player.md is the Definition of Done, and it applies to every
+  §1.3 of arrow-player.md is the Definition of Done, and it applies to every
   unit of work. This template is that list, not a shorter version of it: a
   checklist that omits items is a checklist that quietly redefines "done".
 
@@ -35,7 +35,7 @@
 - [ ] 6 · Every user-visible string is externalised for translation (§12.7).
 - [ ] 7 · Any new dependency is in §4.2 **and** in the SBOM
       (`python3 tools/gen-sbom.py` then commit the regenerated document).
-- [ ] 8 · Any deviation from `eclipse-player.md` is recorded in `docs/adr/`.
+- [ ] 8 · Any deviation from `arrow-player.md` is recorded in `docs/adr/`.
 - [ ] 9 · Performance-sensitive paths (§20) have a benchmark and it did not
       regress.
 - [ ] 10 · The commit message references the requirement ID.

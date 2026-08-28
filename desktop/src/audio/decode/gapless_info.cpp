@@ -8,7 +8,7 @@
 
 #include "core/text.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 namespace {
 
 // --------------------------------------------------------------------- tables
@@ -679,4 +679,4 @@ Result<GaplessInfo> gapless_from_granule(std::int64_t final_granule,
     return info;
 }
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

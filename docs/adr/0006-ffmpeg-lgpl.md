@@ -28,7 +28,7 @@ Shipped FFmpeg builds are configured with:
 
 Two of these deserve explanation:
 
-- **`--disable-network`.** Eclipse does all its own HTTP through one internal
+- **`--disable-network`.** Arrow does all its own HTTP through one internal
   client so that the global network switch, TLS policy and redaction are enforced
   in exactly one place (REQ-NET-002). Leaving FFmpeg's network layer enabled would
   create a second, unpoliced egress path — which would quietly undermine the

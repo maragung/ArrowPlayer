@@ -10,7 +10,7 @@
       "binaryDir": "${sourceDir}/../build/${presetName}",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "ECLIPSE_BUILD_TESTS": "ON"
+        "ARROW_BUILD_TESTS": "ON"
       }
     },
     {
@@ -18,14 +18,14 @@
       "displayName": "Linux · Debug",
       "inherits": "base",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "ECLIPSE_WERROR": "ON" }
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "ARROW_WERROR": "ON" }
     },
     {
       "name": "linux-release",
       "displayName": "Linux · Release",
       "inherits": "base",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ARROW_WERROR": "ON" }
     },
     {
       "name": "linux-release-arm64",
@@ -33,7 +33,7 @@
       "inherits": "base",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
       "toolchainFile": "${sourceDir}/cmake/toolchains/linux-aarch64.cmake",
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ARROW_WERROR": "ON" }
     },
     {
       "name": "linux-asan",
@@ -42,9 +42,9 @@
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "ECLIPSE_WERROR": "ON",
-        "ECLIPSE_SANITIZE_ADDRESS": "ON",
-        "ECLIPSE_BUILD_UI": "OFF"
+        "ARROW_WERROR": "ON",
+        "ARROW_SANITIZE_ADDRESS": "ON",
+        "ARROW_BUILD_UI": "OFF"
       }
     },
     {
@@ -54,9 +54,9 @@
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "ECLIPSE_WERROR": "ON",
-        "ECLIPSE_SANITIZE_THREAD": "ON",
-        "ECLIPSE_BUILD_UI": "OFF"
+        "ARROW_WERROR": "ON",
+        "ARROW_SANITIZE_THREAD": "ON",
+        "ARROW_BUILD_UI": "OFF"
       }
     },
     {
@@ -66,11 +66,11 @@
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "ECLIPSE_WERROR": "ON",
-        "ECLIPSE_SANITIZE_ADDRESS": "ON",
-        "ECLIPSE_BUILD_FUZZERS": "ON",
-        "ECLIPSE_BUILD_TESTS": "OFF",
-        "ECLIPSE_BUILD_UI": "OFF"
+        "ARROW_WERROR": "ON",
+        "ARROW_SANITIZE_ADDRESS": "ON",
+        "ARROW_BUILD_FUZZERS": "ON",
+        "ARROW_BUILD_TESTS": "OFF",
+        "ARROW_BUILD_UI": "OFF"
       }
     },
     {
@@ -79,7 +79,7 @@
       "inherits": "base",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
       "architecture": { "value": "x64", "strategy": "external" },
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "ECLIPSE_WERROR": "ON" }
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "ARROW_WERROR": "ON" }
     },
     {
       "name": "windows-release",
@@ -87,7 +87,7 @@
       "inherits": "base",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
       "architecture": { "value": "x64", "strategy": "external" },
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ARROW_WERROR": "ON" }
     },
     {
       "name": "windows-release-arm64",
@@ -95,7 +95,7 @@
       "inherits": "base",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
       "architecture": { "value": "arm64", "strategy": "external" },
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ECLIPSE_WERROR": "ON" }
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ARROW_WERROR": "ON" }
     }
   ],
 

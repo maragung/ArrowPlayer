@@ -11,7 +11,7 @@
 
 struct sqlite3;
 
-namespace eclipse::library {
+namespace arrow::library {
 
 class LibraryDatabase final : public ILibrary {
   public:
@@ -34,4 +34,4 @@ class LibraryDatabase final : public ILibrary {
     sqlite3* db_{nullptr};
 };
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

@@ -6,7 +6,7 @@
 
 #include "audio/graph/playback_graph.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 class PlaybackService final {
   public:
@@ -21,4 +21,4 @@ class PlaybackService final {
     PlaybackGraph graph_;
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

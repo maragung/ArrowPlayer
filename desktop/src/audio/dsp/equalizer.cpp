@@ -6,7 +6,7 @@
 
 #include "core/text.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 namespace {
 
 constexpr double clampd(double v, double lo, double hi) noexcept {
@@ -323,4 +323,4 @@ BiquadCoeffs Equalizer::band_coeffs(std::size_t index) const noexcept {
     return index < designed_.size() ? designed_[index] : BiquadCoeffs::identity();
 }
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

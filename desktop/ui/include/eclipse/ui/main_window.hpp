@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 //
 // The Phase 0 shell window — spec §7.1 layer 5 (PRESENTATION), §28 Phase 0
 // exit gate 1 ("window opens") and exit gate 7 ("version string shown in
@@ -19,11 +19,11 @@
 
 #include <string_view>
 
-#include "eclipse/ui/shell.hpp"
+#include "arrow/ui/shell.hpp"
 
 class QAction;
 
-namespace eclipse::ui {
+namespace arrow::ui {
 
 /// The single Phase 0 main window.
 ///
@@ -56,4 +56,4 @@ private:
     ShellInfo info_;
 };
 
-}  // namespace eclipse::ui
+}  // namespace arrow::ui

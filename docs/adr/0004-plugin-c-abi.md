@@ -49,18 +49,18 @@ loading for two decades. That is not nostalgia; it is the property being bought.
 
 ## Decision
 
-**The plugin SDK is a pure C ABI.** `desktop/include/eclipse/plugin/` contains C
+**The plugin SDK is a pure C ABI.** `desktop/include/arrow/plugin/` contains C
 headers, compilable by a C99 compiler, with `extern "C"` guards for C++ callers.
 
 Concretely:
 
 - **Three exported symbols**, and nothing else:
-  `eclipse_plugin_query`, `eclipse_plugin_create`, `eclipse_plugin_destroy`.
-  `eclipse_plugin_query` returns a static `EclipsePluginInfo` and must not
+  `arrow_plugin_query`, `arrow_plugin_create`, `arrow_plugin_destroy`.
+  `arrow_plugin_query` returns a static `ArrowPluginInfo` and must not
   allocate, block, or touch the filesystem (`REQ-PLG-007`), so the host can
   enumerate a directory of untrusted plugins cheaply and without side effects.
-- **Function-pointer vtables**, not virtual classes: `EclipsePluginVTable` is what
-  the plugin offers the host, `EclipseHostApi` is what the host offers the plugin.
+- **Function-pointer vtables**, not virtual classes: `ArrowPluginVTable` is what
+  the plugin offers the host, `ArrowHostApi` is what the host offers the plugin.
   Both carry an `abi_version` as their first member so a mismatch is detectable
   before any other field is read.
 - **Only C types cross the boundary:** fixed-width integers, `const char *` for
@@ -74,7 +74,7 @@ Concretely:
 - **Growth is append-only within an ABI version** (`REQ-PLG-006`): members are
   added at the end of a struct, never reordered or removed, and a `size` field
   distinguishes an older caller's struct from a newer one. Breaking the layout
-  requires incrementing `ECLIPSE_PLUGIN_ABI_VERSION` and a major release.
+  requires incrementing `ARROW_PLUGIN_ABI_VERSION` and a major release.
 - **The host refuses to load an `abi_version` it does not know**, rather than
   attempting a best-effort load. Refusing is a message the user can act on; a
   best-effort load is a crash they cannot.

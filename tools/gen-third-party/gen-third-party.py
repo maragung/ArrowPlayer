@@ -506,10 +506,10 @@ def render(register: dict, mode: str, graph: dict | None, graph_source: str | No
     sections = [H_GEN, H_DESK, H_QT, H_FFMPEG, H_TRANS, H_PATENT, H_TEXTS, H_ANDROID, H_TRADE]
 
     L: list[str] = []
-    L.append("# Third-Party Licences — Eclipse Player")
+    L.append("# Third-Party Licences — Arrow Player")
     L.append("")
     L.append(
-        "`eclipse-player.md` §27 requires this document: *Generated; the §4.2 "
+        "`arrow-player.md` §27 requires this document: *Generated; the §4.2 "
         "register with SPDX ids, versions, licence texts, and source URLs*. This is "
         "that document. It is **generated** by `tools/gen-third-party/gen-third-party.py` "
         "from `tools/gen-third-party/register.json` and MUST NOT be edited by hand — "
@@ -666,7 +666,7 @@ def render(register: dict, mode: str, graph: dict | None, graph_source: str | No
         )
         L.append(
             "- **Relinking duty (`REQ-GEN-013`(2),(5)):** the user MUST be able to replace "
-            "a Qt shared library with a compatible build and still run Eclipse Player. No "
+            "a Qt shared library with a compatible build and still run Arrow Player. No "
             "checksums or signature checks are applied over Qt binaries, and the "
             "application is not shipped in a form that prevents installing a modified Qt."
         )
@@ -764,7 +764,7 @@ def render(register: dict, mode: str, graph: dict | None, graph_source: str | No
         L.append("To regenerate with the transitive set covered, once vcpkg is available:")
         L.append("")
         L.append("```sh")
-        L.append("vcpkg install --dry-run --triplet x64-linux-eclipse > /tmp/graph.txt")
+        L.append("vcpkg install --dry-run --triplet x64-linux-arrow > /tmp/graph.txt")
         L.append("python3 tools/gen-third-party/gen-third-party.py --resolved-graph /tmp/graph.txt")
         L.append("```")
         L.append("")
@@ -775,7 +775,7 @@ def render(register: dict, mode: str, graph: dict | None, graph_source: str | No
             f"dependencies, and this document additionally carries the transitive set when "
             f"a graph is supplied, so the CI gate compares the resolved graph against this "
             f"document rather than against §4.2 alone. {src} also records that one resolved "
-            f"graph for `x64-linux-eclipse` pulled in six transitive components "
+            f"graph for `x64-linux-arrow` pulled in six transitive components "
             f"(`utfcpp`, `glm`, `projectm-eval`, and the OpenGL/EGL registries), all "
             f"licence-compatible, and that `libzip`'s bzip2/OpenSSL default features were "
             f"removed rather than registered."
@@ -868,7 +868,7 @@ def manifest_pins(path: Path) -> dict:
     return {
         "baseline": data.get("builtin-baseline"),
         "overrides": data.get("overrides", []),
-        "triplet": "x64-linux-eclipse",
+        "triplet": "x64-linux-arrow",
     }
 
 
@@ -905,10 +905,10 @@ def render_source_offer(register: dict, ledger: dict, pins: dict) -> str:
                 H_HOW, H_NOT, H_GEN, H_SEE]
 
     L: list[str] = []
-    L.append("# LGPL Source Offer — Eclipse Player")
+    L.append("# LGPL Source Offer — Arrow Player")
     L.append("")
     L.append(
-        "`eclipse-player.md` §27 requires this document, and `REQ-GEN-020` states it "
+        "`arrow-player.md` §27 requires this document, and `REQ-GEN-020` states it "
         "verbatim:"
     )
     L.append("")
@@ -953,7 +953,7 @@ def render_source_offer(register: dict, ledger: dict, pins: dict) -> str:
     # ------------------------------------------------------------------ offer
     L.append(f"## {H_OFFER}")
     L.append("")
-    L.append("For every binary release of Eclipse Player published at")
+    L.append("For every binary release of Arrow Player published at")
     L.append(f"{link(offer['releases_url'])}:")
     L.append("")
     L.append(
@@ -1112,7 +1112,7 @@ def render_source_offer(register: dict, ledger: dict, pins: dict) -> str:
         L.append("1. Qt libraries are **dynamically linked**. Static Qt is forbidden in "
                  "every shipped artifact.")
         L.append("2. The user can **replace a Qt shared library** with a compatible "
-                 "build and Eclipse Player still runs. No hard-coded checksums or "
+                 "build and Arrow Player still runs. No hard-coded checksums or "
                  "signature checks over Qt binaries.")
         L.append("3. The full LGPL-3.0 text ships at `licenses/LGPL-3.0.txt` in the "
                  "installed tree and is reachable from **Help → Licences**.")
@@ -1195,7 +1195,7 @@ def render_source_offer(register: dict, ledger: dict, pins: dict) -> str:
         )
         L.append("")
         L.append(
-            "**Eclipse Player takes the `LGPL-2.1-or-later` arm.** The source-offer "
+            "**Arrow Player takes the `LGPL-2.1-or-later` arm.** The source-offer "
             "obligation therefore applies to TagLib exactly as it does to FFmpeg, and "
             "TagLib appears in the component table above and in every ledger row."
         )
@@ -1396,7 +1396,7 @@ def render_source_offer(register: dict, ledger: dict, pins: dict) -> str:
             [
                 "The SBOM exists but has never been attached to a release",
                 "`REQ-GEN-021`, `REQ-SEC-014`",
-                "`docs/sbom/eclipse-player.cdx.json` is generated from this same "
+                "`docs/sbom/arrow-player.cdx.json` is generated from this same "
                 "register by `tools/gen-sbom.py`, which `repo-lint.yml` runs "
                 "`--check` on for every push and pull request. `REQ-SEC-014` asks "
                 "for one *per release artifact*, which needs §25.5 step 6 and "
@@ -1473,9 +1473,9 @@ def rel_link(name: str) -> str:
 # ===========================================================================
 ARROW_SAMPLE = """\
 The following packages will be built and installed:
-    taglib:x64-linux-eclipse -> 2.0.2
-  * utfcpp:x64-linux-eclipse -> 4.0.6#1
-    zlib:x64-linux-eclipse
+    taglib:x64-linux-arrow -> 2.0.2
+  * utfcpp:x64-linux-arrow -> 4.0.6#1
+    zlib:x64-linux-arrow
 """
 
 
@@ -1528,7 +1528,7 @@ def self_test(register: dict) -> int:
     #    is the concrete example from OQ-025 (no §4.2 row; refused, not registered).
     injected = parse_resolved_graph(
         DEFAULT_FIXTURE.read_text(encoding="utf-8")
-        + "\n    openssl:x64-linux-eclipse@3.3.2\n"
+        + "\n    openssl:x64-linux-arrow@3.3.2\n"
     )
     unknown = [p.name for p in classify_graph(register, injected)["unknown"]]
     if unknown != ["openssl"]:

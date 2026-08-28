@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Tests for core/json — spec §21.2 (parser hardening), §11.2, REQ-SEC-002.
 //
-// Every JSON document Eclipse parses is untrusted (a downloaded skin, an
+// Every JSON document Arrow parses is untrusted (a downloaded skin, an
 // imported settings bundle), so the limits are tested as hard guarantees.
 
 #include <string>
@@ -10,8 +10,8 @@
 
 #include <gtest/gtest.h>
 
-using namespace eclipse;
-using namespace eclipse::json;
+using namespace arrow;
+using namespace arrow::json;
 
 namespace {
 Value must_parse(std::string_view s, const Limits& lim = {}) {

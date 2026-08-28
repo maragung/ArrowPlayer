@@ -1,6 +1,6 @@
 # Platform Parity Matrix
 
-`REQ-GEN-080`. Generated from `eclipse-player.md` §29.2 and extended with an
+`REQ-GEN-080`. Generated from `arrow-player.md` §29.2 and extended with an
 **implementation status** column, because a parity matrix that describes intent
 without saying what exists yet is a wish list.
 

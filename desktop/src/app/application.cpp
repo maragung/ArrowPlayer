@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 #include "app/application.hpp"
 
-namespace eclipse::app {
+namespace arrow::app {
 
 int Application::exit_code_for(const Error& error) noexcept {
     switch (error.code()) {
@@ -20,4 +20,4 @@ int Application::exit_code_for(const Error& error) noexcept {
     }
 }
 
-}  // namespace eclipse::app
+}  // namespace arrow::app

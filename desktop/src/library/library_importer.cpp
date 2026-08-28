@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 #include "library/library_importer.hpp"
 
-namespace eclipse::library {
+namespace arrow::library {
 
 Status LibraryImporter::import_files(const ScanRequest& request,
                                      const ILibraryScanner& scanner,
@@ -21,4 +21,4 @@ Status LibraryImporter::import_files(const ScanRequest& request,
     return ok();
 }
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

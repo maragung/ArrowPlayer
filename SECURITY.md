@@ -1,6 +1,6 @@
 # Security Policy
 
-Eclipse Player parses untrusted input for a living. Audio containers, tags,
+Arrow Player parses untrusted input for a living. Audio containers, tags,
 artwork, cue sheets, playlists, skin packages and network responses all come from
 outside and none of them are trusted (§21.1). Vulnerability reports are therefore
 treated as first-class work, not as an interruption.
@@ -16,7 +16,7 @@ Use GitHub's private vulnerability reporting:
 2. Describe the issue, the affected version (Help → About shows the exact build),
    and the platform.
 3. Include a reproducer if you have one — a crashing input file, a hostile
-   `.eclipseskin`, a malformed HTTP response. Attach it as a file rather than
+   `.arrowskin`, a malformed HTTP response. Attach it as a file rather than
    pasting bytes.
 
 If GitHub private reporting is unavailable to you, contact the maintainer
@@ -72,7 +72,7 @@ minor after next ships.
 
 - Memory corruption, out-of-bounds access, integer overflow or uncontrolled
   allocation in any parser: containers, codecs, tags, artwork, cue sheets,
-  playlists, `.eclipseskin` packages, JSON, SVG, EBNF-driven inputs.
+  playlists, `.arrowskin` packages, JSON, SVG, EBNF-driven inputs.
 - Escaping the skin sandbox: any way a skin package achieves code execution,
   reads a file outside its own extraction directory, writes anywhere, or makes a
   network request. ADR 0003 states the design goal plainly — a malicious skin
@@ -96,7 +96,7 @@ minor after next ships.
 **Out of scope:**
 
 - Vulnerabilities in third-party dependencies with no exploitable path through
-  Eclipse Player. Report those upstream; tell us too, so we can bump the pin.
+  Arrow Player. Report those upstream; tell us too, so we can bump the pin.
 - Anything requiring an already-compromised machine or a malicious local
   administrator.
 - **Native plugins.** Plugins are explicitly consented, not sandboxed (§16.5). A
@@ -134,7 +134,7 @@ reassuring:
   find a hostile input class that is missing, that is a welcome report even
   without a working exploit.
 - **Pinned dependencies with an SBOM** (`REQ-SEC-013`, `REQ-SEC-014`):
-  [`docs/sbom/eclipse-player.cdx.json`](docs/sbom/eclipse-player.cdx.json), a
+  [`docs/sbom/arrow-player.cdx.json`](docs/sbom/arrow-player.cdx.json), a
   CycloneDX 1.6 document generated from the §4.2 register and re-checked for
   staleness by `repo-lint.yml` on every push and pull request. The **CVE scanning**
   half of `REQ-SEC-014` is not running yet, and would not find much if it were:

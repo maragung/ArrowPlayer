@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-  "name": "eclipse-player",
+  "name": "arrow-player",
   "version-semver": "0.1.0",
   "description": "Free, open-source, privacy-first music player — desktop dependency manifest.",
-  "homepage": "https://eclipse-player.org",
+  "homepage": "https://arrow-player.org",
   "license": "MPL-2.0",
   "builtin-baseline": "9e593bb18ea69cc5095e012465dcd675a822ed0d",
   "$no-qt": "Qt is NOT a vcpkg dependency and must never be added here. It comes from official prebuilt binaries via aqtinstall at the version pinned in qt-version.txt. Spec section 6.2 states the consequence directly: desktop/vcpkg.json MUST NOT list Qt. See docs/adr/0005-qt-acquisition.md.",
@@ -59,7 +59,7 @@
       ]
     },
     "rtaudio": {
-      "description": "Last-resort Linux fallback sink (REQ-AUD-073, [v1.x]). Off by default, matching the ECLIPSE_ENABLE_RTAUDIO CMake option; it is never bit-perfect and must never be a platform default.",
+      "description": "Last-resort Linux fallback sink (REQ-AUD-073, [v1.x]). Off by default, matching the ARROW_ENABLE_RTAUDIO CMake option; it is never bit-perfect and must never be a platform default.",
       "dependencies": [
         "rtaudio"
       ]

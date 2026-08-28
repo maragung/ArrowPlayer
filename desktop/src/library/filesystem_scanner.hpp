@@ -3,7 +3,7 @@
 
 #include "ports/library_port.hpp"
 
-namespace eclipse::library {
+namespace arrow::library {
 
 class FilesystemScanner final : public ILibraryScanner {
   public:
@@ -11,4 +11,4 @@ class FilesystemScanner final : public ILibraryScanner {
         const ScanRequest& request) const override;
 };
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

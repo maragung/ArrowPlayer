@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 //
 // Application identity — §28 Phase 0 exit gate 7 ("Version string generated
 // from git and shown in About"), REQ-BLD-007.
 //
 // Layer 4 (APPLICATION) per §7.1: pure C++20, no Qt, no adapter.
 //
-// Why identity lives here and not in the UI: `eclipse/version.hpp` is generated
+// Why identity lives here and not in the UI: `arrow/version.hpp` is generated
 // by CMake from git, and the UI is compiled only when Qt is present. With one
 // reader of that generated header in layer 4, the headless binary and the About
 // dialog cannot disagree about which build this is. Two readers could.
@@ -16,7 +16,7 @@
 #include <string>
 #include <string_view>
 
-namespace eclipse::app {
+namespace arrow::app {
 
 /// Immutable build identity, read once from the generated version header.
 ///
@@ -24,9 +24,9 @@ namespace eclipse::app {
 /// string literal with static storage duration, or a scalar. Safe to copy onto
 /// any thread, including one that must not allocate.
 struct AppInfo {
-    std::string_view name;     ///< eclipse::version::kName
-    std::string_view version;  ///< eclipse::version::kString  ("0.1.0")
-    std::string_view git_sha;  ///< eclipse::version::kGitSha  (short hash)
+    std::string_view name;     ///< arrow::version::kName
+    std::string_view version;  ///< arrow::version::kString  ("0.1.0")
+    std::string_view git_sha;  ///< arrow::version::kGitSha  (short hash)
     bool git_dirty{false};     ///< the tree had uncommitted changes
     int major{0};
     int minor{0};
@@ -51,4 +51,4 @@ struct AppInfo {
     [[nodiscard]] bool is_reproducible_build() const noexcept { return !git_dirty; }
 };
 
-}  // namespace eclipse::app
+}  // namespace arrow::app

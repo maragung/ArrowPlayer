@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 #pragma once
 
 #include <cstddef>
@@ -8,7 +8,7 @@
 
 #include "audio/ports/audio_types.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 struct StreamInfo final {
     PcmFormat format{};
@@ -43,4 +43,4 @@ class IAudioSink {
     [[nodiscard]] virtual std::string_view device_name() const noexcept = 0;
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

@@ -3,7 +3,7 @@
 
 #include <utility>
 
-namespace eclipse::app {
+namespace arrow::app {
 
 std::string_view to_string(LifecycleState state) noexcept {
     switch (state) {
@@ -102,4 +102,4 @@ void Lifecycle::unwind() noexcept {
     started_.clear();
 }
 
-}  // namespace eclipse::app
+}  // namespace arrow::app

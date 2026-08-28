@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-namespace eclipse::audio {
+namespace arrow::audio {
 namespace {
 
 TEST(PcmFormat, AcceptsSupportedFormat) {
@@ -81,4 +81,4 @@ TEST(SpscPcmRing, RejectsWrongChannelCount) {
 }
 
 }  // namespace
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 """Layer dependency enforcement — spec §7.2 (REQ-GEN-050, REQ-GEN-051).
 
-The architecture in eclipse-player.md §7.1 defines five layers, and §7.2 makes
+The architecture in arrow-player.md §7.1 defines five layers, and §7.2 makes
 the dependency direction a hard rule rather than reviewer discipline. This script
 is the mechanical enforcement the spec demands, wired into desktop-ci.yml.
 
@@ -10,7 +10,7 @@ Rules checked
 -------------
 1. The domain layer links against nothing but the C++ standard library.
    No Qt, FFmpeg, SQLite, TagLib, ALSA, WASAPI or platform headers may appear
-   anywhere reachable from `eclipse-domain`.
+   anywhere reachable from `arrow-domain`.
 
 2. Adapter headers are reachable only through their own directory.
    Nothing outside src/audio/sink/ may include a WASAPI or ALSA header;
@@ -50,7 +50,7 @@ INCLUDE_RE = re.compile(r'^\s*#\s*include\s*[<"]([^>"]+)[>"]')
 #  Rule 1 — the domain layer is dependency-free
 # --------------------------------------------------------------------------- #
 
-# Every source file compiled into `eclipse-domain`. Kept explicit rather than
+# Every source file compiled into `arrow-domain`. Kept explicit rather than
 # globbed so that adding a file to the domain library is a deliberate act that
 # shows up in review. Derived from a root rather than fixed to SRC so the
 # self-test can point the same rule at a synthetic tree.
@@ -66,7 +66,7 @@ def domain_dirs(src: Path) -> list[Path]:
 
 
 # Adapter translation units that live inside an otherwise-domain directory.
-# These are compiled into `eclipse-adapters`, not `eclipse-domain`.
+# These are compiled into `arrow-adapters`, not `arrow-domain`.
 def domain_exclusions(src: Path) -> set[Path]:
     return {src / "audio" / "decode" / "ffmpeg_decoder.cpp"}
 
@@ -262,7 +262,7 @@ def layer_of_file(path: Path, desktop: Path) -> int | None:
 def layer_of_include(header: str, roots: set[str]) -> int | None:
     """The layer an #include names, or None if it is not ours to classify.
     Third-party and standard headers are None: rules 2 and 3 own those."""
-    if header.startswith("eclipse/ui/"):
+    if header.startswith("arrow/ui/"):
         return 5                      # desktop/ui's public include directory
     first = header.split("/")[0]
     if first not in roots or ".." in header:
@@ -368,7 +368,7 @@ def checks_for(repo: Path):
 @contextlib.contextmanager
 def _tree(files: dict[str, str]):
     """Materialises {relative path: contents} in a temporary directory."""
-    with tempfile.TemporaryDirectory(prefix="eclipse-layers-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="arrow-layers-") as tmp:
         root = Path(tmp)
         for name, text in files.items():
             path = root / name
@@ -413,9 +413,9 @@ ORDER_CASES = [
     ("the domain layer reaching into the application layer",
      {"desktop/src/core/session_cache.cpp": '#include "app/session.hpp"'}, 1),
     ("the domain layer reaching the UI",
-     {"desktop/src/audio/dsp/meter.cpp": '#include <eclipse/ui/shell.hpp>'}, 1),
+     {"desktop/src/audio/dsp/meter.cpp": '#include <arrow/ui/shell.hpp>'}, 1),
     ("the application layer reaching the UI",
-     {"desktop/src/app/application.hpp": '#include <eclipse/ui/shell.hpp>'}, 1),
+     {"desktop/src/app/application.hpp": '#include <arrow/ui/shell.hpp>'}, 1),
     ("a port naming an adapter, which rule 1's arithmetic would permit",
      {"desktop/src/ports/decoder.hpp": '#include "audio/sink/alsa_sink.hpp"'}, 1),
     ("the application layer naming an adapter directly",
@@ -424,7 +424,7 @@ ORDER_CASES = [
      {"desktop/src/core/scan.cpp": '#include "platform/win32_paths.hpp"'}, 1),
     ("two upward includes in one file are two violations",
      {"desktop/src/core/x.cpp": '#include "app/a.hpp"\n'
-                                '#include <eclipse/ui/shell.hpp>'}, 2),
+                                '#include <arrow/ui/shell.hpp>'}, 2),
 
     ("the application layer reaching the domain layer, which is downward",
      {"desktop/src/app/session.cpp": '#include "core/error.hpp"'}, 0),
@@ -439,7 +439,7 @@ ORDER_CASES = [
      0),
     ("the composition root, exempt by name",
      {"desktop/src/main.cpp": '#include "app/application.hpp"\n'
-                              '#include <eclipse/ui/shell.hpp>'}, 0),
+                              '#include <arrow/ui/shell.hpp>'}, 0),
     ("third-party and standard headers, which other checks own",
      {"desktop/src/core/x.cpp": '#include <vector>\n#include <taglib/tag.h>'}, 0),
     ("a commented-out upward include",

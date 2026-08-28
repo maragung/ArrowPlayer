@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 #include "audio/sink/null_sink.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 Result<SinkConfig> NullSink::open(const SinkConfig& requested) {
     if (auto valid = requested.format.validate(); !valid) return std::move(valid).error();
@@ -38,4 +38,4 @@ Status NullSink::write(const PlanarFrames frames) noexcept {
     return ok();
 }
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

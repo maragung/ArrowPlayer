@@ -2,12 +2,12 @@
 
 # Skin authoring
 
-This is the author's reference for Eclipse Player's two customisation tiers: how
+This is the author's reference for Arrow Player's two customisation tiers: how
 to write a **theme**, how to build a **skin**, what the validator will and will
 not accept, and why the format refuses to run your code.
 
 It is a specification document as much as a tutorial. Everything here is
-traceable to a requirement in [`eclipse-player.md`](../eclipse-player.md) §10–§12
+traceable to a requirement in [`arrow-player.md`](../arrow-player.md) §10–§12
 and, more usefully, to a schema under [`shared-spec/`](../shared-spec/), which is
 the artefact that actually decides what validates. Where this document and a
 schema disagree, **the schema is right** and this document has a bug — say so in
@@ -46,7 +46,7 @@ formats are stable enough to author against; the runtime is not there to author
 | | **Tier 1 — Theme** | **Tier 2 — Skin** |
 |---|---|---|
 | Contains | Design tokens only | A theme, **plus** layouts, icons, images, fonts |
-| Format | `theme.json` | a `.eclipseskin` ZIP package |
+| Format | `theme.json` | a `.arrowskin` ZIP package |
 | Changes | Colour, type, spacing, radii, elevation, motion, opacity | all of Tier 1, **plus** arrangement, sizing, visibility, which surfaces exist |
 | Code | none possible | **none possible** |
 | Trust | safe to apply from any source | safe to apply from any source, after validation |
@@ -63,7 +63,7 @@ guarantees a five-line theme is a legitimate theme:
   "name": "Just The Accent",
   "version": "1.0.0",
   "mode": "dark",
-  "extends": "eclipse-dark",
+  "extends": "arrow-dark",
   "color": { "accent": { "base": "#E85D75" } },
   "typography": {}
 }
@@ -90,7 +90,7 @@ can quietly relax later.
 understand the constraint instead of fighting it. Verbatim from the
 specification, because paraphrasing an argument like this is how it gets weaker:
 
-- QML is Turing-complete and has JavaScript semantics. A `.eclipseskin`
+- QML is Turing-complete and has JavaScript semantics. A `.arrowskin`
   containing QML could read the user's filesystem, open network sockets,
   exfiltrate the library database, or execute native code through imports.
   Sandboxing QML reliably is an unsolved problem, and "best effort" sandboxing in
@@ -120,7 +120,7 @@ network. Every escape hatch you might reach for has been closed on purpose:
 ## Tier 1 · the theme
 
 Schema: [`shared-spec/schemas/theme-schema.json`](../shared-spec/schemas/theme-schema.json)
-(`$id` `https://eclipse-player.org/schemas/theme/v1`). It is JSON Schema draft
+(`$id` `https://arrow-player.org/schemas/theme/v1`). It is JSON Schema draft
 2020-12, and `REQ-THM-010` makes it the single source of truth for four
 consumers: the desktop validator, the Android validator, the `tools/theme-validate`
 CLI, and the skin editor. No implementation may accept a token the schema rejects
@@ -241,12 +241,12 @@ Start from the minimal one.
 
 ## Tier 2 · the skin package
 
-A skin is a ZIP archive with the extension `.eclipseskin`, using **deflate or
+A skin is a ZIP archive with the extension `.arrowskin`, using **deflate or
 stored only** — no encryption, no other compression method (`REQ-THM-015`). The
 layout inside is fixed:
 
 ```text
-my-skin.eclipseskin  (ZIP)
+my-skin.arrowskin  (ZIP)
 ├── manifest.json          REQUIRED — validated against skin-manifest.schema.json
 ├── theme.json             REQUIRED — validated against theme-schema.json
 ├── LICENSE                REQUIRED — the skin's own licence text
@@ -473,7 +473,7 @@ theme's palette.
 | Property | Type | Notes |
 |---|---|---|
 | `text` | ≤512 chars | a literal string |
-| `efs` | ≤1024 chars | an Eclipse Format String (§10) |
+| `efs` | ≤1024 chars | an Arrow Format String (§10) |
 | `bind` | a state path | a single whitelisted value |
 | `style` | `typography.scale.<one of seven>` | on text components |
 | `overflow` | `clip` \| `ellipsis` \| `wrap` \| `marquee` | |
@@ -810,7 +810,7 @@ alone to tell you a predicate is valid.
 
 ## EFS in a skin
 
-Eclipse Format Strings are the one place a skin computes anything. `REQ-EFS-001`
+Arrow Format Strings are the one place a skin computes anything. `REQ-EFS-001`
 uses one engine for playlist columns, the window title, the tray tooltip, Now
 Playing text, notifications, file-naming patterns, and skin `Text` bindings — one
 language, one engine, one test suite. The full reference is §10 of the
@@ -894,7 +894,7 @@ and re-render, and non-numeric input yields *absent* rather than an error.
 `$progress(pos,total,width[,fill,empty])` → a text progress bar ·
 `$stars(rating[,max])` · `$fixed(s,n)` (pad or cut to exactly `n`)
 
-`$progress` is what makes the built-in **Eclipse Console** skin possible — a
+`$progress` is what makes the built-in **Arrow Console** skin possible — a
 monospaced, text-forward, keyboard-first layout with ASCII progress bars, which
 exists to prove EFS and the layout DSL together can produce a radically different
 product feel without a line of code.
@@ -985,7 +985,7 @@ is answered before the package is published, not after a complaint.
 ## Reading a validation error
 
 `REQ-THM-060` specifies `tools/theme-validate`: a CLI that validates a theme, a
-layout, or a full `.eclipseskin`, and **prints every error with a JSON Pointer to
+layout, or a full `.arrowskin`, and **prints every error with a JSON Pointer to
 the offending node**. It runs in CI over all bundled skins.
 
 A JSON Pointer (RFC 6901) is a path into the document: `/root/children/2/style`
@@ -1096,7 +1096,7 @@ computed last, over the final bytes of every other file.
    and nothing more; `targetSurfaces` must list the surfaces you replaced.
 8. **Compute `checksums`.** SHA-256, lower-case hex, of every file except
    `manifest.json`, keyed by package-relative path with forward slashes.
-9. **Zip it.** Deflate or stored only, no encryption, extension `.eclipseskin`.
+9. **Zip it.** Deflate or stored only, no encryption, extension `.arrowskin`.
    No directory entries are needed, and no `__MACOSX`, `.DS_Store` or
    `Thumbs.db` — an unlisted file is a rejection, and those are the three that
    most often sneak in.
@@ -1194,5 +1194,5 @@ because it is.
   decision record behind `REQ-THM-002`
 - [`shared-spec/README.md`](../shared-spec/README.md) — the versioning policy for
   the schemas and the corpus
-- [`eclipse-player.md`](../eclipse-player.md) §10–§12 — the normative source for
+- [`arrow-player.md`](../arrow-player.md) §10–§12 — the normative source for
   everything here

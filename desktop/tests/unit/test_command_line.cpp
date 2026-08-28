@@ -3,10 +3,10 @@
 
 #include <gtest/gtest.h>
 
-using eclipse::ErrorCode;
-using eclipse::app::CommandLine;
-using eclipse::app::parse_command_line;
-using eclipse::app::SinkChoice;
+using arrow::ErrorCode;
+using arrow::app::CommandLine;
+using arrow::app::parse_command_line;
+using arrow::app::SinkChoice;
 
 namespace {
 struct Args {
@@ -21,7 +21,7 @@ struct Args {
 }  // namespace
 
 TEST(CommandLine, ParsesPlaybackAndSink) {
-    Args args{"eclipse-player", "--play", "song.wav", "--sink", "null"};
+    Args args{"arrow-player", "--play", "song.wav", "--sink", "null"};
     const auto parsed =
         parse_command_line(static_cast<int>(args.pointers.size()), args.pointers.data());
     ASSERT_TRUE(parsed);
@@ -31,7 +31,7 @@ TEST(CommandLine, ParsesPlaybackAndSink) {
 }
 
 TEST(CommandLine, ParsesHelp) {
-    Args args{"eclipse-player", "--help"};
+    Args args{"arrow-player", "--help"};
     const auto parsed =
         parse_command_line(static_cast<int>(args.pointers.size()), args.pointers.data());
     ASSERT_TRUE(parsed);
@@ -40,25 +40,25 @@ TEST(CommandLine, ParsesHelp) {
 }
 
 TEST(CommandLine, RejectsUnknownAndIncompleteOptions) {
-    Args unknown{"eclipse-player", "--wat"};
+    Args unknown{"arrow-player", "--wat"};
     auto parsed =
         parse_command_line(static_cast<int>(unknown.pointers.size()), unknown.pointers.data());
     ASSERT_FALSE(parsed);
     EXPECT_EQ(parsed.error().code(), ErrorCode::InvalidArgument);
 
-    Args incomplete{"eclipse-player", "--play"};
+    Args incomplete{"arrow-player", "--play"};
     parsed = parse_command_line(static_cast<int>(incomplete.pointers.size()),
                                 incomplete.pointers.data());
     EXPECT_FALSE(parsed);
 }
 
 TEST(CommandLine, RejectsConflictingAndOrphanSinkOptions) {
-    Args conflict{"eclipse-player", "--help", "--play", "song.wav"};
+    Args conflict{"arrow-player", "--help", "--play", "song.wav"};
     auto parsed = parse_command_line(static_cast<int>(conflict.pointers.size()),
                                      conflict.pointers.data());
     EXPECT_FALSE(parsed);
 
-    Args orphan{"eclipse-player", "--sink", "null"};
+    Args orphan{"arrow-player", "--sink", "null"};
     parsed =
         parse_command_line(static_cast<int>(orphan.pointers.size()), orphan.pointers.data());
     EXPECT_FALSE(parsed);

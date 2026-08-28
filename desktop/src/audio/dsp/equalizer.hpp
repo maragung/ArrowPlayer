@@ -17,7 +17,7 @@
 #include "audio/dsp/biquad.hpp"
 #include "core/error.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 /// REQ-AUD-080 — 10-band graphic EQ, ISO octave centres in Hz.
 inline constexpr std::array<double, 10> kBands10 = {
@@ -183,4 +183,4 @@ class Equalizer {
     bool bypassed_{true};
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

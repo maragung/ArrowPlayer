@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 #pragma once
 
 #include <cstddef>
@@ -8,7 +8,7 @@
 #include "audio/graph/spsc_ring.hpp"
 #include "audio/ports/audio_ports.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 /// Coordinates non-RT decoder production and bounded sink consumption.
 /// Call produce() from a worker thread and consume() from the sink callback.
@@ -44,4 +44,4 @@ class PlaybackGraph final {
     bool at_end_{false};
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio
