@@ -62,6 +62,29 @@
             </intent-filter>
         </activity>
 
+        <!-- REQ-OSI-040: foreground service of type mediaPlayback (API 34+) -->
+        <service
+            android:name=".PlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback"
+            tools:node="replace"
+            xmlns:tools="http://schemas.android.com/tools">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+
+        <!-- REQ-AUT-001 / REQ-AUT-002: Android Auto browse tree via MediaLibraryService -->
+        <service
+            android:name=".MediaLibraryService"
+            android:exported="true"
+            tools:node="replace"
+            xmlns:tools="http://schemas.android.com/tools">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaLibraryService" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

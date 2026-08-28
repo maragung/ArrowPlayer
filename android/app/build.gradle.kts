@@ -171,6 +171,8 @@ dependencies {
     // not need a `common` import that would otherwise be implicit.
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.common)
+    // REQ-UIX-027: NotificationCompat.MediaStyle requires androidx.media
+    implementation(libs.androidx.media)
     testImplementation(libs.junit)
     // REQ-OSI-041 / REQ-OSI-042: the audio-focus matrix and the
     // becoming-noisy broadcast path are pure JVM-side contract
