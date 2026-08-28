@@ -217,4 +217,44 @@ double BiquadCascade::magnitude_db(double freq_hz, double sample_rate_hz) const 
     return total;
 }
 
+// ---------------------------------------------------------------------------
+//  CrossfadingCascade
+// ---------------------------------------------------------------------------
+
+void CrossfadingCascade::resize(std::size_t sections) {
+    sections_.assign(sections, CrossfadingBiquad{});
+}
+
+// ---------------------------------------------------------------------------
+//  Filter factories — REQ-AUD-082
+// ---------------------------------------------------------------------------
+
+Biquad make_peaking(double fs, double f0, double q, double gain_db) noexcept {
+    return Biquad{design(FilterType::Peaking, f0, fs, q, gain_db)};
+}
+
+Biquad make_low_shelf(double fs, double f0, double q, double gain_db) noexcept {
+    return Biquad{design(FilterType::LowShelf, f0, fs, q, gain_db)};
+}
+
+Biquad make_high_shelf(double fs, double f0, double q, double gain_db) noexcept {
+    return Biquad{design(FilterType::HighShelf, f0, fs, q, gain_db)};
+}
+
+Biquad make_low_pass(double fs, double f0, double q, double gain_db) noexcept {
+    return Biquad{design(FilterType::LowPass, f0, fs, q, gain_db)};
+}
+
+Biquad make_high_pass(double fs, double f0, double q, double gain_db) noexcept {
+    return Biquad{design(FilterType::HighPass, f0, fs, q, gain_db)};
+}
+
+Biquad make_band_pass(double fs, double f0, double q, double gain_db) noexcept {
+    return Biquad{design(FilterType::BandPass, f0, fs, q, gain_db)};
+}
+
+Biquad make_notch(double fs, double f0, double q, double gain_db) noexcept {
+    return Biquad{design(FilterType::Notch, f0, fs, q, gain_db)};
+}
+
 }  // namespace arrow::audio

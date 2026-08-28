@@ -46,6 +46,13 @@ double bandwidth_octaves_for_mode(EqMode mode) noexcept {
     return 1.0;
 }
 
+std::size_t ramp_samples_for(double sample_rate_hz) noexcept {
+    if (!(sample_rate_hz > 0.0) || !std::isfinite(sample_rate_hz)) return 0;
+    const double v = kCoeffRampMs * 0.001 * sample_rate_hz;
+    if (!(v > 0.0)) return 0;
+    return static_cast<std::size_t>(v + 0.5);
+}
+
 // ---------------------------------------------------------------------------
 //  EqSettings
 // ---------------------------------------------------------------------------
@@ -245,7 +252,7 @@ Status Equalizer::configure(const EqSettings& settings,
 
     band_count_ = designed_.size();
 
-    cascades_.assign(channels, BiquadCascade{});
+    cascades_.assign(channels, CrossfadingCascade{});
     for (auto& casc : cascades_) {
         casc.resize(band_count_);
         for (std::size_t i = 0; i < band_count_; ++i) casc.set_coeffs(i, designed_[i]);
@@ -263,6 +270,44 @@ Status Equalizer::configure(const EqSettings& settings,
     bypassed_ = !settings.enabled || (!any_active && unity_preamp);
 
     return ok();
+}
+
+void Equalizer::publish_settings(std::size_t ramp_samples) noexcept {
+    // Push the latest designed coefficients into each channel's crossfading
+    // cascade. `set_coeffs` here snaps both the current and target slots,
+    // so a follow-up `start_ramp` will fade from this state towards whatever
+    // `set_target_coeffs` was called with next. With ramp_samples == 0, the
+    // caller has asked for an immediate snap; the cascade is left consistent
+    // (current = target = designed) and the next audio sample just uses the
+    // new coefficients directly. REQ-AUD-085.
+    for (auto& casc : cascades_) {
+        for (std::size_t i = 0; i < band_count_; ++i) casc.set_coeffs(i, designed_[i]);
+        if (ramp_samples > 0) {
+            // Re-mark the same coefficients as the upcoming target so a
+            // `start_ramp` here fades from the just-published state to itself,
+            // which is an audible no-op. The point of the API is to be safe
+            // to call when no change is pending: the cross-fade is harmless.
+            for (std::size_t i = 0; i < band_count_; ++i) {
+                casc.set_target_coeffs(i, designed_[i]);
+            }
+            casc.start_ramp(ramp_samples);
+        }
+    }
+}
+
+bool Equalizer::ramping() const noexcept {
+    for (const auto& casc : cascades_) {
+        if (casc.ramping()) return true;
+    }
+    return false;
+}
+
+std::size_t Equalizer::ramp_remaining() const noexcept {
+    std::size_t best = 0;
+    for (const auto& casc : cascades_) {
+        best = std::max(best, casc.ramp_remaining());
+    }
+    return best;
 }
 
 void Equalizer::reset() noexcept {
