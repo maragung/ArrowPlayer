@@ -1,6 +1,6 @@
 # Building Arrow Player — Desktop
 
-Covers Windows 10/11 and Ubuntu 22.04 / 24.04 LTS. See `../arrow-player.md`
+Covers Windows 10/11 and Ubuntu 22.04 / 24.04 LTS. See `../eclipse-player.md`
 §3 for the full support matrix and §24 for the toolchain requirements.
 
 ## Requirements

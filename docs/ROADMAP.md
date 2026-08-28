@@ -1,6 +1,6 @@
 # Roadmap
 
-Derived from the MoSCoW tiers in `arrow-player.md` §0.3. This document covers
+Derived from the MoSCoW tiers in `eclipse-player.md` §0.3. This document covers
 what comes **after** 1.0.0 — the `[v1.x]` and `[v2]` tiers — and the §2.4
 non-goals, which are refused rather than deferred.
 

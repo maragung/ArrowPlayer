@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 """Layer dependency enforcement — spec §7.2 (REQ-GEN-050, REQ-GEN-051).
 
-The architecture in arrow-player.md §7.1 defines five layers, and §7.2 makes
+The architecture in eclipse-player.md §7.1 defines five layers, and §7.2 makes
 the dependency direction a hard rule rather than reviewer discipline. This script
 is the mechanical enforcement the spec demands, wired into desktop-ci.yml.
 

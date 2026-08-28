@@ -114,7 +114,7 @@ REQUIRED_ADRS = [
 # reason the Markdown gate excludes them (.markdownlint-cli2.jsonc): they are not
 # authored here.
 SCAN_EXCLUDE = {
-    "arrow-player.md",       # upstream specification, consumed not authored
+    "eclipse-player.md",       # upstream specification, consumed not authored
 }
 SCAN_EXCLUDE_PREFIXES = ("build/", "node_modules/", "desktop/third_party/")
 
@@ -161,7 +161,7 @@ REFERENCE_SUFFIXES = (".md", ".py", ".yml", ".yaml", ".json", ".jsonc", ".js",
 REFERENCE_EXCLUDE_PREFIXES = ("build/", "node_modules/", "desktop/third_party/",
                               ".git/")
 # The specification is consumed, not authored here, and cites no OQ ids anyway.
-REFERENCE_EXCLUDE = {"arrow-player.md"}
+REFERENCE_EXCLUDE = {"eclipse-player.md"}
 
 
 def oq_definitions(text: str) -> tuple[dict[int, list[int]], dict[int, str]]:

@@ -20,7 +20,7 @@
     "recipient channel is not an offer (OQ-013)."
   ],
   "requirement": "REQ-GEN-020",
-  "release_pipeline_step": "arrow-player.md §25.5 step 8",
+  "release_pipeline_step": "eclipse-player.md §25.5 step 8",
   "generated_document": "docs/LGPL-SOURCE-OFFER.md",
 
   "offer": {

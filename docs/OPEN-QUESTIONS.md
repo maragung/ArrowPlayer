@@ -1846,7 +1846,7 @@ present, every exclusion in the repository was inert:
 | Invocation | Files | Result |
 |---|---|---|
 | `markdownlint-cli2 "**/*.md"` | 109 | 2869 issues in 73 files — it walked `build/_deps/googletest-src/` |
-| `git ls-files '*.md' \| xargs markdownlint-cli2` | 28 | 718 issues in 1 file — `arrow-player.md`, the file the ignore list exists to protect |
+| `git ls-files '*.md' \| xargs markdownlint-cli2` | 28 | 718 issues in 1 file — `eclipse-player.md`, the file the ignore list exists to protect |
 
 So the green result came from an invocation that happened to name a file set
 excluding the specification, not from an exclusion being honoured. The gate was
@@ -1855,7 +1855,7 @@ neither green nor red; it had no fixed subject.
 - **Correction of record:** "27 files" was never the tracked-document count.
   There were 24 tracked `.md` files at `9e12695` and 22 of them lintable, so the
   figure did not correspond to any set the repository defines. It is now 26 of the
-  28 tracked documents — `arrow-player.md` and `CHANGELOG.md` are the two live
+  28 tracked documents — `eclipse-player.md` and `CHANGELOG.md` are the two live
   exclusions, `docs/THIRD-PARTY.md` is pre-listed against the generator that will
   produce it — and all of them are visible in the linter's own `Finding:` line.
 - **Fixed here:** `.markdownlintignore` is deleted and `.markdownlint-cli2.jsonc`
@@ -1916,7 +1916,7 @@ ALAC and WavPack encoders are native to FFmpeg; **MP3 is not** — it needs
    claim was, so a reader meets both together — that is why OQ-046's "scan the
    source tree instead, the native path covers more" and OQ-048's "cannot be
    installed without root" are still legible above, each next to the measurement
-   that refuted it. §29.6 of `arrow-player.md` is **not** the place for these:
+   that refuted it. §29.6 of `eclipse-player.md` is **not** the place for these:
    that table corrects claims made by the *specification*, and a register entry's
    mistake is the implementation's, not the spec's. Add a row there only when the
    thing that was wrong is a requirement.

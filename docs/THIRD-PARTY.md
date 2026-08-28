@@ -1,6 +1,6 @@
 # Third-Party Licences — Arrow Player
 
-`arrow-player.md` §27 requires this document: *Generated; the §4.2 register with SPDX ids, versions, licence texts, and source URLs*. This is that document. It is **generated** by `tools/gen-third-party/gen-third-party.py` from `tools/gen-third-party/register.json` and MUST NOT be edited by hand — fix the generator or the register, never the output (`REQ-GEN-012`).
+`eclipse-player.md` §27 requires this document: *Generated; the §4.2 register with SPDX ids, versions, licence texts, and source URLs*. This is that document. It is **generated** by `tools/gen-third-party/gen-third-party.py` from `tools/gen-third-party/register.json` and MUST NOT be edited by hand — fix the generator or the register, never the output (`REQ-GEN-012`).
 
 Scope: the **desktop** build. The Android half of the §4.2 register is listed at the end for completeness and is **not in the current Android build** — the app exists as a Phase 0 scaffold, but the NDK-level components below are not in it yet, and the Gradle version catalog is reconciled with this half of the register when they arrive (ADR 0012, OQ-018). §0.1 rule 2 forbids silently downgrading a requirement, so those entries are kept and marked, not dropped.
 

@@ -1,6 +1,6 @@
 # Architecture — Arrow Player
 
-The document `arrow-player.md` §27 requires: *five layers, threads, data flows,
+The document `eclipse-player.md` §27 requires: *five layers, threads, data flows,
 `REQ-GEN-040` rationale*. This is that document. It describes the architecture as
 the specification defines it **and** as the repository currently enforces it, and
 it is explicit about the difference wherever one exists.

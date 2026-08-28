@@ -17,7 +17,7 @@ endif()
 
 # ---------------------------------------------------------------------------
 #  Arrow Player — Desktop (Windows + Linux)
-#  Spec: arrow-player.md  §5 repo layout, §7 architecture, §24 build
+#  Spec: eclipse-player.md  §5 repo layout, §7 architecture, §24 build
 # ---------------------------------------------------------------------------
 
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ARROW_VERSION_RAW)
