@@ -6,8 +6,46 @@
     Auto browse tree and the foreground playback service (§15) arrive with the
     phases that own them; declaring them now, empty, would be the OQ-042 shape —
     a component that exists on paper and does nothing.
+
+    Permissions (REQ-GEN-005):
+      * READ_MEDIA_AUDIO                       — API 33+
+      * READ_EXTERNAL_STORAGE  (maxSdk 32)      — ≤ API 32
+      * WRITE_EXTERNAL_STORAGE (maxSdk 28)      — ≤ API 28
+      * FOREGROUND_SERVICE                     — any API a service can run on
+      * FOREGROUND_SERVICE_MEDIA_PLAYBACK      — API 34+ (typed FG service)
+      * POST_NOTIFICATIONS                     — API 33+ (runtime, not at cold start)
+      * WAKE_LOCK                              — playback while the screen is off
+    MANAGE_EXTERNAL_STORAGE is FORBIDDEN (REQ-GEN-005). Scoped storage via
+    MediaStore / SAF (§5) covers everything we do with the library.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- API 33+ replaces READ_EXTERNAL_STORAGE for media. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- ≤ API 32: legacy storage read. maxSdkVersion stops newer devices
+         from seeing a permission they cannot use, which AGP's manifest
+         merger otherwise leaves in the merged manifest. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- ≤ API 28: legacy storage write. The library only ever writes via
+         SAF/MediaStore on API 29+, but the permission has to be declared
+         for the API levels where the platform still grants it. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <!-- Required from the moment we start a MediaSession-backed foreground
+         service; declared now so the merge is stable when §15 lands. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- API 34+ requires a typed FG-service permission. The service is
+         type=mediaPlayback and the permission travels with the manifest
+         entry that declares it. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- API 33+ runtime notification permission. Requested at first
+         playback, never at cold start (REQ-GEN-005). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Playback must keep the CPU running while the screen is off. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:label="@string/app_name"
