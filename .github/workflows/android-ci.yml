@@ -119,13 +119,26 @@ jobs:
       # Per-ABI release APKs (REQ-BLD-026). AGP names them app-<abi>-release.apk
       # when the build is signed and app-<abi>-release-unsigned.apk when it
       # is not; the trailing wildcard spans both so the glob survives the
-      # signing-identity phase. The rename to arrow-player-<ver>-android-<abi>.apk
-      # for the GitHub Release asset happens in the `release` job below; this
-      # step uploads what AGP actually produced.
+      # signing-identity phase. Each ABI is uploaded as a separate artifact to
+      # work around a v5 multi-file artifact download bug that drops files.
+      # The rename to arrow-player-<ver>-android-<abi>.apk for the GitHub
+      # Release asset happens in the `release` job below.
       - uses: actions/upload-artifact@v5
         with:
-          name: apks-release
-          path: android/app/build/outputs/apk/release/app-*-release*.apk
+          name: apk-arm64-v8a
+          path: android/app/build/outputs/apk/release/app-arm64-v8a-release*.apk
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v5
+        with:
+          name: apk-armeabi-v7a
+          path: android/app/build/outputs/apk/release/app-armeabi-v7a-release*.apk
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v5
+        with:
+          name: apk-x86_64
+          path: android/app/build/outputs/apk/release/app-x86_64-release*.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -219,8 +232,9 @@ jobs:
       - name: Download the per-ABI APKs the build job produced
         uses: actions/download-artifact@v5
         with:
-          name: apks-release
+          pattern: apk-*
           path: ${{ runner.temp }}/apks
+          merge-multiple: true
           if-no-files-found: warn
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
