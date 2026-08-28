@@ -44,7 +44,11 @@ jobs:
   build:
     name: assemble + lint + unit tests
     runs-on: ubuntu-24.04
+    outputs:
+      job_id: ${{ steps.self.outputs.job_id }}
     steps:
+      - id: self
+        run: echo "job_id=${{ github.job }}" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
@@ -233,7 +237,9 @@ jobs:
         run: |
           # Wait a moment for all artifacts to be indexed after upload
           sleep 5
-          gh run download "$GITHUB_RUN_ID" -R maragung/ArrowPlayer -n apk-arm64-v8a -n apk-armeabi-v7a -n apk-x86_64 -D "$RUNNER_TEMP/apks"
+          gh run download "$BUILD_JOB_ID" -R maragung/ArrowPlayer -n apk-arm64-v8a -n apk-armeabi-v7a -n apk-x86_64 -D "$RUNNER_TEMP/apks"
+        env:
+          BUILD_JOB_ID: ${{ needs.build.outputs.job_id }}
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
         env:
