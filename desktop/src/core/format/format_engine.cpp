@@ -17,8 +17,8 @@ CompiledPattern compile(std::string_view source) noexcept {
 RenderResult render(const CompiledPattern& pattern, const TrackView& track,
                     const EvalContext& ctx) noexcept {
     RenderResult out;
-    out.pattern_length = pattern.source_.size();
-    out.parse_problems = pattern.problems_;
+    out.pattern_length = pattern.source().size();
+    out.parse_problems = pattern.problems();
 
     // Cap the output at the configured limit (REQ-EFS-009).  The
     // evaluator also stops internally at the same count, so the worst

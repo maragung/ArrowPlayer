@@ -143,9 +143,9 @@ class Parser {
         // "%" with no identifier after it — "%" or "%%" with another sigil.
         if (eof() || !is_ident_start(peek())) {
             LiteralText lit;
-            lit.push_back('%');
+            lit.text.push_back('%');
             if (!eof() && peek() == '%') {
-                lit.push_back(take());
+                lit.text.push_back(take());
                 emit(problems, ParseProblem::Code::EmptyFieldRef, at, pos_);
             } else if (eof()) {
                 emit(problems, ParseProblem::Code::UnterminatedFieldRef, at, pos_);
@@ -190,7 +190,7 @@ class Parser {
             // the required behaviour.
             emit(problems, ParseProblem::Code::UnterminatedFieldRef, at, pos_);
             LiteralText lit;
-            lit.append(src_.substr(at, pos_ - at));
+            lit.text.append(src_.substr(at, pos_ - at));
             return Node{std::move(lit)};
         }
         (void)take();  // consume closing '%'
@@ -218,7 +218,7 @@ class Parser {
             // Stray '$' — render literally.
             emit(problems, ParseProblem::Code::LoneDollar, at, pos_);
             LiteralText lit;
-            lit.push_back('$');
+            lit.text.push_back('$');
             return Node{std::move(lit)};
         }
         const std::size_t name_start = pos_;
@@ -230,7 +230,7 @@ class Parser {
             // treat the whole as a literal so the user sees their typo.
             emit(problems, ParseProblem::Code::UnterminatedFunction, at, pos_);
             LiteralText lit;
-            lit.append(src_.substr(at, pos_ - at));
+            lit.text.append(src_.substr(at, pos_ - at));
             return Node{std::move(lit)};
         }
         (void)take();  // consume '('
@@ -251,7 +251,7 @@ class Parser {
             // Unterminated: render literally.
             emit(problems, ParseProblem::Code::UnterminatedFunction, at, pos_);
             LiteralText lit;
-            lit.append(src_.substr(at, pos_ - at));
+            lit.text.append(src_.substr(at, pos_ - at));
             return Node{std::move(lit)};
         }
         (void)take();  // consume ')'
@@ -262,13 +262,13 @@ class Parser {
         if (!is_known_function(name)) {
             emit(problems, ParseProblem::Code::UnknownFunction, at, pos_);
             LiteralText lit;
-            lit.append(src_.substr(at, pos_ - at));
+            lit.text.append(src_.substr(at, pos_ - at));
             return Node{std::move(lit)};
         }
         if (!is_valid_arity(name, fc.args.size())) {
             emit(problems, ParseProblem::Code::WrongArity, at, pos_);
             LiteralText lit;
-            lit.append(src_.substr(at, pos_ - at));
+            lit.text.append(src_.substr(at, pos_ - at));
             return Node{std::move(lit)};
         }
 
@@ -306,7 +306,7 @@ class Parser {
             emit(problems, ParseProblem::Code::NestingTooDeep, pos_, pos_);
             (void)take();  // consume the '['
             LiteralText lit;
-            lit.push_back('[');
+            lit.text.push_back('[');
             out->emplace_back(std::move(lit));
             return;
         }
@@ -320,7 +320,7 @@ class Parser {
             // open bracket, no matter what the block does next.
             emit(problems, ParseProblem::Code::UnterminatedBlock, at, pos_);
             LiteralText lit;
-            lit.push_back('[');
+            lit.text.push_back('[');
             out->emplace_back(std::move(lit));
             blk.start = at;
             blk.end = pos_;
