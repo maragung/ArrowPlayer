@@ -217,7 +217,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Download the per-ABI APKs the build job produced
-        uses: actions/download-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/download-artifact@v4.3.0
         with:
           name: apks-release
           path: ${{ runner.temp }}/apks
