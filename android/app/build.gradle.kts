@@ -170,6 +170,7 @@ dependencies {
     // pulls media3-common; we declare both so the test sources do
     // not need a `common` import that would otherwise be implicit.
     implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.common)
     // REQ-UIX-027: NotificationCompat.MediaStyle requires androidx.media
     implementation(libs.androidx.media)
