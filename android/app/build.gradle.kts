@@ -174,6 +174,8 @@ dependencies {
     implementation(libs.androidx.media3.common)
     // REQ-UIX-027: NotificationCompat.MediaStyle requires androidx.media
     implementation(libs.androidx.media)
+    // REQ-AUT-001: ListenableFuture for MediaLibraryService async results
+    implementation(libs.guava)
     testImplementation(libs.junit)
     // REQ-OSI-041 / REQ-OSI-042: the audio-focus matrix and the
     // becoming-noisy broadcast path are pure JVM-side contract
