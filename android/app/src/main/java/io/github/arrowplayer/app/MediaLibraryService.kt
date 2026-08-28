@@ -20,9 +20,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.LibraryParams
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
@@ -70,7 +70,7 @@ class MediaLibraryService : MediaLibraryService() {
         page: Int,
         pageSize: Int,
         params: LibraryParams?,
-    ): ListenableFuture<LibraryResult<List<MediaItem>>> {
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
         if (!isPackageAllowed(controllerInfo.packageName)) {
             return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.ERROR_PERMISSION_DENIED))
         }
@@ -89,7 +89,7 @@ class MediaLibraryService : MediaLibraryService() {
             else -> return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.ERROR_NOT_SUPPORTED))
         }
 
-        return Futures.immediateFuture(LibraryResult.ofList(children))
+        return Futures.immediateFuture(LibraryResult.ofList(ImmutableList.copyOf(children)))
     }
 
     override fun onDestroy() {
@@ -102,27 +102,6 @@ class MediaLibraryService : MediaLibraryService() {
 
     private fun isPackageAllowed(packageName: String?): Boolean {
         return packageName in ALLOWED_PACKAGES
-    }
-
-    private inner class LibraryCallback : MediaLibrarySession.Callback {
-        override fun onGetLibraryRoot(
-            session: MediaLibrarySession,
-            browser: MediaSession.ControllerInfo,
-            params: LibraryParams?,
-        ): ListenableFuture<LibraryResult<MediaItem>> {
-            return this@MediaLibraryService.onGetLibraryRoot(browser, params)
-        }
-
-        override fun onGetChildren(
-            session: MediaLibrarySession,
-            browser: MediaSession.ControllerInfo,
-            parentMediaId: String,
-            page: Int,
-            pageSize: Int,
-            params: LibraryParams?,
-        ): ListenableFuture<LibraryResult<List<MediaItem>>> {
-            return this@MediaLibraryService.onGetChildren(browser, parentMediaId, page, pageSize, params)
-        }
     }
 
     private fun makeBrowsableTab(mediaId: String, title: String): MediaItem {
