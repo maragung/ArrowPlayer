@@ -652,22 +652,58 @@ jobs:
             echo "Phase 9 work), so every artifact below is distributed without a"
             echo "signature. Verify the SHA-256 checksums beside each file."
             echo
+            echo "### Binaries (up to 7, depending on which lanes passed)"
+            echo
+            echo "GitHub auto-generates \"Source code (zip)\" and \"Source code (tar.gz)\""
+            echo "at the top of the Assets list. The real artifacts are below — every"
+            echo "name listed here should appear in the Assets section beneath this"
+            echo "note."
+            echo
+            echo "- [\`arrow-player-$version-linux-x86_64.tar.gz\`](https://github.com/maragung/ArrowPlayer/releases/download/$TAG/arrow-player-$version-linux-x86_64.tar.gz) — Linux x86_64 tarball, medium (~130 MB)"
+            echo "- [\`arrow-player-$version-windows-x64.zip\`](https://github.com/maragung/ArrowPlayer/releases/download/$TAG/arrow-player-$version-windows-x64.zip) — Windows x64 zip, medium (~50 MB)"
+            echo "- [\`arrow-player-$version-android-arm64-v8a.apk\`](https://github.com/maragung/ArrowPlayer/releases/download/$TAG/arrow-player-$version-android-arm64-v8a.apk) — Android arm64-v8a APK, small (~20 MB)"
+            echo "- [\`arrow-player-$version-android-armeabi-v7a.apk\`](https://github.com/maragung/ArrowPlayer/releases/download/$TAG/arrow-player-$version-android-armeabi-v7a.apk) — Android armeabi-v7a APK, small (~15 MB)"
+            echo "- [\`arrow-player-$version-android-x86_64.apk\`](https://github.com/maragung/ArrowPlayer/releases/download/$TAG/arrow-player-$version-android-x86_64.apk) — Android x86_64 APK, small (~20 MB)"
+            echo "- [\`arrow-player-$version.cdx.json\`](https://github.com/maragung/ArrowPlayer/releases/download/$TAG/arrow-player-$version.cdx.json) — CycloneDX SBOM, small (<100 KB)"
+            echo "- [\`changelog-section.md\`](https://github.com/maragung/ArrowPlayer/releases/download/$TAG/changelog-section.md) — generated changelog slice since the previous tag, small (<50 KB)"
+            echo
+            echo "A typical successful tag ships all seven. If one is missing, the lane"
+            echo "that produces it failed — check the run page, not the release page."
+            echo "Each binary also has a sibling \`.sha256\` file with its checksum; the"
+            echo "SBOM and the changelog do not."
+            echo
+            echo "### What is intentionally missing"
+            echo
+            echo "Two arm64 desktop lanes the spec blocks until their toolchains are"
+            echo "available. They are absent on purpose, not because the build broke:"
+            echo
+            echo "- \`arrow-player-$version-linux-arm64.tar.gz\` — blocked per REQ-BLD-026"
+            echo "  / §25.0: no Qt 6.8 arm64 package/toolchain yet. The lane MUST fail"
+            echo "  rather than label an x86_64 binary as arm64."
+            echo "- \`arrow-player-$version-windows-arm64.zip\` — blocked per REQ-BLD-026"
+            echo "  / §25.0: \`windows-2022\` does not provide a Visual Studio install"
+            echo "  capable of cross-targeting arm64."
+            echo
             echo "### Desktop"
             echo
-            echo "- Windows x64/arm64 ZIPs — self-contained, Qt bundled by windeployqt"
-            echo "  by windeployqt"
-            echo "- Linux x86_64/arm64 tarballs — binary plus the Qt"
-            echo "  libraries and plugins it needs; built on Ubuntu 24.04, needs a"
-            echo "  stock desktop with X11/libxcb"
+            echo "- Windows x64 ZIP — self-contained, Qt bundled by windeployqt; run"
+            echo "  \`arrow-player.exe\` from any directory."
+            echo "- Linux x86_64 tarball — binary plus the Qt libraries and plugins it"
+            echo "  needs; built on Ubuntu 24.04, runs on any stock desktop with"
+            echo "  X11/libxcb. Unpack, then run the \`arrow-player\` wrapper."
             echo
             echo "### Android"
             echo
             echo "- Per-ABI APKs are uploaded to this release by \`android-ci.yml\`'s"
-            echo "  release job; unsigned until a signing identity exists."
+            echo "  release job; unsigned until a signing identity exists. Install"
+            echo "  with \`adb install arrow-player-$version-android-<abi>.apk\`."
             echo
             echo "### Checksums and SBOM"
             echo
-            echo "- SHA-256 for every artifact, plus the CycloneDX SBOM, are attached."
+            echo "- A \`.sha256\` file ships beside every binary. Verify with"
+            echo "  \`sha256sum -c <artifact>.sha256\` (or compare by hand)."
+            echo "- The CycloneDX SBOM (\`arrow-player-$version.cdx.json\`) is attached"
+            echo "  as its own asset and is the canonical inventory of the build."
           } > "$notes"
 
           # Every other job of this run uploaded artifacts; fetch them all, then
