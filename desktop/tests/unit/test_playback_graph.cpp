@@ -9,7 +9,7 @@
 
 #include <gtest/gtest.h>
 
-namespace eclipse::audio {
+namespace arrow::audio {
 namespace {
 
 class FakeDecoder final : public IDecoder {
@@ -116,4 +116,4 @@ TEST(PlaybackGraph, ReportsInvalidStateBeforeOpen) {
 }
 
 }  // namespace
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

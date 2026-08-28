@@ -9,7 +9,7 @@
 
 #include "core/error.hpp"
 
-namespace eclipse::library {
+namespace arrow::library {
 
 struct Track final {
     std::string path;
@@ -39,4 +39,4 @@ class ILibraryScanner {
         const ScanRequest& request) const = 0;
 };
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

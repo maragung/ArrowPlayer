@@ -6,7 +6,7 @@
 
 #include "audio/ports/audio_ports.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 class NullSink final : public IAudioSink {
   public:
@@ -27,4 +27,4 @@ class NullSink final : public IAudioSink {
     bool started_{false};
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

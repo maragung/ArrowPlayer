@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace eclipse;
+using namespace arrow;
 
 TEST(Error, CarriesCodeMessageAndSeverity) {
     const Error e{ErrorCode::FileNotFound,

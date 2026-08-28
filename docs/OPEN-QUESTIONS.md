@@ -119,7 +119,7 @@ rule makes unnecessary.
 `REQ-GEN-012` says CI "MUST fail if a dependency appears in the build that is
 absent from" the §4.2 register. The register lists **direct** dependencies. A
 resolved dependency graph contains more than that. Resolving
-`desktop/vcpkg.json` against the pinned baseline for `x64-linux-eclipse` yields
+`desktop/vcpkg.json` against the pinned baseline for `x64-linux-arrow` yields
 six components no row in §4.2 describes:
 
 | Component | Pulled in by | Licence |
@@ -724,7 +724,7 @@ fixture in `tools/gen-third-party/testdata/`, because vcpkg is not installed her
   place of the synthetic one. Until then the parser stays labelled untested
   against real output wherever it is described.
 - **That lane now exists, and is deliberately non-blocking.** `security.yml`'s
-  `resolved-graph` job runs `vcpkg install --triplet x64-linux-eclipse --dry-run`
+  `resolved-graph` job runs `vcpkg install --triplet x64-linux-arrow --dry-run`
   against the runner's own vcpkg — the manifest pins the registry with
   `builtin-baseline` and the custom triplet comes from `vcpkg-configuration.json`'s
   overlay, so what resolves there resolves anywhere — then pipes the output through
@@ -948,7 +948,7 @@ harnesses now would mean writing the parsers now.
   mechanism for dividing one invocation's time evenly across targets, so a single
   60-minute job would satisfy the sentence only by coincidence.
 - **The job refuses to run rather than replay the corpus and call it fuzzing.**
-  Without clang, `eclipse_add_fuzz_target` builds only `<name>_replay`, which walks
+  Without clang, `arrow_add_fuzz_target` builds only `<name>_replay`, which walks
   the committed seeds and exits in seconds. A step that ran *that* for fifteen
   minutes of wall-clock would report extended fuzzing and perform none of it —
   OQ-042's shape once more — so the job installs clang, then checks the real target
@@ -973,11 +973,11 @@ harnesses now would mean writing the parsers now.
     for every input including that one;
     `GranuleGapless.RejectsMostNegativeInitialGranuleWithoutOverflowing` pins it.
 - **What is not proven here.** No clang is installed on the development machine,
-  so `-fsanitize=fuzzer` is unavailable and `ECLIPSE_HAVE_LIBFUZZER` is false in
+  so `-fsanitize=fuzzer` is unavailable and `ARROW_HAVE_LIBFUZZER` is false in
   every local configuration. The four harnesses have been compiled and run by
   GCC 14.2.0 under ASan+UBSan via the replay driver, and the CMake branch that
   builds them without GoogleTest was exercised through the `linux-fuzz` preset —
-  but the libFuzzer binaries themselves, and `eclipse-domain-fuzz`'s
+  but the libFuzzer binaries themselves, and `arrow-domain-fuzz`'s
   `-fsanitize=fuzzer-no-link` instrumentation, have never been built. Those paths
   are **CI-only** until a clang toolchain is available here, and the 60-second
   smoke job in `desktop-ci.yml` is the first thing that will exercise them.
@@ -995,7 +995,7 @@ entry for `/CETCOMPAT`. Every one of those paths is exercised only against
 synthetic binaries built inside `--self-test`. No MSVC-produced PE has ever been
 read by it, here or in CI, because nothing has been pushed.
 
-- **Assumption in force:** that `eclipse_set_hardening()`'s MSVC branch produces
+- **Assumption in force:** that `arrow_set_hardening()`'s MSVC branch produces
   binaries carrying those bits — plausible, since `/DYNAMICBASE`, `/NXCOMPAT` and
   `/HIGHENTROPYVA` are MSVC defaults for x64 and the other three are passed
   explicitly, but assumed rather than observed.
@@ -1079,12 +1079,12 @@ the foot of this entry, so it is **Open**, with better evidence behind it than
 most. grype 0.117.0 (release tarball, SHA-256 verified against the
 published `checksums.txt`) runs as a static binary with no root, so it was
 installed and run here against vulnerability database v6.1.9. Every number below
-is from that run, over the committed `docs/sbom/eclipse-player.cdx.json` and one
+is from that run, over the committed `docs/sbom/arrow-player.cdx.json` and one
 database, so the only variable is the flag.
 
 | Run | Components read | Matches |
 |---|---|---|
-| `grype sbom:docs/sbom/eclipse-player.cdx.json` | 23 | **0** — "No vulnerabilities found" |
+| `grype sbom:docs/sbom/arrow-player.cdx.json` | 23 | **0** — "No vulnerabilities found" |
 | the same document with one `pkg:npm/lodash@4.17.15` component appended | 24 | **6**, all `javascript-matcher` / `exact-direct-match` |
 | the same document, `--add-cpes-if-none` | 23 | **49** — 8 Critical, 27 High, 13 Medium, 1 Low; every one `stock-matcher` / `cpe-match` |
 | `grype dir:desktop` | **1** | 0 |
@@ -1113,7 +1113,7 @@ behind it rather than a citation.
   vcpkg manifest, not only the SBOM, so each tool's native detection path is used
   instead of a purl lookup that is known to miss". For grype that is **backwards**:
   `grype dir:desktop` catalogues exactly one component,
-  `pkg:vcpkg/eclipse-player@0.1.0` — the project itself, read out of
+  `pkg:vcpkg/arrow-player@0.1.0` — the project itself, read out of
   `desktop/vcpkg.json`, with none of its dependencies. The native path covers
   *less* than the SBOM, not more. The scan of the whole repository catalogues 23
   components and not one of them is a registered C/C++ dependency: nine GitHub
@@ -1170,8 +1170,8 @@ CycloneDX's `component.version` is a version, not prose. The §4.2 register spel
 ten of its thirteen desktop entries as a series or a bound — `2.x`, `3.4x`,
 `≥ 0.2.2`, `current` — and only qt6 (6.8.2), ffmpeg (7.1.2) and gtest (1.15.2) as a
 release. So those ten components carry **no `version` field at all**; the raw
-register string is preserved as `eclipse:register-version` and
-`eclipse:version-precision` says `series`.
+register string is preserved as `arrow:register-version` and
+`arrow:version-precision` says `series`.
 
 - **Why the series is not simply put in `version`.** A consumer diffing two SBOMs,
   or matching a version range, would treat `2.x` as a literal version and match
@@ -1219,7 +1219,7 @@ JSON Schema validation.
   those schemas are all annotations, so the dialect difference itself is inert.
 - **What landed.** `security.yml`'s `dependencies` job downloads
   `CycloneDX/cyclonedx-cli` v0.33.1 by digest and runs `validate --input-file
-  docs/sbom/eclipse-player.cdx.json --input-format json --input-version v1_6
+  docs/sbom/arrow-player.cdx.json --input-format json --input-version v1_6
   --fail-on-errors`. Both flags are load-bearing, for different reasons; see the
   next two bullets. Extending `tools/jsonschema_mini.py` to draft-07 is still worth
   doing on its own account — `validate-shared-spec.py` could then run real schemas
@@ -1592,7 +1592,7 @@ The **DI container** and the **CLI** did not.
   recorded here anyway: §0.1 rule 2 forbids narrowing a requirement silently and
   does not make the ban conditional on the requirement having been numbered.
 - **Consequence:** `desktop/src/app/` is smaller than §5's line for it, and
-  `eclipse-player` ignores `argc`/`argv` entirely rather than half-reading them.
+  `arrow-player` ignores `argc`/`argv` entirely rather than half-reading them.
   Nothing in the tree depends on the two absent parts, so nothing is stubbed to
   paper over them, and `src/app/application.hpp` cites this entry at the point
   where a reader would otherwise wonder where the container went.
@@ -1663,7 +1663,7 @@ to let them imply that nothing has been run.
 | the same, with one mutation replaced by a no-op and one complaint misspelt | fails, naming both — 2 of 2, so the harness is not vacuous |
 | `tools/check-hardening.py --self-test` | pass — 31 assertions over synthetic ELF and PE binaries, 22 of them planted defects that must be caught |
 | `tools/check-hardening.py build/linux-release` | pass — 7 binaries: PIE, RELRO, `BIND_NOW`, non-exec stack, `__stack_chk_fail`, fortified entry points in 5 of 7 |
-| the same, before `eclipse_set_hardening` was wired in | **failed 4 of 7** — the fuzz replay drivers had only partial RELRO; that is why the gate exists |
+| the same, before `arrow_set_hardening` was wired in | **failed 4 of 7** — the fuzz replay drivers had only partial RELRO; that is why the gate exists |
 | the same, pointed at `build/linux-asan` | exits 2 — every binary out of scope, so it refuses to report success |
 | `tools/validate-shared-spec.py` | pass — 5 schemas, 102 JSON documents |
 | `.github/scripts/spec_full_validate.py --check-schemas --check-fixtures` | pass — 5 schemas valid, 91 fixtures match their claimed verdict |
@@ -1677,17 +1677,17 @@ to let them imply that nothing has been run.
 | the same with `--check`, both documents | pass — `docs/THIRD-PARTY.md` and `docs/LGPL-SOURCE-OFFER.md` byte-identical to a fresh render |
 | `tools/gen-sbom.py --self-test` | pass — 18 planted register defects caught, 10 valid registers accepted, 25 planted document defects caught over a control that validates, 10 purl shapes spelled out, and the `--resolved-graph` path run through the real vcpkg dry-run parser and classifier |
 | the same, with each new invariant inverted one at a time | fails, naming the case — 8 of 8: the dropped `build_only` bucket, a graph-blind version gate, a guessed port-version, `pkg:generic` for a vcpkg port, unsorted qualifier keys, a target triplet on a host-side helper, an upper-case `serialNumber`, and the component/port-name gate removed |
-| `tools/gen-sbom.py --check` | pass — `docs/sbom/eclipse-player.cdx.json` byte-identical to a fresh render |
+| `tools/gen-sbom.py --check` | pass — `docs/sbom/arrow-player.cdx.json` byte-identical to a fresh render |
 | that document, and a resolved-graph one, against the canonical `bom-1.6.schema.json` | **0 errors each**; CycloneDX's own `valid-bom-1.6.json` control 0 errors; a planted `scope: "mandatory"` caught — but through a throwaway draft-07 adapter, not committed code (OQ-048) |
 | both documents' 24 purls against the purl grammar | pass — no namespace on `pkg:vcpkg`, qualifier keys sorted, no subpath, no unexpected qualifier |
 | `tools/gen-sbom.py --require-exact-versions` | **fails**, naming 10 of 13 (OQ-047); over a hand-written dry-run graph it names 1 of 13 — nlohmann/json, which has no vcpkg port. Real `vcpkg install --dry-run` output has still never been through it |
-| `grype 0.117.0 sbom:docs/sbom/eclipse-player.cdx.json` (db v6.1.9) | **0 matches** over 23 components — and the same document with one `pkg:npm/lodash@4.17.15` appended returns **6**, so the reader works and the zero is `pkg:vcpkg` having no matcher (OQ-046) |
+| `grype 0.117.0 sbom:docs/sbom/arrow-player.cdx.json` (db v6.1.9) | **0 matches** over 23 components — and the same document with one `pkg:npm/lodash@4.17.15` appended returns **6**, so the reader works and the zero is `pkg:vcpkg` having no matcher (OQ-046) |
 | the same, `--add-cpes-if-none` | **49 matches** — 8 Critical, 27 High, 13 Medium, 1 Low; all `stock-matcher`/`cpe-match`; **20 of 49** on a component with no version, so advisory only |
-| `grype dir:desktop` | **1 component catalogued** — `pkg:vcpkg/eclipse-player@0.1.0`, the project itself, no dependencies. The native path covers less than the SBOM, correcting this register's own earlier proposal |
+| `grype dir:desktop` | **1 component catalogued** — `pkg:vcpkg/arrow-player@0.1.0`, the project itself, no dependencies. The native path covers less than the SBOM, correcting this register's own earlier proposal |
 | `grype dir:.` (`node_modules/`, `build/` excluded) | 23 components, **1 High** — `GHSA-cxww-7g56-2vh6` against `actions/download-artifact@v4` in `spec-ci.yml`. Not a C/C++ dependency; recorded as OQ-050 |
 | the same, after every action was SHA-pinned | **0 matches**, six actions still catalogued at orderable versions. Two one-step control workflows differing only in the trailing `# v4.4.0` comment show syft recording either `@v4.4.0` or the bare SHA as the version — which is why the gate requires the comment |
 | `tools/check-cve-baseline.py --self-test` | pass — 21 cases: 17 planted defects each rejected for the right reason (unbaselined High, Critical, stale entry, version drift, placeholder and too-short reason, expired acceptance, missing and mistyped field, malformed and impossible date, duplicate, and three unreadable scans) and 4 valid inputs accepted, including Medium and Negligible **not** gating |
-| the CVE gate against real grype output | pass — the committed baseline is empty because the gating configuration finds nothing: **0 matches at any severity** from both `sbom:docs/sbom/eclipse-player.cdx.json` and `dir:.`, grype 0.117.0 / DB v6.1.9. Proven non-vacuous by injecting `pkg:npm/lodash@4.17.15` into a copy of the SBOM: 6 matches, the 3 High unaccepted → red, baselined → green, then stale against the uninjected document → red again, once per entry |
+| the CVE gate against real grype output | pass — the committed baseline is empty because the gating configuration finds nothing: **0 matches at any severity** from both `sbom:docs/sbom/arrow-player.cdx.json` and `dir:.`, grype 0.117.0 / DB v6.1.9. Proven non-vacuous by injecting `pkg:npm/lodash@4.17.15` into a copy of the SBOM: 6 matches, the 3 High unaccepted → red, baselined → green, then stale against the uninjected document → red again, once per entry |
 | `tools/check-action-pins.py --self-test` | pass — 12 planted defects caught (mutable tag, branch, short and upper-case SHA, missing version comment, prose-polluted comment, undigested `docker://`), 12 valid lines accepted, 8 confirmed parsed as real references |
 | the same over the real tree, one pin reverted to `@v4`, then one version comment deleted | **fails both times**, naming file, line and reason; passes over 22 references when restored |
 | seven realistic Dependabot subjects against `commitlint.config.js` | all pass, including a 98-column one; three controls still fail and name the right rule — a 105-column bump subject, a 90-column ordinary subject, and an out-of-enum `deps-nope` scope (OQ-051) |
@@ -1775,10 +1775,10 @@ decode path has no network transport even available to it.
 
 The §4.2 register pins libsamplerate at **≥ 0.2.2** and notes separately that
 releases before 0.1.9 were GPL. It is the one optional dependency
-`EclipseDependencies.cmake` looks for that is absent locally, so
-`ECLIPSE_HAVE_SAMPLERATE` is `OFF` and now says so in the configure summary.
+`ArrowDependencies.cmake` looks for that is absent locally, so
+`ARROW_HAVE_SAMPLERATE` is `OFF` and now says so in the configure summary.
 
-- **Correction of record:** `EclipseDependencies.cmake` asked for `>= 0.1.9`,
+- **Correction of record:** `ArrowDependencies.cmake` asked for `>= 0.1.9`,
   the licence floor, where the register says `>= 0.2.2`. Those are two different
   floors and only one of them is `REQ-GEN-012`. A 0.1.9 build would have been
   licence-clean and still absent from the register, which REQ-GEN-012 makes a
@@ -1789,7 +1789,7 @@ releases before 0.1.9 were GPL. It is the one optional dependency
 
 ### OQ-021 — Dependency detection needs `PKG_CONFIG_PATH` for a user-local prefix · **Settled**
 
-`EclipseDependencies.cmake` finds FFmpeg, TagLib, ALSA and libsamplerate through
+`ArrowDependencies.cmake` finds FFmpeg, TagLib, ALSA and libsamplerate through
 `pkg-config`. With the libraries in `~/.local`, pkg-config does not search there
 by default, so a plain `cmake --preset linux-release` reports every adapter `OFF`
 even though all of them are installed — a silent, misleading result.
@@ -1822,12 +1822,12 @@ What was actually run against `desktop/vcpkg.json`, on this machine, with vcpkg
 
 | Check | Result |
 |---|---|
-| `vcpkg install --dry-run --triplet x64-linux-eclipse` | resolves; `ffmpeg` pins to 7.1.2#5, no OpenSSL, no bzip2 in the graph |
+| `vcpkg install --dry-run --triplet x64-linux-arrow` | resolves; `ffmpeg` pins to 7.1.2#5, no OpenSSL, no bzip2 in the graph |
 | triplet evaluation for 14 ports | linkage matches the §4.2 column exactly — LGPL dynamic, permissive static |
 | `cmake --preset linux-release` with `VCPKG_ROOT` unset | unchanged; the suite still passes in full (186/186 on the day of that run; 210/210 now) |
 
 What was **not** run: an actual `vcpkg install`. No port was compiled, so the
-manifest is proven to *resolve*, not proven to *build*. `arm64-linux-eclipse`
+manifest is proven to *resolve*, not proven to *build*. `arm64-linux-arrow`
 cannot resolve here at all (no cross toolchain), and both Windows triplets refuse
 on a non-Windows host by design — so three of the four triplets in the §3.1
 matrix have no local evidence beyond their syntax. See also `OQ-022` and
@@ -1846,7 +1846,7 @@ present, every exclusion in the repository was inert:
 | Invocation | Files | Result |
 |---|---|---|
 | `markdownlint-cli2 "**/*.md"` | 109 | 2869 issues in 73 files — it walked `build/_deps/googletest-src/` |
-| `git ls-files '*.md' \| xargs markdownlint-cli2` | 28 | 718 issues in 1 file — `eclipse-player.md`, the file the ignore list exists to protect |
+| `git ls-files '*.md' \| xargs markdownlint-cli2` | 28 | 718 issues in 1 file — `arrow-player.md`, the file the ignore list exists to protect |
 
 So the green result came from an invocation that happened to name a file set
 excluding the specification, not from an exclusion being honoured. The gate was
@@ -1855,7 +1855,7 @@ neither green nor red; it had no fixed subject.
 - **Correction of record:** "27 files" was never the tracked-document count.
   There were 24 tracked `.md` files at `9e12695` and 22 of them lintable, so the
   figure did not correspond to any set the repository defines. It is now 26 of the
-  28 tracked documents — `eclipse-player.md` and `CHANGELOG.md` are the two live
+  28 tracked documents — `arrow-player.md` and `CHANGELOG.md` are the two live
   exclusions, `docs/THIRD-PARTY.md` is pre-listed against the generator that will
   produce it — and all of them are visible in the linter's own `Finding:` line.
 - **Fixed here:** `.markdownlintignore` is deleted and `.markdownlint-cli2.jsonc`
@@ -1916,7 +1916,7 @@ ALAC and WavPack encoders are native to FFmpeg; **MP3 is not** — it needs
    claim was, so a reader meets both together — that is why OQ-046's "scan the
    source tree instead, the native path covers more" and OQ-048's "cannot be
    installed without root" are still legible above, each next to the measurement
-   that refuted it. §29.6 of `eclipse-player.md` is **not** the place for these:
+   that refuted it. §29.6 of `arrow-player.md` is **not** the place for these:
    that table corrects claims made by the *specification*, and a register entry's
    mistake is the implementation's, not the spec's. Add a row there only when the
    thing that was wrong is a requirement.

@@ -20,7 +20,7 @@
     "recipient channel is not an offer (OQ-013)."
   ],
   "requirement": "REQ-GEN-020",
-  "release_pipeline_step": "eclipse-player.md §25.5 step 8",
+  "release_pipeline_step": "arrow-player.md §25.5 step 8",
   "generated_document": "docs/LGPL-SOURCE-OFFER.md",
 
   "offer": {
@@ -33,7 +33,7 @@
     "releases_url": "https://github.com/maragung/ArrowPlayer/releases",
     "maintainer_handle": "@maragung",
     "maintainer_profile_url": "https://github.com/maragung",
-    "postal_address": "Eclipse Player Project, c/o @maragung on GitHub (https://github.com/maragung) — written offer valid on the same terms as the GitHub Releases page above, and the source archives are the tagged tarballs attached to each release.",
+    "postal_address": "Arrow Player Project, c/o @maragung on GitHub (https://github.com/maragung) — written offer valid on the same terms as the GitHub Releases page above, and the source archives are the tagged tarballs attached to each release.",
     "mailbox": "https://github.com/maragung/ArrowPlayer/issues/new",
     "pgp_key_fingerprint": null,
     "validity_years": 3,

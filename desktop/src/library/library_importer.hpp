@@ -4,7 +4,7 @@
 #include "ports/library_port.hpp"
 #include "ports/tag_port.hpp"
 
-namespace eclipse::library {
+namespace arrow::library {
 
 class LibraryImporter final {
   public:
@@ -14,4 +14,4 @@ class LibraryImporter final {
                                              ILibrary& library);
 };
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

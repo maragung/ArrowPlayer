@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 #pragma once
 
 #include <atomic>
@@ -9,7 +9,7 @@
 
 #include "audio/ports/audio_types.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 /// Preallocated SPSC ring of planar float frames.
 /// One producer and one consumer only; capacity is fixed after construction.
@@ -93,4 +93,4 @@ class SpscPcmRing final {
 #endif
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

@@ -26,7 +26,7 @@ else, so they are not here; the gap is recorded in
 | `fuzz_theme` | absent — no theme engine (Phase 5) | `theme.json` |
 | `fuzz_layout` | absent — no layout engine (Phase 5) | `.eclayout` |
 | `fuzz_skinzip` | absent — no skin loader (Phase 5) | skin archives |
-| `fuzz_efs` | absent — no format-string engine (Phase 4) | Eclipse Format Strings |
+| `fuzz_efs` | absent — no format-string engine (Phase 4) | Arrow Format Strings |
 | `fuzz_smartrule` | absent — no smart-playlist engine (Phase 3) | smart-playlist rules |
 | `fuzz_icy` | absent — no streaming (Phase 8) | ICY metadata |
 | `fuzz_rss` | absent — no podcast support (Phase 8) | RSS feeds |
@@ -111,9 +111,9 @@ cmake --build --preset linux-fuzz --parallel
     desktop/tests/fuzz/corpus/fuzz_xinglame -max_total_time=60
 ```
 
-`linux-fuzz` sets `ECLIPSE_BUILD_TESTS=OFF`, so the harnesses build without
-GoogleTest — and the domain sources are recompiled into `eclipse-domain-fuzz`
-with `-fsanitize=fuzzer-no-link`. Linking the ordinary `eclipse-domain` would
+`linux-fuzz` sets `ARROW_BUILD_TESTS=OFF`, so the harnesses build without
+GoogleTest — and the domain sources are recompiled into `arrow-domain-fuzz`
+with `-fsanitize=fuzzer-no-link`. Linking the ordinary `arrow-domain` would
 still find crashes, but only by luck: libFuzzer would get no coverage feedback
 from the parsers, which are the entire attack surface.
 

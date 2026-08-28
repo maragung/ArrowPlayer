@@ -26,7 +26,7 @@ class LibraryDatabaseTest : public ::testing::Test {
         // gtest binaries from colliding when several test executables are
         // themselves scheduled in parallel.
         const auto base =
-            std::filesystem::temp_directory_path() / "eclipse-player-library-test";
+            std::filesystem::temp_directory_path() / "arrow-player-library-test";
         path = base.string() + "-" +
                ::testing::UnitTest::GetInstance()->current_test_info()->name() + "-" +
                std::to_string(static_cast<long>(getpid())) + ".sqlite";
@@ -39,13 +39,13 @@ class LibraryDatabaseTest : public ::testing::Test {
 };
 
 TEST(FilesystemScanner, FindsSupportedFilesBoundedAndSorted) {
-    const auto root = std::filesystem::temp_directory_path() / "eclipse-player-scan-test";
+    const auto root = std::filesystem::temp_directory_path() / "arrow-player-scan-test";
     std::filesystem::remove_all(root);
     std::filesystem::create_directories(root / "nested");
     std::ofstream(root / "z.mp3").put('x');
     std::ofstream(root / "nested" / "a.FLAC").put('x');
     std::ofstream(root / "ignore.txt").put('x');
-    eclipse::library::FilesystemScanner scanner;
+    arrow::library::FilesystemScanner scanner;
     const auto result = scanner.scan({root, 10});
     ASSERT_TRUE(result);
     ASSERT_EQ(result->size(), 2U);
@@ -54,17 +54,17 @@ TEST(FilesystemScanner, FindsSupportedFilesBoundedAndSorted) {
 }
 
 TEST(FilesystemScanner, ImportsScannedFilesIdempotently) {
-    const auto root = std::filesystem::temp_directory_path() / "eclipse-player-import-test";
+    const auto root = std::filesystem::temp_directory_path() / "arrow-player-import-test";
     std::filesystem::remove_all(root);
     std::filesystem::create_directories(root);
     std::ofstream(root / "song.mp3").put('x');
-    eclipse::library::FilesystemScanner scanner;
-    eclipse::library::LibraryDatabase db;
+    arrow::library::FilesystemScanner scanner;
+    arrow::library::LibraryDatabase db;
     const auto database_path = root / "library.sqlite";
     ASSERT_TRUE(db.open(database_path));
-    eclipse::library::SidecarTagReader tags;
-    ASSERT_TRUE(eclipse::library::LibraryImporter::import_files({root, 10}, scanner, tags, db));
-    ASSERT_TRUE(eclipse::library::LibraryImporter::import_files({root, 10}, scanner, tags, db));
+    arrow::library::SidecarTagReader tags;
+    ASSERT_TRUE(arrow::library::LibraryImporter::import_files({root, 10}, scanner, tags, db));
+    ASSERT_TRUE(arrow::library::LibraryImporter::import_files({root, 10}, scanner, tags, db));
     const auto tracks = db.list_tracks();
     ASSERT_TRUE(tracks);
     ASSERT_EQ(tracks->size(), 1U);
@@ -74,45 +74,45 @@ TEST(FilesystemScanner, ImportsScannedFilesIdempotently) {
 }
 
 TEST(SidecarTagReader, ReadsOptionalMetadataAndRejectsInvalidDuration) {
-    const auto root = std::filesystem::temp_directory_path() / "eclipse-player-tags-test.mp3";
+    const auto root = std::filesystem::temp_directory_path() / "arrow-player-tags-test.mp3";
     std::ofstream(root).put('x');
-    std::ofstream(root.string() + ".eclipse-tags")
+    std::ofstream(root.string() + ".arrow-tags")
         << "title=Custom Title\nartist=Artist\nduration_ms=1234\n";
-    eclipse::library::SidecarTagReader reader;
+    arrow::library::SidecarTagReader reader;
     const auto result = reader.read(root);
     ASSERT_TRUE(result);
     EXPECT_EQ(result->title, "Custom Title");
     EXPECT_EQ(result->artist, "Artist");
     EXPECT_EQ(result->duration_ms, 1234);
-    std::ofstream(root.string() + ".eclipse-tags") << "duration_ms=-1\n";
+    std::ofstream(root.string() + ".arrow-tags") << "duration_ms=-1\n";
     const auto invalid = reader.read(root);
     EXPECT_FALSE(invalid);
     std::filesystem::remove(root);
-    std::filesystem::remove(root.string() + ".eclipse-tags");
+    std::filesystem::remove(root.string() + ".arrow-tags");
 }
 
 TEST(FilesystemScanner, RejectsInvalidRequests) {
-    eclipse::library::FilesystemScanner scanner;
-    EXPECT_EQ(scanner.scan({{}, 10}).error().code(), eclipse::ErrorCode::InvalidArgument);
+    arrow::library::FilesystemScanner scanner;
+    EXPECT_EQ(scanner.scan({{}, 10}).error().code(), arrow::ErrorCode::InvalidArgument);
     EXPECT_EQ(scanner.scan({std::filesystem::temp_directory_path(), 0}).error().code(),
-              eclipse::ErrorCode::InvalidArgument);
+              arrow::ErrorCode::InvalidArgument);
 }
 
 TEST_F(LibraryDatabaseTest, RequiresOpenBeforeInsert) {
-    eclipse::library::LibraryDatabase db;
+    arrow::library::LibraryDatabase db;
     const auto result = db.insert_track({"song.mp3", "Song", "Artist", 1000});
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().code(), eclipse::ErrorCode::InvalidState);
+    EXPECT_EQ(result.error().code(), arrow::ErrorCode::InvalidState);
 }
 
 TEST_F(LibraryDatabaseTest, CreatesSchemaAndAcceptsMetadata) {
-    eclipse::library::LibraryDatabase db;
+    arrow::library::LibraryDatabase db;
     ASSERT_TRUE(db.open(path));
     EXPECT_TRUE(db.insert_track({"song.mp3", "Song", "Artist", 1000}));
 }
 
 TEST_F(LibraryDatabaseTest, ListsTracksInInsertionOrder) {
-    eclipse::library::LibraryDatabase db;
+    arrow::library::LibraryDatabase db;
     ASSERT_TRUE(db.open(path));
     ASSERT_TRUE(db.insert_track({"b.mp3", "B", "Artist", 2000}));
     ASSERT_TRUE(db.insert_track({"a.mp3", "A", "Artist", 1000}));
@@ -124,7 +124,7 @@ TEST_F(LibraryDatabaseTest, ListsTracksInInsertionOrder) {
 }
 
 TEST_F(LibraryDatabaseTest, RemovesTrackAndReportsMissingPath) {
-    eclipse::library::LibraryDatabase db;
+    arrow::library::LibraryDatabase db;
     ASSERT_TRUE(db.open(path));
     ASSERT_TRUE(db.insert_track({"song.mp3", "Song", "Artist", 1000}));
     ASSERT_TRUE(db.remove_track("song.mp3"));
@@ -132,23 +132,23 @@ TEST_F(LibraryDatabaseTest, RemovesTrackAndReportsMissingPath) {
     EXPECT_TRUE(db.list_tracks()->empty());
     const auto missing = db.remove_track("song.mp3");
     ASSERT_FALSE(missing);
-    EXPECT_EQ(missing.error().code(), eclipse::ErrorCode::FileNotFound);
+    EXPECT_EQ(missing.error().code(), arrow::ErrorCode::FileNotFound);
 }
 
 TEST_F(LibraryDatabaseTest, RejectsDuplicateAndInvalidTracks) {
-    eclipse::library::LibraryDatabase db;
+    arrow::library::LibraryDatabase db;
     ASSERT_TRUE(db.open(path));
     ASSERT_TRUE(db.insert_track({"song.mp3", "Song", "Artist", 1000}));
     const auto duplicate = db.insert_track({"song.mp3", "Other", "Other", 2000});
     EXPECT_FALSE(duplicate);
-    EXPECT_EQ(duplicate.error().code(), eclipse::ErrorCode::ConstraintViolation);
+    EXPECT_EQ(duplicate.error().code(), arrow::ErrorCode::ConstraintViolation);
     const auto invalid = db.insert_track({"", "", "", -1});
     EXPECT_FALSE(invalid);
-    EXPECT_EQ(invalid.error().code(), eclipse::ErrorCode::InvalidArgument);
+    EXPECT_EQ(invalid.error().code(), arrow::ErrorCode::InvalidArgument);
 }
 
 TEST_F(LibraryDatabaseTest, CloseIsIdempotentAndReopenResetsHandle) {
-    eclipse::library::LibraryDatabase db;
+    arrow::library::LibraryDatabase db;
     ASSERT_TRUE(db.open(path));
     ASSERT_TRUE(db.insert_track({"before.mp3", "Before", "", 1}));
     EXPECT_TRUE(db.is_open());
@@ -163,19 +163,19 @@ TEST_F(LibraryDatabaseTest, CloseIsIdempotentAndReopenResetsHandle) {
 }
 
 TEST_F(LibraryDatabaseTest, RejectsEmptyDatabasePathWithoutOpening) {
-    eclipse::library::LibraryDatabase db;
+    arrow::library::LibraryDatabase db;
     EXPECT_FALSE(db.open({}));
     EXPECT_FALSE(db.is_open());
 }
 
 TEST_F(LibraryDatabaseTest, RequiresOpenForQueries) {
-    eclipse::library::LibraryDatabase db;
+    arrow::library::LibraryDatabase db;
     const auto tracks = db.list_tracks();
     ASSERT_FALSE(tracks);
-    EXPECT_EQ(tracks.error().code(), eclipse::ErrorCode::InvalidState);
+    EXPECT_EQ(tracks.error().code(), arrow::ErrorCode::InvalidState);
     const auto removed = db.remove_track("song.mp3");
     ASSERT_FALSE(removed);
-    EXPECT_EQ(removed.error().code(), eclipse::ErrorCode::InvalidState);
+    EXPECT_EQ(removed.error().code(), arrow::ErrorCode::InvalidState);
 }
 
 }  // namespace

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 //
 // Startup and shutdown ordering — layer 4 (APPLICATION) per §7.1.
 //
@@ -27,7 +27,7 @@
 
 #include "core/error.hpp"
 
-namespace eclipse::app {
+namespace arrow::app {
 
 /// Where a Lifecycle is in its one-way journey.
 ///
@@ -109,4 +109,4 @@ class Lifecycle {
     LifecycleState state_{LifecycleState::Created};
 };
 
-}  // namespace eclipse::app
+}  // namespace arrow::app

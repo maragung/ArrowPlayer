@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
 #include "audio/sink/alsa_sink.hpp"
 
-#if defined(ECLIPSE_HAVE_ALSA)
+#if defined(ARROW_HAVE_ALSA)
 #include <algorithm>
 #include <vector>
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 Result<SinkConfig> AlsaSink::open(const SinkConfig& requested) {
     close();
@@ -73,5 +73,5 @@ Status AlsaSink::write(const PlanarFrames frames) noexcept {
     return ok();
 }
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio
 #endif

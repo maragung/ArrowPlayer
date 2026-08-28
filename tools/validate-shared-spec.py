@@ -304,7 +304,7 @@ def _run_against(spec_root: str) -> tuple[int, str]:
 def self_test() -> int:
     failures: list[str] = []
     source = os.path.join(ROOT, "shared-spec")
-    with tempfile.TemporaryDirectory(prefix="eclipse-spec-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="arrow-spec-") as tmp:
         pristine = os.path.join(tmp, "pristine")
         shutil.copytree(source, pristine)
 
@@ -385,7 +385,7 @@ for path in sorted(json_files):
     if doc.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
         fail(rel(path), "missing or wrong $schema (draft 2020-12 is required)")
     sid = doc.get("$id")
-    if not isinstance(sid, str) or not sid.startswith("https://eclipse-player.org/schemas/"):
+    if not isinstance(sid, str) or not sid.startswith("https://arrow-player.org/schemas/"):
         fail(rel(path), f"missing or off-domain $id: {sid!r}")
         continue
     if sid in schemas:
@@ -402,7 +402,7 @@ for path in sorted(json_files):
         fail(rel(path), f"uses a keyword outside the implemented subset: {exc}")
 
 for expected in ("theme", "skin-manifest", "layout", "settings", "smart-playlist"):
-    want = f"https://eclipse-player.org/schemas/{expected}/v1"
+    want = f"https://arrow-player.org/schemas/{expected}/v1"
     if want not in schemas:
         fail("shared-spec/schemas", f"no schema declares $id {want}")
 
@@ -572,7 +572,7 @@ else:
 
 # --------------------------------------------- 6. smart-playlist conformance
 sp_path = os.path.join(SPEC, "conformance", "smart-playlist-cases.json")
-sp_schema = "https://eclipse-player.org/schemas/smart-playlist/v1"
+sp_schema = "https://arrow-player.org/schemas/smart-playlist/v1"
 if not os.path.exists(sp_path):
     fail("shared-spec/conformance/smart-playlist-cases.json", "missing (REQ-PLS-012)")
 elif sp_schema in schemas:
@@ -624,7 +624,7 @@ elif sp_schema in schemas:
              f"REQ-PLS-012 gives eight worked examples; only {worked} are tagged")
 
 # ------------------------------------------------------------- 7. settings
-set_schema = "https://eclipse-player.org/schemas/settings/v1"
+set_schema = "https://arrow-player.org/schemas/settings/v1"
 if set_schema in schemas:
     schema = schemas[set_schema]
     groups = (schema.get("$defs", {}).get("settings", {}).get("properties", {}))
@@ -693,8 +693,8 @@ else:
         if style not in scale:
             fail("tokens.json", f"typography.scale is missing {style!r} (§12.1 has seven)")
     # A theme may only express what the token file describes.
-    if "https://eclipse-player.org/schemas/theme/v1" in schemas:
-        theme_styles = (schemas["https://eclipse-player.org/schemas/theme/v1"]
+    if "https://arrow-player.org/schemas/theme/v1" in schemas:
+        theme_styles = (schemas["https://arrow-player.org/schemas/theme/v1"]
                         .get("properties", {}).get("typography", {})
                         .get("properties", {}).get("scale", {}).get("properties", {}))
         extra = set(theme_styles) - set(scale)
@@ -708,7 +708,7 @@ else:
 
 # -------------------------------------------------------- 9. companion docs
 for required in ("README.md", "sync-protocol.md",
-                 "grammars/eclipse-format-strings.ebnf", "grammars/smart-playlist.ebnf",
+                 "grammars/arrow-format-strings.ebnf", "grammars/smart-playlist.ebnf",
                  "design-system/typography.md", "design-system/motion.md",
                  "design-system/iconography.md"):
     if not os.path.exists(os.path.join(SPEC, required)):

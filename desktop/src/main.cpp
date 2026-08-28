@@ -12,55 +12,55 @@
 #include "audio/playback_service.hpp"
 #include "audio/sink/sink_factory.hpp"
 
-static eclipse::audio::SinkFactoryOptions sink_options(eclipse::app::SinkChoice choice) {
+static arrow::audio::SinkFactoryOptions sink_options(arrow::app::SinkChoice choice) {
     switch (choice) {
-        case eclipse::app::SinkChoice::Null:
-            return {.preference = eclipse::audio::SinkPreference::Null};
-        case eclipse::app::SinkChoice::Alsa:
-            return {.preference = eclipse::audio::SinkPreference::Alsa};
-        case eclipse::app::SinkChoice::Automatic:
-            return {.preference = eclipse::audio::SinkPreference::Automatic};
+        case arrow::app::SinkChoice::Null:
+            return {.preference = arrow::audio::SinkPreference::Null};
+        case arrow::app::SinkChoice::Alsa:
+            return {.preference = arrow::audio::SinkPreference::Alsa};
+        case arrow::app::SinkChoice::Automatic:
+            return {.preference = arrow::audio::SinkPreference::Automatic};
     }
     return {};
 }
 
-#if defined(ECLIPSE_WITH_UI)
-#include <eclipse/ui/shell.hpp>
+#if defined(ARROW_WITH_UI)
+#include <arrow/ui/shell.hpp>
 #endif
 
 int main(int argc, char** argv) {
-    using eclipse::app::AppInfo;
-    using eclipse::app::Application;
+    using arrow::app::AppInfo;
+    using arrow::app::Application;
     try {
         Application application{AppInfo::current()};
         const AppInfo& info = application.info();
-        const auto command = eclipse::app::parse_command_line(argc, argv);
+        const auto command = arrow::app::parse_command_line(argc, argv);
         if (!command) {
             (void)std::fprintf(stderr,
                                "%s: %s\n",
-                               eclipse::app::command_line_usage().data(),
+                               arrow::app::command_line_usage().data(),
                                command.error().technical_detail().c_str());
             return Application::exit_code_for(command.error());
         }
         if (command->help) {
-            (void)std::printf("%s", eclipse::app::command_line_usage().data());
+            (void)std::printf("%s", arrow::app::command_line_usage().data());
             return Application::kExitOk;
         }
         if (command->play) {
-            eclipse::audio::WavDecoder decoder;
-            auto sink_result = eclipse::audio::make_sink(sink_options(command->sink));
+            arrow::audio::WavDecoder decoder;
+            auto sink_result = arrow::audio::make_sink(sink_options(command->sink));
             if (!sink_result) {
                 return Application::exit_code_for(sink_result.error());
             }
             auto sink = std::move(sink_result).value();
-            eclipse::audio::PlaybackService playback{decoder, *sink, 8};
+            arrow::audio::PlaybackService playback{decoder, *sink, 8};
             const auto result = playback.play_file(std::filesystem::path{command->path}, 1024);
             return result ? Application::kExitOk : Application::exit_code_for(result.error());
         }
-        if (eclipse::Status started = application.lifecycle().start(); !started) {
+        if (arrow::Status started = application.lifecycle().start(); !started) {
             return Application::exit_code_for(started.error());
         }
-        // ECLIPSE_SMOKE_TEST is the release.yml seam: the binary must start
+        // ARROW_SMOKE_TEST is the release.yml seam: the binary must start
         // its event loop and exit 0 with no audio playing, so the smoke
         // step proves the linked executable opens a window rather than
         // crashing on the first frame. The env-var check happens after
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 #pragma warning(push)
 #pragma warning(disable : 4996)  // getenv is deprecated in favour of _dupenv_s
 #endif
-        const char* smoke = std::getenv("ECLIPSE_SMOKE_TEST");
+        const char* smoke = std::getenv("ARROW_SMOKE_TEST");
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
@@ -80,11 +80,11 @@ int main(int argc, char** argv) {
             static_cast<void>(application.lifecycle().shutdown());
             return Application::kExitOk;
         }
-#if defined(ECLIPSE_WITH_UI)
-        const int code = eclipse::ui::run_shell(
+#if defined(ARROW_WITH_UI)
+        const int code = arrow::ui::run_shell(
             argc,
             argv,
-            eclipse::ui::ShellInfo{
+            arrow::ui::ShellInfo{
                 .version = info.version, .git_sha = info.git_sha, .git_dirty = info.git_dirty});
         static_cast<void>(application.lifecycle().shutdown());
         return code;

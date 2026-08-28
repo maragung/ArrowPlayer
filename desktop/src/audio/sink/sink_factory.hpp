@@ -6,7 +6,7 @@
 
 #include "audio/ports/audio_ports.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 enum class SinkPreference {
     Automatic,
@@ -34,4 +34,4 @@ struct SinkFactoryOptions final {
     return "unknown";
 }
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

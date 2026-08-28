@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
 #include "app/app_info.hpp"
 
-#include <eclipse/version.hpp>
+#include <arrow/version.hpp>
 
-namespace eclipse::app {
+namespace arrow::app {
 
 AppInfo AppInfo::current() noexcept {
     return AppInfo{
@@ -32,4 +32,4 @@ std::string AppInfo::to_log_string() const {
     return out;
 }
 
-}  // namespace eclipse::app
+}  // namespace arrow::app

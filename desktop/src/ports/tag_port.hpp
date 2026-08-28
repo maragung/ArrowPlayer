@@ -5,7 +5,7 @@
 
 #include "ports/library_port.hpp"
 
-namespace eclipse::library {
+namespace arrow::library {
 
 class ITagReader {
   public:
@@ -13,4 +13,4 @@ class ITagReader {
     [[nodiscard]] virtual Result<Track> read(const std::filesystem::path& path) const = 0;
 };
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

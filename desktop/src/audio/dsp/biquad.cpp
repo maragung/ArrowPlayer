@@ -5,7 +5,7 @@
 #include <complex>
 #include <numbers>
 
-namespace eclipse::audio {
+namespace arrow::audio {
 namespace {
 
 constexpr double kPi = std::numbers::pi;
@@ -217,4 +217,4 @@ double BiquadCascade::magnitude_db(double freq_hz, double sample_rate_hz) const 
     return total;
 }
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 #include "app/command_line.hpp"
 
-namespace eclipse::app {
+namespace arrow::app {
 
 Result<CommandLine> parse_command_line(int argc, char* const argv[]) noexcept {
     if (argc < 1 || argv == nullptr) {
@@ -57,7 +57,7 @@ Result<CommandLine> parse_command_line(int argc, char* const argv[]) noexcept {
 }
 
 std::string_view command_line_usage() noexcept {
-    return "Usage: eclipse-player [--help] [--play FILE] [--sink auto|null|alsa]\n";
+    return "Usage: arrow-player [--help] [--play FILE] [--sink auto|null|alsa]\n";
 }
 
-}  // namespace eclipse::app
+}  // namespace arrow::app

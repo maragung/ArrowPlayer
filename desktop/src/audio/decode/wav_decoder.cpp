@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-namespace eclipse::audio {
+namespace arrow::audio {
 namespace {
 
 std::uint32_t u32(const std::array<char, 4>& b) {
@@ -159,4 +159,4 @@ void WavDecoder::close() noexcept {
     data_bytes_ = 0;
 }
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

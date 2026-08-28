@@ -1,6 +1,6 @@
-# LGPL Source Offer — Eclipse Player
+# LGPL Source Offer — Arrow Player
 
-`eclipse-player.md` §27 requires this document, and `REQ-GEN-020` states it verbatim:
+`arrow-player.md` §27 requires this document, and `REQ-GEN-020` states it verbatim:
 
 > `REQ-GEN-020` `[v1.0]` The project MUST publish a **written source offer** page (`docs/LGPL-SOURCE-OFFER.md`, mirrored on the website) linking the precise source archive for every LGPL component in every release, keyed by release tag. This mirrors AIMP's published practice and is the cheapest way to be unambiguously compliant.
 
@@ -22,7 +22,7 @@ This is that page. It is **generated** by `tools/gen-third-party/gen-third-party
 
 ## The offer
 
-For every binary release of Eclipse Player published at
+For every binary release of Arrow Player published at
 [https://github.com/maragung/ArrowPlayer/releases](https://github.com/maragung/ArrowPlayer/releases):
 
 1. **The complete corresponding source code for every LGPL component that release ships is available from the same place as the binary, at no charge.** Each release lists, per component, the exact upstream archive it was built from and that archive's SHA-256; the ledger below records them permanently, keyed by tag.
@@ -31,7 +31,7 @@ For every binary release of Eclipse Player published at
 
 **The request channel, stated exactly as it is.** Today the only channel the project can honestly promise to read is the maintainer's GitHub profile, @maragung ([https://github.com/maragung](https://github.com/maragung)), and the repository's issue tracker at [https://github.com/maragung/ArrowPlayer](https://github.com/maragung/ArrowPlayer).
 
-Written requests: Eclipse Player Project, c/o @maragung on GitHub (https://github.com/maragung) — written offer valid on the same terms as the GitHub Releases page above, and the source archives are the tagged tarballs attached to each release.. Electronic requests: https://github.com/maragung/ArrowPlayer/issues/new.
+Written requests: Arrow Player Project, c/o @maragung on GitHub (https://github.com/maragung) — written offer valid on the same terms as the GitHub Releases page above, and the source archives are the tagged tarballs attached to each release.. Electronic requests: https://github.com/maragung/ArrowPlayer/issues/new.
 
 This document is a compliance record, not legal advice. Where it names a licence clause it names the clause the project relies on, so that a reader can check the reasoning against the licence text rather than take it on trust.
 
@@ -68,7 +68,7 @@ Two consequences of that table worth stating outright. First, because every LGPL
 Qt is `LGPL-3.0-only` — the strictest obligation in the tree, and the one most easily broken by a packaging shortcut. `REQ-GEN-013` fixes five rules, all five of which are conditions on the shipped artifact:
 
 1. Qt libraries are **dynamically linked**. Static Qt is forbidden in every shipped artifact.
-2. The user can **replace a Qt shared library** with a compatible build and Eclipse Player still runs. No hard-coded checksums or signature checks over Qt binaries.
+2. The user can **replace a Qt shared library** with a compatible build and Arrow Player still runs. No hard-coded checksums or signature checks over Qt binaries.
 3. The full LGPL-3.0 text ships at `licenses/LGPL-3.0.txt` in the installed tree and is reachable from **Help → Licences**.
 4. This document and [THIRD-PARTY.md](THIRD-PARTY.md) state the exact Qt version and configuration and link the corresponding source.
 5. **No anti-tivoization conflict:** the application is not shipped in a form that prevents installing a modified Qt.
@@ -106,7 +106,7 @@ FFmpeg can be built LGPL or GPL from the same tree — the licence is a function
 
 TagLib is offered under `LGPL-2.1-or-later OR MPL-1.1` — the recipient of *TagLib* may choose either arm. A distributor of a work that links it must say which arm it relies on, because the two impose different duties, and §4.2's own obligation column makes the offer conditional: “Source offer if the LGPL arm is chosen.”
 
-**Eclipse Player takes the `LGPL-2.1-or-later` arm.** The source-offer obligation therefore applies to TagLib exactly as it does to FFmpeg, and TagLib appears in the component table above and in every ledger row.
+**Arrow Player takes the `LGPL-2.1-or-later` arm.** The source-offer obligation therefore applies to TagLib exactly as it does to FFmpeg, and TagLib appears in the component table above and in every ledger row.
 
 The reason is uniformity rather than preference. Four other components (FFmpeg, SoundTouch, Chromaprint, projectM) are already LGPL-2.1-or-later, so taking that arm for TagLib means the project has **one** obligation model to satisfy and audit — dynamic linking plus source availability — instead of two. MPL-1.1 would add a second, older set of terms with its own source-disclosure and jurisdiction language, for no gain: we ship TagLib unmodified and dynamically linked, which the LGPL arm already permits outright.
 
@@ -153,7 +153,7 @@ Until a release exists, the components above can be obtained exactly as the buil
 git -C "$VCPKG_ROOT" fetch --all
 git -C "$VCPKG_ROOT" checkout 9e593bb18ea69cc5095e012465dcd675a822ed0d
 cd desktop
-vcpkg install --triplet x64-linux-eclipse --x-install-root=vcpkg_installed
+vcpkg install --triplet x64-linux-arrow --x-install-root=vcpkg_installed
 ```
 
 - The baseline commit `9e593bb18ea69cc5095e012465dcd675a822ed0d` in `desktop/vcpkg.json` is what fixes every port version; without it "from vcpkg" would name a moving target rather than this source.
@@ -173,7 +173,7 @@ vcpkg install --triplet x64-linux-eclipse --x-install-root=vcpkg_installed
 | No postal address, monitored mailbox, or published PGP key | `REQ-GEN-020`, OQ-013 | The written-offer route rests on a platform account (OQ-013). A 1.0.0 release blocker. |
 | No `release.yml`, so §25.5 step 8 is not automated | `REQ-BLD-025` | Nothing yet appends a ledger row or fails a stale document at tag time. Until it exists, the ledger would be updated by hand — which is why the freshness gate below runs on every push instead. |
 | No artifact signing and no checksums | `REQ-SEC-016`, `REQ-SEC-017` | A recipient cannot yet verify that a downloaded binary is the one these sources correspond to. The SBOM half of this row is now closed — see the row below. |
-| The SBOM exists but has never been attached to a release | `REQ-GEN-021`, `REQ-SEC-014` | `docs/sbom/eclipse-player.cdx.json` is generated from this same register by `tools/gen-sbom.py`, which `repo-lint.yml` runs `--check` on for every push and pull request. `REQ-SEC-014` asks for one *per release artifact*, which needs §25.5 step 6 and therefore a release that has not happened yet. |
+| The SBOM exists but has never been attached to a release | `REQ-GEN-021`, `REQ-SEC-014` | `docs/sbom/arrow-player.cdx.json` is generated from this same register by `tools/gen-sbom.py`, which `repo-lint.yml` runs `--check` on for every push and pull request. `REQ-SEC-014` asks for one *per release artifact*, which needs §25.5 step 6 and therefore a release that has not happened yet. |
 | The Android components (projectM, Chromaprint NDK) are in no build | ADR 0011 | They stay in the register and out of the ledger: they have never been distributed, so no obligation has attached ([ADR 0011](adr/0011-desktop-first-sequencing.md)). |
 
 ## How this document is generated

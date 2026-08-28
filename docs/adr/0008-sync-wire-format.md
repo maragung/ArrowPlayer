@@ -29,7 +29,7 @@ round-trip is a play count or a rating that drifts, which is precisely what
 
 **A second parser is a second attack surface.** Sync peers are "authenticated but
 not trusted" (§21.1) — pairing proves which device is talking, not that it is
-behaving. Message bodies are untrusted input subject to `REQ-SEC-002`. Eclipse
+behaving. Message bodies are untrusted input subject to `REQ-SEC-002`. Arrow
 already has exactly one hardened, fuzzed JSON parser, written for exactly this
 threat model. Adding CBOR means a second parser for untrusted network input, with
 its own fuzz targets, its own indefinite-length and tag-handling edge cases, and

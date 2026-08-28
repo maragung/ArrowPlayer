@@ -26,7 +26,7 @@
 
 #include "core/error.hpp"
 
-namespace eclipse::json {
+namespace arrow::json {
 
 /// Parser limits. Defaults are the values the spec mandates for skin packages;
 /// callers handling larger trusted documents may raise them explicitly.
@@ -135,4 +135,4 @@ class Value {
 /// Escapes a string as a JSON string literal, including the surrounding quotes.
 [[nodiscard]] std::string escape(std::string_view s);
 
-}  // namespace eclipse::json
+}  // namespace arrow::json

@@ -1,5 +1,5 @@
 {
-  "name": "eclipse-player-tooling",
+  "name": "arrow-player-tooling",
   "version": "0.0.0",
   "private": true,
   "description": "Node-based repository gates only: the Markdown linter and the commit-message linter. No application code is built from here; see desktop/CMakeLists.txt.",

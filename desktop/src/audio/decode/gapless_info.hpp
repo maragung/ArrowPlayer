@@ -21,7 +21,7 @@
 
 #include "core/error.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 /// Sentinel for "the exact frame count is not known".
 inline constexpr std::uint64_t kUnknownFrames = ~std::uint64_t{0};
@@ -222,4 +222,4 @@ struct OpusHead {
 [[nodiscard]] Result<GaplessInfo> gapless_from_granule(std::int64_t final_granule,
                                                        std::int64_t initial_granule = 0);
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

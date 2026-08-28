@@ -22,7 +22,7 @@ void put32(std::ofstream& out, unsigned value) {
 }
 
 TEST(PlaybackService, PlaysWavToInjectedSink) {
-    const auto path = std::filesystem::temp_directory_path() / "eclipse-player-service.wav";
+    const auto path = std::filesystem::temp_directory_path() / "arrow-player-service.wav";
     std::ofstream out(path, std::ios::binary);
     out.write("RIFF", 4);
     put32(out, 42);
@@ -38,21 +38,21 @@ TEST(PlaybackService, PlaysWavToInjectedSink) {
     put32(out, 2);
     put16(out, 16384);
     out.close();
-    eclipse::audio::WavDecoder decoder;
-    eclipse::audio::NullSink sink;
-    eclipse::audio::PlaybackService service{decoder, sink, 8};
+    arrow::audio::WavDecoder decoder;
+    arrow::audio::NullSink sink;
+    arrow::audio::PlaybackService service{decoder, sink, 8};
     ASSERT_TRUE(service.play_file(path, 4));
     EXPECT_EQ(sink.written_frames(), 1U);
     std::filesystem::remove(path);
 }
 
 TEST(PlaybackService, RejectsZeroChunkSize) {
-    eclipse::audio::WavDecoder decoder;
-    eclipse::audio::NullSink sink;
-    eclipse::audio::PlaybackService service{decoder, sink, 8};
+    arrow::audio::WavDecoder decoder;
+    arrow::audio::NullSink sink;
+    arrow::audio::PlaybackService service{decoder, sink, 8};
     const auto result = service.play_file("unused.wav", 0);
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().code(), eclipse::ErrorCode::InvalidArgument);
+    EXPECT_EQ(result.error().code(), arrow::ErrorCode::InvalidArgument);
 }
 
 }  // namespace

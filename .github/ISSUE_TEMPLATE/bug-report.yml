@@ -1,5 +1,5 @@
 name: Bug report
-description: Something behaves differently from what eclipse-player.md specifies.
+description: Something behaves differently from what arrow-player.md specifies.
 labels: ["bug"]
 body:
   - type: markdown

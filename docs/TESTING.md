@@ -192,8 +192,8 @@ python3 tools/check-hardening.py build/linux-release  # the produced binaries
 `REQ-SEC-018` lists the flags a release build must enable and then adds the
 clause that turns a preference into a gate: CI must verify them *in the produced
 binaries, not merely in the build files*. That sentence describes a bug this tree
-actually had. `eclipse_set_hardening()` was defined in
-`desktop/cmake/EclipseWarnings.cmake` and called from nowhere for several
+actually had. `arrow_set_hardening()` was defined in
+`desktop/cmake/ArrowWarnings.cmake` and called from nowhere for several
 commits: every flag was in the build files and in no binary. Grepping the CMake
 would have reported success.
 
@@ -230,7 +230,7 @@ What it does **not** claim:
 Real output on the current tree:
 
 ```text
-  ok   build/linux-release/eclipse-player                   elf  all checks pass
+  ok   build/linux-release/arrow-player                   elf  all checks pass
   ok   build/linux-release/tests/fuzz/fuzz_gapless_replay   elf  all checks pass
        · fortified: __fprintf_chk
   ok   build/linux-release/tests/test_core                  elf  all checks pass
@@ -249,7 +249,7 @@ from a clean checkout alone.
 
 ```bash
 python3 tools/check-cve-baseline.py --self-test        # the rules themselves
-grype sbom:docs/sbom/eclipse-player.cdx.json -o json > sbom-scan.json
+grype sbom:docs/sbom/arrow-player.cdx.json -o json > sbom-scan.json
 grype dir:. --exclude './node_modules/**' -o json     > tree-scan.json
 python3 tools/check-cve-baseline.py sbom-scan.json tree-scan.json
 ```
@@ -320,7 +320,7 @@ The configure summary names what was found; on this machine Qt and libsamplerate
 are absent (see [What is not tested here](#what-is-not-tested-here)):
 
 ```text
--- ======== Eclipse Player 0.1.0 (d03fc8cd5e84) ========
+-- ======== Arrow Player 0.1.0 (d03fc8cd5e84) ========
 --   build type    : Release
 --   compiler      : GNU 14.2.0
 --   deps from     : system / pkg-config
@@ -417,7 +417,7 @@ make waits on the second platform ([OQ-018](OPEN-QUESTIONS.md)).
 `CMakePresets.json` and are exercised only by `desktop-ci.yml`: the development
 machine is Linux, so WASAPI, the installer, and everything Windows are CI-only
 ([OQ-023](OPEN-QUESTIONS.md)). `arm64` has no runner at all
-([OQ-022](OPEN-QUESTIONS.md)). The Qt UI (`ECLIPSE_BUILD_UI`) never configures
+([OQ-022](OPEN-QUESTIONS.md)). The Qt UI (`ARROW_BUILD_UI`) never configures
 because Qt is not installed ([OQ-017](OPEN-QUESTIONS.md)), so there is no QTest,
 QML, or screenshot suite to run locally.
 
@@ -549,7 +549,7 @@ committed, growing corpus:
 | `fuzz_efs` | EFS patterns | Phase 4 |
 | `fuzz_theme` | Theme JSON | Phase 5 |
 | `fuzz_layout` | Layout DSL JSON | Phase 5 |
-| `fuzz_skinzip` | `.eclipseskin` archives | Phase 5 |
+| `fuzz_skinzip` | `.arrowskin` archives | Phase 5 |
 | `fuzz_lrc` | LRC and enhanced LRC | Phase 7 |
 | `fuzz_icy` | ICY metadata streams | Phase 8 |
 | `fuzz_rss` | Podcast feeds | Phase 8 |
@@ -643,11 +643,11 @@ invariant and a seed somebody thought about — which is the argument for the
 ### What is still unproven
 
 libFuzzer needs Clang, which is **not installed** on this machine (`clang++` is
-absent; the build uses GCC 14.2.0), so `ECLIPSE_HAVE_LIBFUZZER` is false in every
+absent; the build uses GCC 14.2.0), so `ARROW_HAVE_LIBFUZZER` is false in every
 local configuration. The harnesses compile and run here under GCC with ASan+UBSan
 through the replay driver, and the `linux-fuzz` preset exercises the
 fuzzers-without-GoogleTest build — but the libFuzzer binaries themselves and
-`eclipse-domain-fuzz`'s `-fsanitize=fuzzer-no-link` instrumentation have never
+`arrow-domain-fuzz`'s `-fsanitize=fuzzer-no-link` instrumentation have never
 been built. Those are **CI-only** until a Clang toolchain is available here; the
 `fuzz` job in `desktop-ci.yml` is the first thing that will build them, and it
 fails rather than degrading to replay-only if Clang does not supply the engine.

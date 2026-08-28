@@ -1,6 +1,6 @@
 # Roadmap
 
-Derived from the MoSCoW tiers in `eclipse-player.md` §0.3. This document covers
+Derived from the MoSCoW tiers in `arrow-player.md` §0.3. This document covers
 what comes **after** 1.0.0 — the `[v1.x]` and `[v2]` tiers — and the §2.4
 non-goals, which are refused rather than deferred.
 
@@ -115,7 +115,7 @@ guessing at what floating and collapsed states need to express.
 
 ### Theme and skin — 3 requirements
 
-`tools/skin-editor` (`REQ-THM-062`), icon packs as a separate `.eclipseicons`
+`tools/skin-editor` (`REQ-THM-062`), icon packs as a separate `.arrowicons`
 artefact (`REQ-THM-063`), a public skin gallery with screenshots, search and
 author pages (`REQ-THM-064`).
 
@@ -150,7 +150,7 @@ Selective LGPL-clean encoders for the converter (`REQ-GEN-016`) — FFmpeg's nat
 `flac`, `alac`, `opus`, `vorbis`, `wavpack`, `pcm_*`; **`libfdk_aac` never**
 (non-free); `libmp3lame` permitted but only as a separately-enabled component so
 the default build stays minimal. And the licence side of ASIO (`REQ-GEN-018`):
-behind `ECLIPSE_ENABLE_ASIO`, default off, Steinberg SDK supplied by the user,
+behind `ARROW_ENABLE_ASIO`, default off, Steinberg SDK supplied by the user,
 never vendored, never in a release artifact (§4.6). `REQ-AUD-071` is the same
 feature seen from the audio side.
 

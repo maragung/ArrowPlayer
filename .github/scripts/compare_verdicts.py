@@ -24,7 +24,7 @@ future Android reporter must emit the same shape:
       "corpusFingerprint": "<sha256 of index.json, hex>",
       "generatedBy": {"version": "0.1.0", "commit": "873e5be"},
       "cases": [
-        {"file": "malicious/zip-slip.eclipseskin",
+        {"file": "malicious/zip-slip.arrowskin",
          "verdict": "reject",
          "pipelineStep": 2,                  // optional, diagnostic only
          "reason": "entry escapes the archive root"}   // optional

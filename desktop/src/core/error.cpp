@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace eclipse {
+namespace arrow {
 
 std::string_view to_string(Severity sev) noexcept {
     switch (sev) {
@@ -181,4 +181,4 @@ std::string Error::to_log_string() const {
     return out;
 }
 
-}  // namespace eclipse
+}  // namespace arrow

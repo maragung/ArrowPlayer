@@ -139,7 +139,7 @@ jobs:
       - name: Scan the SBOM and the tree
         run: |
           set -euo pipefail
-          grype "sbom:docs/sbom/eclipse-player.cdx.json" -o json > cve-sbom.json
+          grype "sbom:docs/sbom/arrow-player.cdx.json" -o json > cve-sbom.json
           grype "dir:." --exclude './node_modules/**' --exclude './build/**' \
             -o json > cve-tree.json
 
@@ -155,7 +155,7 @@ jobs:
         continue-on-error: true
         run: |
           set -uo pipefail
-          grype "sbom:docs/sbom/eclipse-player.cdx.json" --add-cpes-if-none \
+          grype "sbom:docs/sbom/arrow-player.cdx.json" --add-cpes-if-none \
             -o table > cve-advisory.txt || true
           {
             echo "### Advisory CVE scan — synthesised CPEs"
@@ -265,7 +265,7 @@ jobs:
       - name: Validate the SBOM against the canonical CycloneDX schema (OQ-048)
         run: |
           ./cyclonedx validate \
-            --input-file docs/sbom/eclipse-player.cdx.json \
+            --input-file docs/sbom/arrow-player.cdx.json \
             --input-format json --input-version v1_6 --fail-on-errors
 
       # §25.4 step 4 asks for a diff against the previous release. There is no
@@ -328,7 +328,7 @@ jobs:
         run: |
           set -euo pipefail
           "$VCPKG_INSTALLATION_ROOT/vcpkg" install \
-            --triplet x64-linux-eclipse --dry-run \
+            --triplet x64-linux-arrow --dry-run \
             | tee "$GITHUB_WORKSPACE/vcpkg-dry-run.txt"
 
       - name: Every resolved port is described by the register (REQ-GEN-012)
@@ -352,7 +352,7 @@ jobs:
           python3 tools/gen-sbom.py --resolved-graph vcpkg-dry-run.txt \
             -o sbom-resolved.json
           python3 tools/gen-sbom.py --diff \
-            docs/sbom/eclipse-player.cdx.json sbom-resolved.json \
+            docs/sbom/arrow-player.cdx.json sbom-resolved.json \
             | tee sbom-diff.txt
           {
             echo "### SBOM: register-only vs resolved graph"
@@ -539,7 +539,7 @@ jobs:
           cmake --build --preset linux-release --parallel
 
       # REQ-SEC-018's clause is "in the produced binaries, not merely in the
-      # build files", and it describes a bug this tree had: eclipse_set_hardening
+      # build files", and it describes a bug this tree had: arrow_set_hardening
       # was defined and called from nowhere, so every flag was in the CMake and
       # in no binary. Grepping the build files would have reported success. This
       # reads ELF headers.

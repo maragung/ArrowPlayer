@@ -10,7 +10,7 @@
 // presentation, and presentation reachable only downward" costs to honour here.
 //
 // The version fields are passed in rather than read here on purpose: the
-// generated `eclipse/version.hpp` (REQ-BLD-007) is produced by CMake from git,
+// generated `arrow/version.hpp` (REQ-BLD-007) is produced by CMake from git,
 // and exit gate 7 requires the value shown in About to be *that* generated
 // value, never a literal baked into the UI. The shell therefore displays what
 // it is handed and has no opinion about where the numbers came from.
@@ -19,23 +19,23 @@
 
 #include <string_view>
 
-namespace eclipse::ui {
+namespace arrow::ui {
 
 /// Version and build provenance the shell displays in the About dialog.
 ///
 /// `main.cpp` fills exactly these three fields from the generated
-/// `eclipse::version` header (REQ-BLD-007):
-///   version   = eclipse::version::kString
-///   git_sha   = eclipse::version::kGitSha
-///   git_dirty = eclipse::version::kGitDirty != 0
+/// `arrow::version` header (REQ-BLD-007):
+///   version   = arrow::version::kString
+///   git_sha   = arrow::version::kGitSha
+///   git_dirty = arrow::version::kGitDirty != 0
 ///
 /// The struct is intentionally not widened beyond what exit gate 7 needs; the
 /// About dialog grows fields only when a requirement asks for them, so an
 /// unverifiable UI stays as small as Phase 0 requires.
 struct ShellInfo {
-    std::string_view version;    ///< eclipse::version::kString  (e.g. "0.1.0")
-    std::string_view git_sha;    ///< eclipse::version::kGitSha  (short hash)
-    bool             git_dirty;  ///< eclipse::version::kGitDirty != 0
+    std::string_view version;    ///< arrow::version::kString  (e.g. "0.1.0")
+    std::string_view git_sha;    ///< arrow::version::kGitSha  (short hash)
+    bool             git_dirty;  ///< arrow::version::kGitDirty != 0
 };
 
 /// Creates the QApplication, installs the locale translators, shows the main
@@ -50,8 +50,8 @@ struct ShellInfo {
 /// blocks, and does file I/O through Qt's resource system.
 ///
 /// `argc`/`argv` are forwarded to `QApplication` so Qt's own command-line
-/// switches (`-style`, `-platform`, `-widgetcount`, …) keep working; Eclipse's
+/// switches (`-style`, `-platform`, `-widgetcount`, …) keep working; Arrow's
 /// own CLI parsing happens in layer 4 before this is called.
 int run_shell(int argc, char** argv, const ShellInfo& info);
 
-}  // namespace eclipse::ui
+}  // namespace arrow::ui

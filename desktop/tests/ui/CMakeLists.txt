@@ -10,9 +10,9 @@
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
 qt_add_executable(test_ui test_shell.cpp)
-target_link_libraries(test_ui PRIVATE eclipse-ui Qt6::Test)
-eclipse_set_warnings(test_ui)
-eclipse_set_hardening(test_ui)   # REQ-SEC-018
+target_link_libraries(test_ui PRIVATE arrow-ui Qt6::Test)
+arrow_set_warnings(test_ui)
+arrow_set_hardening(test_ui)   # REQ-SEC-018
 
 add_test(NAME test_ui COMMAND test_ui)
 set_tests_properties(test_ui PROPERTIES

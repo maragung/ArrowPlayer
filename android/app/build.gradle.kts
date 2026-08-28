@@ -1,4 +1,4 @@
-// Eclipse Player — Android app module (spec §5: "thin shell: DI wiring,
+// Arrow Player — Android app module (spec §5: "thin shell: DI wiring,
 // navigation, manifest"). Phase 0 scaffold: a Compose About screen showing the
 // git-derived version, mirroring the desktop exit gate 7 on this platform.
 
@@ -11,18 +11,18 @@ plugins {
 }
 
 // The single source of the Android-side version (gradle.properties).
-val eclipseVersion: String = (project.property("eclipse.version") as String)
+val arrowVersion: String = (project.property("arrow.version") as String)
 
 android {
-    namespace = "io.github.eclipseplayer.app"
+    namespace = "io.github.arrowplayer.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "io.github.eclipseplayer.app"
+        applicationId = "io.github.arrowplayer.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = eclipseVersion
+        versionName = arrowVersion
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

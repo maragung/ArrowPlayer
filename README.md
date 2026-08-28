@@ -1,4 +1,4 @@
-# Eclipse Player
+# Arrow Player
 
 A free, open-source, privacy-first music player for people who own their music
 files, care about audio fidelity, and want to make the player theirs.
@@ -7,7 +7,7 @@ files, care about audio fidelity, and want to make the player theirs.
 in progress. See [Implementation status](#implementation-status) for exactly what
 works today — no feature is claimed here before it is built and tested.
 
-- **Specification:** [`eclipse-player.md`](eclipse-player.md) — 4,200 lines, 525
+- **Specification:** [`arrow-player.md`](arrow-player.md) — 4,200 lines, 525
   numbered requirements, each with acceptance criteria
 - **Licence:** [MPL-2.0](LICENSE) ([why](docs/adr/0001-project-license.md))
 
@@ -157,7 +157,7 @@ default-on analytics, macOS/iOS builds (no CI hardware or maintainer).
 
 ## Contributing
 
-Read [`eclipse-player.md`](eclipse-player.md) first — it is a specification, not
+Read [`arrow-player.md`](arrow-player.md) first — it is a specification, not
 a suggestion list. Then §1.3, the Definition of Done.
 
 Work proceeds in the phases defined in §28. Each phase has hard exit gates, and

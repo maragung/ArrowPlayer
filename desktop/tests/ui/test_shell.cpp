@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 //
 // Shell tests — spec §28 Phase 0 exit gates 1 ("window opens") and 7 ("version
 // string generated from git and shown in About", REQ-BLD-007), run off-screen.
@@ -13,11 +13,11 @@
 #include <QString>
 #include <QtTest>
 
-#include <eclipse/ui/main_window.hpp>
-#include <eclipse/ui/shell.hpp>
+#include <arrow/ui/main_window.hpp>
+#include <arrow/ui/shell.hpp>
 
-using eclipse::ui::MainWindow;
-using eclipse::ui::ShellInfo;
+using arrow::ui::MainWindow;
+using arrow::ui::ShellInfo;
 
 class ShellTest : public QObject {
     Q_OBJECT
@@ -64,7 +64,7 @@ void ShellTest::windowIsNamedForTheProduct() {
     // A smoke run observes the window title before anything else; gate 1's
     // "hello window" has to be recognisable as the product.
     const MainWindow window(sampleInfo());
-    QCOMPARE(window.windowTitle(), QStringLiteral("Eclipse Player"));
+    QCOMPARE(window.windowTitle(), QStringLiteral("Arrow Player"));
 }
 
 QTEST_MAIN(ShellTest)

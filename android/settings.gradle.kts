@@ -1,4 +1,4 @@
-// Eclipse Player — Android build root (spec §5: `android/` is a self-contained
+// Arrow Player — Android build root (spec §5: `android/` is a self-contained
 // Gradle build; it never imports desktop/ code — REQ-GEN-030, §5 isolation).
 //
 // Version catalog lives in gradle/libs.versions.toml. No inline versions
@@ -21,5 +21,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "EclipsePlayer"
+rootProject.name = "ArrowPlayer"
 include(":app")

@@ -1,12 +1,12 @@
 # Privacy
 
-`REQ-SET-015`. This document states, in plain language, what Eclipse Player
+`REQ-SET-015`. This document states, in plain language, what Arrow Player
 stores, where it stores it, what leaves your device and under exactly which
 action, what never leaves, and **how you can verify all of it yourself** — because
 a privacy claim you cannot check is a promise, and promises are not a security
 property.
 
-The short version: Eclipse Player is a local music player. With default settings
+The short version: Arrow Player is a local music player. With default settings
 it makes **zero network connections**. There are no accounts, no analytics, no
 crash reporting, no advertising identifiers, and no dependency in the build that
 could provide them.
@@ -40,11 +40,11 @@ cloud copy to protect.
 
 | Data | Windows | Linux | Android |
 |---|---|---|---|
-| Settings | `%APPDATA%\EclipsePlayer\` | `$XDG_CONFIG_HOME/eclipse-player/` | DataStore, app-private |
-| Library database | `%LOCALAPPDATA%\EclipsePlayer\` | `$XDG_DATA_HOME/eclipse-player/` | app-private `databases/` |
-| Skins and plugins | `%APPDATA%\EclipsePlayer\skins\|plugins\` | `$XDG_DATA_HOME/eclipse-player/skins\|plugins/` | app-private `files/skins/` |
-| Artwork cache | `%LOCALAPPDATA%\EclipsePlayer\cache\` | `$XDG_CACHE_HOME/eclipse-player/` | `context.cacheDir` |
-| Logs | `%LOCALAPPDATA%\EclipsePlayer\logs\` | `$XDG_STATE_HOME/eclipse-player/logs/` | app-private `files/logs/` |
+| Settings | `%APPDATA%\ArrowPlayer\` | `$XDG_CONFIG_HOME/arrow-player/` | DataStore, app-private |
+| Library database | `%LOCALAPPDATA%\ArrowPlayer\` | `$XDG_DATA_HOME/arrow-player/` | app-private `databases/` |
+| Skins and plugins | `%APPDATA%\ArrowPlayer\skins\|plugins\` | `$XDG_DATA_HOME/arrow-player/skins\|plugins/` | app-private `files/skins/` |
+| Artwork cache | `%LOCALAPPDATA%\ArrowPlayer\cache\` | `$XDG_CACHE_HOME/arrow-player/` | `context.cacheDir` |
+| Logs | `%LOCALAPPDATA%\ArrowPlayer\logs\` | `$XDG_STATE_HOME/arrow-player/logs/` | app-private `files/logs/` |
 | Secrets (only if you enable a feature needing them) | Windows Credential Manager | Secret Service / kwallet | Android Keystore |
 
 Paths come from `QStandardPaths` and the Android `Context` APIs; none are
@@ -108,7 +108,7 @@ Three properties of that table matter more than its contents:
    own network layer is compiled out (`--disable-network`, §4.4) specifically so
    that no second path can exist.
 2. **The `User-Agent` is fixed and honest** (`REQ-NET-004`):
-   `EclipsePlayer/<version> (+https://eclipse-player.org)`. No OS build, no
+   `ArrowPlayer/<version> (+https://arrow-player.org)`. No OS build, no
    hardware details, no unique id — nothing usable for fingerprinting.
 3. **TLS is mandatory and certificate validation cannot be disabled**
    (`REQ-NET-003`). Plain `http://` is permitted only for a radio stream you typed
@@ -156,18 +156,18 @@ want.
 
 None of this requires trusting the text. In rough order of effort:
 
-1. **Watch the network.** Block Eclipse Player in your firewall, or run it under
+1. **Watch the network.** Block Arrow Player in your firewall, or run it under
    observation:
 
    ```bash
    # Linux: every socket the process opens, live.
-   sudo strace -f -e trace=network -p "$(pgrep -x eclipse-player)"
+   sudo strace -f -e trace=network -p "$(pgrep -x arrow-player)"
 
    # Or watch for packets attributable to it.
-   sudo ss -tp | grep eclipse
+   sudo ss -tp | grep arrow
 
    # Windows, PowerShell:
-   Get-NetTCPConnection | Where-Object { $_.OwningProcess -eq (Get-Process eclipse-player).Id }
+   Get-NetTCPConnection | Where-Object { $_.OwningProcess -eq (Get-Process arrow-player).Id }
    ```
 
    With the global switch off, a full session — scan a library, play, seek, change
@@ -180,7 +180,7 @@ None of this requires trusting the text. In rough order of effort:
    this repository declares against an analytics/attribution/ads/crash-SDK
    denylist (`REQ-SET-010`, §25.6). Nothing runs it for you yet — see *Current
    status* below. The committed
-   [`docs/sbom/eclipse-player.cdx.json`](sbom/eclipse-player.cdx.json) lists
+   [`docs/sbom/arrow-player.cdx.json`](sbom/arrow-player.cdx.json) lists
    every component with its SPDX licence (`REQ-SEC-014`); §25.5 step 6 will
    attach one to each release once there is a release. Look for an analytics SDK
    in either; there is not one to find.

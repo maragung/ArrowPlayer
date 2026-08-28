@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 #pragma once
 
 #include <cstddef>
@@ -7,7 +7,7 @@
 
 #include "core/error.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 /// Interleaved/planar-independent PCM stream description.
 struct PcmFormat final {
@@ -50,4 +50,4 @@ struct PlanarFrames final {
     }
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

@@ -56,7 +56,7 @@ per-platform backends:
 | Windows | ASIO | exclusive | v1.x, opt-in build, SDK user-supplied |
 
 RtAudio is retained **only** as an optional last-resort Linux fallback behind
-`ECLIPSE_ENABLE_RTAUDIO` (default `OFF`), and when active the UI must show a
+`ARROW_ENABLE_RTAUDIO` (default `OFF`), and when active the UI must show a
 persistent "compatibility output — bit-perfect unavailable" indicator
 (REQ-AUD-073).
 

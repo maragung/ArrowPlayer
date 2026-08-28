@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 #include "audio/playback_service.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 Status PlaybackService::play_file(const std::filesystem::path& path,
                                   const std::size_t chunk_frames) {
@@ -26,4 +26,4 @@ Status PlaybackService::play_file(const std::filesystem::path& path,
     return ok();
 }
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

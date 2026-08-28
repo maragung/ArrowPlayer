@@ -6,7 +6,7 @@
 
 ## Context
 
-Eclipse Player is a free, open-source music player. The licence choice is not
+Arrow Player is a free, open-source music player. The licence choice is not
 cosmetic: it determines which decoders we may legally ship, whether closed-source
 plugins can link against our SDK, and what obligations attach to every release.
 Specification v1.x contained no licensing analysis at all, which is a release
@@ -14,7 +14,7 @@ blocker for an open-source player that links FFmpeg and Qt.
 
 ## Decision
 
-**Eclipse Player's own source is `MPL-2.0`.** All third-party dependencies must be
+**Arrow Player's own source is `MPL-2.0`.** All third-party dependencies must be
 permissive or LGPL; **no GPL-only component may be linked.**
 
 The plugin SDK headers are additionally dual-licensed `Apache-2.0 OR MPL-2.0`
@@ -22,7 +22,7 @@ The plugin SDK headers are additionally dual-licensed `Apache-2.0 OR MPL-2.0`
 
 ## Rationale
 
-- **File-level copyleft** keeps improvements to Eclipse's own files open, which
+- **File-level copyleft** keeps improvements to Arrow's own files open, which
   protects the project, without infecting anything that merely links against it.
 - **Compatible with LGPL dependencies** without forcing the combined work to GPL.
 - **Permits closed-source plugins** to link the SDK. Winamp's plugin ecosystem is
@@ -51,7 +51,7 @@ same compliance pattern (REQ-GEN-020).
 - The Monkey's Audio SDK must not be vendored; FFmpeg's native LGPL `ape`
   decoder is used instead.
 - Qt must be **dynamically linked** so users can replace it, as LGPL-3.0
-  requires (REQ-GEN-013). `cmake/EclipseDependencies.cmake` fails the configure
+  requires (REQ-GEN-013). `cmake/ArrowDependencies.cmake` fails the configure
   step if a static Qt is detected, so this cannot regress silently.
 - ASIO support requires the Steinberg SDK, which we may not redistribute; it is
   therefore an opt-in build with a user-supplied SDK (REQ-GEN-018).

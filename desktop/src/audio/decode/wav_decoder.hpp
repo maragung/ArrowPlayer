@@ -8,7 +8,7 @@
 
 #include "audio/ports/audio_ports.hpp"
 
-namespace eclipse::audio {
+namespace arrow::audio {
 
 class WavDecoder final : public IDecoder {
   public:
@@ -28,4 +28,4 @@ class WavDecoder final : public IDecoder {
     bool opened_{false};
 };
 
-}  // namespace eclipse::audio
+}  // namespace arrow::audio

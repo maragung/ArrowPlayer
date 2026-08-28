@@ -39,7 +39,7 @@ The layout DSL is deliberately constrained:
   (REQ-THM-027) — a skin cannot reach settings, the library, or the filesystem;
 - **enum-only actions** (REQ-THM-028) — a skin references a command by name from
   the central registry, and an unknown name fails at install time;
-- **no arithmetic or expressions** beyond Eclipse Format Strings (§10, itself
+- **no arithmetic or expressions** beyond Arrow Format Strings (§10, itself
   total and output-capped) and a one-level `when:` predicate (REQ-THM-030);
 - **resource budgets** — 500 components, depth 24, 64 bindings (REQ-THM-033).
 

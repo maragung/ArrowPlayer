@@ -3,7 +3,7 @@ name: desktop-ci
 # Spec §25.2 (REQ-BLD-021). Matrix per §3.1: Windows and both Ubuntu LTS targets.
 #
 # Note on dependencies: the build is designed so that every external library is
-# optional at configure time (see cmake/EclipseDependencies.cmake). The domain
+# optional at configure time (see cmake/ArrowDependencies.cmake). The domain
 # layer — which is where the audio maths, parsers and validators live — compiles
 # and tests with nothing but a C++20 compiler. Adapters are built only where
 # their library is present. That keeps this workflow fast and keeps a missing
@@ -196,7 +196,7 @@ jobs:
       # x64-windows triplet — and vcpkg's ffmpeg port (7.1.2#5) fails there with
       # "LNK1181: cannot open input file 'zlib.lib'" (an upstream port bug).
       # This matrix lane deliberately builds Qt + the vendored gtest and lets
-      # the dedicated `vcpkg` job own manifest mode with the eclipse triplet.
+      # the dedicated `vcpkg` job own manifest mode with the arrow triplet.
       # Forcing an empty toolchain file keeps the vcpkg branch in CMakeLists.txt
       # from firing while leaving every optional adapter dependency-gated off.
       - name: Configure
@@ -220,7 +220,7 @@ jobs:
 
       # Phase 0 exit gate 1 is "window opens", not "tests pass". The off-screen
       # QTest suite (test_ui) proves the window constructs and is exposed; this
-      # step runs the real binary with the ECLIPSE_SMOKE_TEST seam (ui/src/
+      # step runs the real binary with the ARROW_SMOKE_TEST seam (ui/src/
       # shell.cpp), which quits the event loop right after the first show, so
       # exit 0 here means the shipped executable actually opened a window.
       # Offscreen platform: there is no display on these runners.
@@ -233,12 +233,12 @@ jobs:
         shell: bash
         env:
           QT_QPA_PLATFORM: offscreen
-          ECLIPSE_SMOKE_TEST: '1'
+          ARROW_SMOKE_TEST: '1'
         run: |
           set -euo pipefail
-          exe="build/${{ matrix.preset }}/eclipse-player"
+          exe="build/${{ matrix.preset }}/arrow-player"
           if [ ! -f "$exe" ] && [ ! -f "$exe.exe" ]; then
-            echo "::error::eclipse-player not found under build/${{ matrix.preset }} —"
+            echo "::error::arrow-player not found under build/${{ matrix.preset }} —"
             echo "::error::check that the UI target built (Qt present?)."
             exit 1
           fi
@@ -294,7 +294,7 @@ jobs:
       # REQ-SEC-018's operative clause: "CI MUST verify the flags are present in
       # the produced binaries, not merely in the build files." So this reads the
       # ELF headers of what was just linked. It is not run for the asan and tsan
-      # presets because eclipse_set_hardening deliberately no-ops there — the
+      # presets because arrow_set_hardening deliberately no-ops there — the
       # sanitizer runtimes are what make those suites meaningful — and the tool
       # recognises such binaries and refuses to pass a directory containing only
       # them, rather than reporting a vacuous success.
@@ -388,11 +388,11 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/vcpkg-cache
-          key: vcpkg-x64-linux-eclipse-${{ hashFiles('desktop/vcpkg.json', 'desktop/vcpkg-configuration.json', 'desktop/cmake/triplets/*.cmake') }}
+          key: vcpkg-x64-linux-arrow-${{ hashFiles('desktop/vcpkg.json', 'desktop/vcpkg-configuration.json', 'desktop/cmake/triplets/*.cmake') }}
           # A partial restore is worth having: one changed port should not mean
           # rebuilding the other eight.
           restore-keys: |
-            vcpkg-x64-linux-eclipse-
+            vcpkg-x64-linux-arrow-
 
       # Read, not written twice. The baseline lives in desktop/vcpkg.json and
       # REQ-SEC-013 is about versions not floating; a hash copied into this file
@@ -437,8 +437,8 @@ jobs:
           # is why this runs from desktop/ rather than the repository root.
           set +e
           "$VCPKG_ROOT/vcpkg" install \
-            --triplet x64-linux-eclipse \
-            --host-triplet x64-linux-eclipse \
+            --triplet x64-linux-arrow \
+            --host-triplet x64-linux-arrow \
             --x-manifest-root . \
             2>&1 | tee "$RUNNER_TEMP/vcpkg-install.log"
           rc=${PIPESTATUS[0]}
@@ -578,7 +578,7 @@ jobs:
       - name: Assert libFuzzer was detected
         run: |
           set -euo pipefail
-          if ! grep -q '^ECLIPSE_HAVE_LIBFUZZER:INTERNAL=1$' \
+          if ! grep -q '^ARROW_HAVE_LIBFUZZER:INTERNAL=1$' \
                  build/linux-fuzz/CMakeCache.txt; then
             echo "::error::clang did not provide -fsanitize=fuzzer, so this job" \
                  "would test only the corpus replay. REQ-SEC-011 needs the engine."

@@ -5,14 +5,14 @@
 #include <limits>
 #include <string>
 
-namespace eclipse::library {
+namespace arrow::library {
 
 Result<Track> SidecarTagReader::read(const std::filesystem::path& path) const {
     if (path.empty()) {
         return err(ErrorCode::InvalidArgument, "The media path is empty.");
     }
     Track track{path.generic_string(), path.stem().string(), {}, 0};
-    std::ifstream input(path.string() + ".eclipse-tags");
+    std::ifstream input(path.string() + ".arrow-tags");
     if (!input) return track;
 
     std::string line;
@@ -44,4 +44,4 @@ Result<Track> SidecarTagReader::read(const std::filesystem::path& path) const {
     return track;
 }
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

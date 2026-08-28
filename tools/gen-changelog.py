@@ -369,7 +369,7 @@ CASES = [
     ("7" * 40, "feat(syn): change the protocol",
      "BREAKING CHANGE: v1 payloads are rejected\nREQ-SYN-010", "Added", None),
     ("8" * 40, "refactor(plg): retire the v1 entry point",
-     "DEPRECATED: eclipse_plugin_init_v1, removed in 2.0.0\nREQ-PLG-004",
+     "DEPRECATED: arrow_plugin_init_v1, removed in 2.0.0\nREQ-PLG-004",
      "Deprecated", None),
     # Long on purpose: the wrapping check is vacuous unless one bullet, with its
     # sha and its REQ ids, is longer than the column limit on its own.

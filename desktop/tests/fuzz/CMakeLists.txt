@@ -26,7 +26,7 @@ check_cxx_source_compiles("
 #include <cstddef>
 #include <cstdint>
 extern \"C\" int LLVMFuzzerTestOneInput(const std::uint8_t*, std::size_t) { return 0; }
-" ECLIPSE_HAVE_LIBFUZZER)
+" ARROW_HAVE_LIBFUZZER)
 unset(CMAKE_REQUIRED_FLAGS)
 unset(CMAKE_REQUIRED_LINK_OPTIONS)
 
@@ -35,34 +35,34 @@ unset(CMAKE_REQUIRED_LINK_OPTIONS)
 #
 #  -fsanitize=fuzzer-no-link instruments without providing main(), so the code
 #  under test is visible to the mutator while the harness supplies the entry
-#  point. Linking the ordinary eclipse-domain instead would still find crashes,
+#  point. Linking the ordinary arrow-domain instead would still find crashes,
 #  but only by luck: libFuzzer would get no coverage feedback from the parsers,
 #  which are the entire attack surface.
 # ---------------------------------------------------------------------------
-if(ECLIPSE_HAVE_LIBFUZZER)
-    add_library(eclipse-domain-fuzz STATIC ${ECLIPSE_DOMAIN_SOURCES})
-    target_include_directories(eclipse-domain-fuzz PUBLIC
+if(ARROW_HAVE_LIBFUZZER)
+    add_library(arrow-domain-fuzz STATIC ${ARROW_DOMAIN_SOURCES})
+    target_include_directories(arrow-domain-fuzz PUBLIC
         "${CMAKE_SOURCE_DIR}/include"
         "${CMAKE_SOURCE_DIR}/src"
         "${CMAKE_BINARY_DIR}/generated")
     # PRIVATE: instrumentation is a property of compiling these translation
     # units, not something consumers should inherit — the harness compiles with
     # the stronger -fsanitize=fuzzer and the two flags must not collide.
-    target_compile_options(eclipse-domain-fuzz PRIVATE -fsanitize=fuzzer-no-link)
-    target_compile_features(eclipse-domain-fuzz PUBLIC cxx_std_20)
-    eclipse_set_warnings(eclipse-domain-fuzz)
-    eclipse_set_sanitizers(eclipse-domain-fuzz)
-    target_link_libraries(eclipse-domain-fuzz PUBLIC Threads::Threads)
+    target_compile_options(arrow-domain-fuzz PRIVATE -fsanitize=fuzzer-no-link)
+    target_compile_features(arrow-domain-fuzz PUBLIC cxx_std_20)
+    arrow_set_warnings(arrow-domain-fuzz)
+    arrow_set_sanitizers(arrow-domain-fuzz)
+    target_link_libraries(arrow-domain-fuzz PUBLIC Threads::Threads)
 endif()
 
 # ---------------------------------------------------------------------------
-#  eclipse_add_fuzz_target(<name>)
+#  arrow_add_fuzz_target(<name>)
 #
 #  <name>.cpp must define LLVMFuzzerTestOneInput, and corpus/<name>/ must hold
 #  at least one seed. Both are checked here rather than left to fail later: a
 #  fuzz target with no corpus is the failure mode REQ-SEC-011 names explicitly.
 # ---------------------------------------------------------------------------
-function(eclipse_add_fuzz_target name)
+function(arrow_add_fuzz_target name)
     set(corpus "${CMAKE_CURRENT_SOURCE_DIR}/corpus/${name}")
     file(GLOB seeds "${corpus}/*")
     list(LENGTH seeds seed_count)
@@ -74,16 +74,16 @@ function(eclipse_add_fuzz_target name)
 
     # Replay: everywhere, and part of the ordinary test run.
     add_executable(${name}_replay ${name}.cpp replay_main.cpp)
-    target_link_libraries(${name}_replay PRIVATE eclipse-domain)
+    target_link_libraries(${name}_replay PRIVATE arrow-domain)
     target_include_directories(${name}_replay PRIVATE "${CMAKE_SOURCE_DIR}/src")
-    eclipse_set_warnings(${name}_replay)
-    eclipse_set_sanitizers(${name}_replay)
+    arrow_set_warnings(${name}_replay)
+    arrow_set_sanitizers(${name}_replay)
     # REQ-SEC-018. Under linux-release these four are ordinary release binaries,
     # and tools/check-hardening.py found them unhardened the first time it ran:
     # PIE and a stack protector by the distro compiler's own defaults, but only
     # partial RELRO, because -z now is nobody's default. Under the sanitizer and
-    # fuzz presets the call deliberately no-ops — see eclipse_set_hardening.
-    eclipse_set_hardening(${name}_replay)
+    # fuzz presets the call deliberately no-ops — see arrow_set_hardening.
+    arrow_set_hardening(${name}_replay)
     # The corpus path is passed as a directory, not a file list: the driver walks
     # it at run time, so a seed added by REQ-SEC-012's regression rule becomes a
     # test case without re-running CMake.
@@ -93,18 +93,18 @@ function(eclipse_add_fuzz_target name)
         TIMEOUT 300)
 
     # libFuzzer: only where it exists.
-    if(ECLIPSE_HAVE_LIBFUZZER)
+    if(ARROW_HAVE_LIBFUZZER)
         add_executable(${name} ${name}.cpp)
-        target_link_libraries(${name} PRIVATE eclipse-domain-fuzz)
+        target_link_libraries(${name} PRIVATE arrow-domain-fuzz)
         target_include_directories(${name} PRIVATE "${CMAKE_SOURCE_DIR}/src")
         target_compile_options(${name} PRIVATE -fsanitize=fuzzer)
         target_link_options(${name} PRIVATE -fsanitize=fuzzer)
-        eclipse_set_warnings(${name})
-        eclipse_set_sanitizers(${name})
+        arrow_set_warnings(${name})
+        arrow_set_sanitizers(${name})
         # No-ops today, since REQ-SEC-012 has this preset build with ASan. Called
         # anyway so the rule stays "every executable the build produces gets the
         # call", which is one fewer thing to remember than "except these".
-        eclipse_set_hardening(${name})
+        arrow_set_hardening(${name})
     endif()
 endfunction()
 
@@ -119,14 +119,14 @@ endfunction()
 #  in docs/OPEN-QUESTIONS.md — the gap is recorded rather than papered over with
 #  empty harnesses.
 # ---------------------------------------------------------------------------
-set(ECLIPSE_FUZZ_TARGETS fuzz_json fuzz_text fuzz_xinglame fuzz_gapless)
-foreach(target IN LISTS ECLIPSE_FUZZ_TARGETS)
-    eclipse_add_fuzz_target(${target})
+set(ARROW_FUZZ_TARGETS fuzz_json fuzz_text fuzz_xinglame fuzz_gapless)
+foreach(target IN LISTS ARROW_FUZZ_TARGETS)
+    arrow_add_fuzz_target(${target})
 endforeach()
 
-list(LENGTH ECLIPSE_FUZZ_TARGETS eclipse_fuzz_count)
-if(ECLIPSE_HAVE_LIBFUZZER)
-    message(STATUS "  fuzzing       : ${eclipse_fuzz_count} libFuzzer target(s) + corpus replay")
+list(LENGTH ARROW_FUZZ_TARGETS arrow_fuzz_count)
+if(ARROW_HAVE_LIBFUZZER)
+    message(STATUS "  fuzzing       : ${arrow_fuzz_count} libFuzzer target(s) + corpus replay")
 else()
     message(STATUS "  fuzzing       : corpus replay only "
                    "(${CMAKE_CXX_COMPILER_ID} has no -fsanitize=fuzzer)")

@@ -1,6 +1,6 @@
-# Building Eclipse Player — Desktop
+# Building Arrow Player — Desktop
 
-Covers Windows 10/11 and Ubuntu 22.04 / 24.04 LTS. See `../eclipse-player.md`
+Covers Windows 10/11 and Ubuntu 22.04 / 24.04 LTS. See `../arrow-player.md`
 §3 for the full support matrix and §24 for the toolchain requirements.
 
 ## Requirements
@@ -140,7 +140,7 @@ Two flags in there deserve an explanation, because both look like scope creep:
 TagLib and alsa-lib build into the same prefix with their usual CMake and
 autotools invocations.
 
-**Then tell the build where to look.** `EclipseDependencies.cmake` finds FFmpeg,
+**Then tell the build where to look.** `ArrowDependencies.cmake` finds FFmpeg,
 TagLib, ALSA and libsamplerate through `pkg-config`, which does not search a
 user-local prefix by default:
 
@@ -184,7 +184,7 @@ directory the packages extract into is still `gcc_64`, so `CMAKE_PREFIX_PATH`
 must use that name. On Windows the same split applies: the argument is
 `win64_msvc2022_64` and the extracted directory is `msvc2022_64`.
 
-Qt **must be dynamically linked**. `cmake/EclipseDependencies.cmake` fails the
+Qt **must be dynamically linked**. `cmake/ArrowDependencies.cmake` fails the
 configure step on a static Qt, because LGPL-3.0 requires that users be able to
 replace it (REQ-GEN-013). This is a licence obligation, not a preference.
 
@@ -202,7 +202,7 @@ git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
 export VCPKG_ROOT="$HOME/vcpkg"
 
 cd desktop
-cmake --preset linux-release -DVCPKG_TARGET_TRIPLET=x64-linux-eclipse
+cmake --preset linux-release -DVCPKG_TARGET_TRIPLET=x64-linux-arrow
 ```
 
 `VCPKG_ROOT` is what switches vcpkg on. `desktop/CMakeLists.txt` picks up the
@@ -212,23 +212,23 @@ explicit `-DCMAKE_TOOLCHAIN_FILE=...` always wins over both.
 
 ### Why the triplet is not optional
 
-The `-eclipse` triplets in `desktop/cmake/triplets/` are the Linkage column of
+The `-arrow` triplets in `desktop/cmake/triplets/` are the Linkage column of
 the §4.2 dependency register expressed as build configuration:
 
 | Ports | Linkage | Why |
 |---|---|---|
-| `ffmpeg`, `taglib`, `soundtouch`, `chromaprint`, `projectm` | dynamic | LGPL-2.1-or-later. §4.3 rule 2 requires the user be able to swap the shared library for a compatible build and still run Eclipse Player. |
+| `ffmpeg`, `taglib`, `soundtouch`, `chromaprint`, `projectm` | dynamic | LGPL-2.1-or-later. §4.3 rule 2 requires the user be able to swap the shared library for a compatible build and still run Arrow Player. |
 | `rtaudio` | dynamic | Permissive, but the register records it as dynamic, and the build follows the register. |
 | everything else | static | `sqlite3`, `libsamplerate`, `libzip`, `zlib`, `gtest` — public domain, BSD or zlib licensed, "Static OK" in the register. |
 
 Stock vcpkg triplets build every port with one linkage. On Linux that is
 `static`, which would statically link FFmpeg and TagLib into a shipped
 binary — exactly what REQ-GEN-013 forbids. Configure emits a warning if vcpkg is
-active with a triplet whose name does not end in `-eclipse`, because a licence
+active with a triplet whose name does not end in `-arrow`, because a licence
 violation should not be something you find out about in a review.
 
-Four triplets exist, matching the §3.1 target matrix: `x64-linux-eclipse`,
-`arm64-linux-eclipse`, `x64-windows-eclipse`, `arm64-windows-eclipse`.
+Four triplets exist, matching the §3.1 target matrix: `x64-linux-arrow`,
+`arm64-linux-arrow`, `x64-windows-arrow`, `arm64-windows-arrow`.
 
 ### Two manifest choices that are requirements, not taste
 
@@ -257,11 +257,11 @@ not `x-gha`, which the pinned vcpkg-tool release has removed (OQ-026).
 ```bash
 # ASIO (Windows). The Steinberg SDK is NOT redistributable (§4.6), so you must
 # obtain it yourself and accept its licence.
-cmake --preset windows-release -DECLIPSE_ENABLE_ASIO=ON -DASIO_SDK_DIR=C:/asiosdk
+cmake --preset windows-release -DARROW_ENABLE_ASIO=ON -DASIO_SDK_DIR=C:/asiosdk
 
 # RtAudio fallback sink. Off by default and NOT bit-perfect capable — see
 # ADR 0002 for why it is a fallback rather than the primary output path.
-cmake --preset linux-release -DECLIPSE_ENABLE_RTAUDIO=ON
+cmake --preset linux-release -DARROW_ENABLE_RTAUDIO=ON
 ```
 
 ## Architecture gates
@@ -297,7 +297,7 @@ gradle ktlintCheck detekt assembleDebug testDebugUnitTest
 # APK: app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Version: `android/gradle.properties`'s `eclipse.version` is the single
+Version: `android/gradle.properties`'s `arrow.version` is the single
 Android-side source (same-commit rule with `desktop/version.txt`, REQ-LIB-001);
 release CI stamps the tag version. All dependency versions live in
 `android/gradle/libs.versions.toml` — no inline versions anywhere (§5).

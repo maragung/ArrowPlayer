@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Eclipse Player — Android manifest (spec §5 app module).
+    Arrow Player — Android manifest (spec §5 app module).
 
     Phase 0 scaffold: one launcher activity. MediaLibraryService, the Android
     Auto browse tree and the foreground playback service (§15) arrive with the
@@ -13,7 +13,7 @@
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.EclipsePlayer">
+        android:theme="@style/Theme.ArrowPlayer">
 
         <activity
             android:name=".MainActivity"

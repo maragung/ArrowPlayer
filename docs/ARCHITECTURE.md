@@ -1,6 +1,6 @@
-# Architecture — Eclipse Player
+# Architecture — Arrow Player
 
-The document `eclipse-player.md` §27 requires: *five layers, threads, data flows,
+The document `arrow-player.md` §27 requires: *five layers, threads, data flows,
 `REQ-GEN-040` rationale*. This is that document. It describes the architecture as
 the specification defines it **and** as the repository currently enforces it, and
 it is explicit about the difference wherever one exists.
@@ -124,11 +124,11 @@ How the layers map onto the desktop tree:
 
 | Layer | Lives in | CMake target | Status |
 |---|---|---|---|
-| 5 Presentation | `desktop/ui/` | `eclipse-ui` (Qt) | not built yet — Stage 3 |
-| 4 Application | `desktop/src/app/` | `eclipse-app` | not built yet — Stage 3 |
-| 3 Domain | `desktop/src/core/`, `src/audio/dsp/`, `src/audio/analysis/`, `src/audio/graph/`, `src/theme/` | `eclipse-domain` | partly built |
-| 2 Ports | headers alongside their domain area (`audio/decode/decoder.hpp`, `audio/sink/sink.hpp`, …) | header-only, part of `eclipse-domain` | not written yet |
-| 1 Adapters | `desktop/src/audio/sink/`, `src/audio/decode/ffmpeg_decoder.cpp`, `src/library/`, `src/platform/` | `eclipse-adapters` | interface target only |
+| 5 Presentation | `desktop/ui/` | `arrow-ui` (Qt) | not built yet — Stage 3 |
+| 4 Application | `desktop/src/app/` | `arrow-app` | not built yet — Stage 3 |
+| 3 Domain | `desktop/src/core/`, `src/audio/dsp/`, `src/audio/analysis/`, `src/audio/graph/`, `src/theme/` | `arrow-domain` | partly built |
+| 2 Ports | headers alongside their domain area (`audio/decode/decoder.hpp`, `audio/sink/sink.hpp`, …) | header-only, part of `arrow-domain` | not written yet |
+| 1 Adapters | `desktop/src/audio/sink/`, `src/audio/decode/ffmpeg_decoder.cpp`, `src/library/`, `src/platform/` | `arrow-adapters` | interface target only |
 
 Ports are headers, not a directory. Putting `IDecoder` in `audio/decode/` next to
 the pure parsers it serves keeps the port with its subject; what makes it a
@@ -164,7 +164,7 @@ code needs no entry, an adapter directory does, and an unmapped adapter fails th
 moment it includes its port rather than being silently exempted.
 
 The same table classifies both sides of an include, so the file's layer and the
-included header's layer are read off one source of truth. `<eclipse/ui/…>` is
+included header's layer are read off one source of truth. `<arrow/ui/…>` is
 layer 5 by its include prefix; standard and third-party headers are not
 classified at all, because rules 2 and 3 own those.
 
@@ -183,7 +183,7 @@ The domain directories are listed explicitly in the script rather than globbed, 
 that adding a file to the domain library is a deliberate act visible in review:
 `src/core`, `src/audio/dsp`, `src/audio/analysis`, `src/audio/graph`,
 `src/audio/decode`, `src/theme`. One file inside them is excluded, because it is
-compiled into `eclipse-adapters` instead:
+compiled into `arrow-adapters` instead:
 `src/audio/decode/ffmpeg_decoder.cpp`.
 
 Inside those directories, an `#include` matching any of these is a build failure:
@@ -196,10 +196,10 @@ The platform headers are on that list for the same reason as the libraries. A
 domain module that reaches for `unistd.h` has acquired an operating system, which
 is exactly the dependency the layer exists to refuse.
 
-The CMake half is `eclipse-domain`'s include path: `include`, `src`, and the
+The CMake half is `arrow-domain`'s include path: `include`, `src`, and the
 generated-header directory — no third-party include directories are attached to
 it at all, so a forbidden header is usually a compile error before the gate ever
-runs. The one library `eclipse-domain` links is `Threads::Threads`, which is how
+runs. The one library `arrow-domain` links is `Threads::Threads`, which is how
 CMake spells the standard library's threading support (`-pthread`); it is not a
 third party, and `std::atomic`/`std::thread` are standard-library facilities the
 rule permits.

@@ -4,7 +4,7 @@
 #include <sqlite3.h>
 #include <vector>
 
-namespace eclipse::library {
+namespace arrow::library {
 
 LibraryDatabase::~LibraryDatabase() {
     close();
@@ -178,4 +178,4 @@ void LibraryDatabase::close() noexcept {
     }
 }
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

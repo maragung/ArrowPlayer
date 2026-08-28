@@ -22,8 +22,8 @@
 
 #include <gtest/gtest.h>
 
-using namespace eclipse;
-using namespace eclipse::audio;
+using namespace arrow;
+using namespace arrow::audio;
 
 namespace {
 

@@ -116,11 +116,11 @@ jobs:
           target: google_apis
           script: |
             adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-            adb shell am start -n io.github.eclipseplayer.app/.MainActivity
+            adb shell am start -n io.github.arrowplayer.app/.MainActivity
             sleep 8
             # The process must be alive after launch — "installs and launches"
             # is what gate 2 asks, and pidof answering is the launch evidence.
-            adb shell pidof io.github.eclipseplayer.app
+            adb shell pidof io.github.arrowplayer.app
 
   # -------------------------------------------------------------------------
   #  §25.1: "On a version tag: build … per-ABI APKs … and upload to the
@@ -172,7 +172,7 @@ jobs:
           set -euo pipefail
           # release.yml's publish job creates the release; either workflow may
           # get there first, so create is idempotent and upload clobbers.
-          gh release create "$TAG" --title "$TAG" --notes "Eclipse Player $TAG — see the desktop artifacts in this release too." >/dev/null 2>&1 || true
+          gh release create "$TAG" --title "$TAG" --notes "Arrow Player $TAG — see the desktop artifacts in this release too." >/dev/null 2>&1 || true
           version="${VERSION#v}"
           out_dir="$RUNNER_TEMP/apks"
           mkdir -p "$out_dir"
@@ -190,13 +190,13 @@ jobs:
           # keeps the spec name.
           for apk in android/app/build/outputs/apk/release/app-*-release*.apk; do
             abi=$(basename "$apk" | sed -E 's/^app-([a-z0-9_-]+)-release(-unsigned)?\.apk$/\1/')
-            dest="$out_dir/eclipse-player-$version-android-$abi.apk"
+            dest="$out_dir/arrow-player-$version-android-$abi.apk"
             cp "$apk" "$dest"
             sha256sum "$dest" > "$dest.sha256"
           done
           ls -la "$out_dir"
-          if compgen -G "$out_dir/eclipse-player-*.apk" > /dev/null; then
-            gh release upload "$TAG" "$out_dir"/eclipse-player-*.apk "$out_dir"/eclipse-player-*.sha256 --clobber
+          if compgen -G "$out_dir/arrow-player-*.apk" > /dev/null; then
+            gh release upload "$TAG" "$out_dir"/arrow-player-*.apk "$out_dir"/arrow-player-*.sha256 --clobber
           else
             echo "::error::No APKs were produced. Check the build output above; the abi split in app/build.gradle.kts must be generating per-ABI artifacts."
             exit 1

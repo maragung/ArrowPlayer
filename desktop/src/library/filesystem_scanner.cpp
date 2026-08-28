@@ -6,7 +6,7 @@
 #include <cctype>
 #include <system_error>
 
-namespace eclipse::library {
+namespace arrow::library {
 namespace {
 
 [[nodiscard]] bool supported_extension(const std::filesystem::path& path) {
@@ -58,4 +58,4 @@ Result<std::vector<std::filesystem::path>> FilesystemScanner::scan(
     return paths;
 }
 
-}  // namespace eclipse::library
+}  // namespace arrow::library

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Eclipse Player contributors
+// Copyright (c) Arrow Player contributors
 //
 // The application object — layer 4 (APPLICATION) per §7.1, named by §5's layout
 // for `desktop/src/app/`.
@@ -20,7 +20,7 @@
 #include "app/lifecycle.hpp"
 #include "core/error.hpp"
 
-namespace eclipse::app {
+namespace arrow::app {
 
 /// Process-wide application state. One instance, owned by main().
 ///
@@ -55,4 +55,4 @@ class Application {
     Lifecycle lifecycle_;
 };
 
-}  // namespace eclipse::app
+}  // namespace arrow::app
