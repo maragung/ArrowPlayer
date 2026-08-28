@@ -15,14 +15,14 @@ ktlint_function_naming_ignore_when_annotated_with = Composable
 # error message that the assertion itself reads back, and the
 # "X must be > Y" formulation reads more cleanly as a single line
 # than as a wrapped one. Production sources keep the 100-char
-# cap. The override is scoped to the test path only.
-# ktlint's editorconfig globbing matches paths segment-by-segment;
-# `app/src/test/**` does NOT match `app/src/test/java/.../Foo.kt`
-# because the `**` must consume at least one segment, and the
-# `app/src/test/` segment is the exact prefix. Use `**/test/**` so
-# the pattern hits every test file under any depth, with the `kt,kts`
-# extension filter applied after the directory glob resolves.
-[**/test/**.{kt,kts}]
+# cap. The override is scoped to the test path only. Editorconfig
+# globs are anchored at the section heading; the explicit
+# `app/src/test/java/**.kt` form avoids the `**/test/**` match
+# falling into the `app` segment (where the production 100-char
+# cap would still apply).
+[app/src/test/java/**.kt]
+max_line_length = 120
+[app/src/test/java/**.kts]
 max_line_length = 120
 
 # The fixture in app/src/test/resources/sample-build.gradle.kts is a
