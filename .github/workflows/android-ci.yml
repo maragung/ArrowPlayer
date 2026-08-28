@@ -150,7 +150,11 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build release APKs (all ABIs)
-        run: gradle assembleRelease --no-daemon
+        # --rerun-tasks: the gradle-actions cache can hold an old compile
+        # output that no longer matches the source on main; rerunning
+        # tasks forces a fresh Kotlin compile so the MainActivity the
+        # current build adds actually lands in classes.dex.
+        run: gradle assembleRelease --no-daemon --rerun-tasks
         working-directory: android
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
