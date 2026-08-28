@@ -108,6 +108,12 @@ struct EqSettings {
 /// Bandwidth in octaves for a graphic mode, feeding q_for_bandwidth_octaves().
 [[nodiscard]] double bandwidth_octaves_for_mode(EqMode mode) noexcept;
 
+/// REQ-AUD-085 — converts `kCoeffRampMs` (32 ms) into a sample count at
+/// `sample_rate_hz`, rounded to the nearest integer. A returned value of 0
+/// means "no ramp" (e.g. the caller passed a non-finite sample rate); callers
+/// that receive 0 are expected to publish with an instant snap.
+[[nodiscard]] std::size_t ramp_samples_for(double sample_rate_hz) noexcept;
+
 /// Named presets — REQ-AUD-087.
 struct EqPreset {
     std::string name;
@@ -125,13 +131,21 @@ struct EqPreset {
 /// A multi-channel equalizer.
 ///
 /// Ownership/threading: configure() is NOT RT-safe (it allocates and computes
-/// transcendental functions). process() IS RT-safe. The intended pattern is that
-/// the UI thread calls configure() and publishes the result per REQ-AUD-016.
+/// transcendental functions). process() IS RT-safe. The intended pattern is
+/// that the UI thread calls configure() and then publish_settings() to start
+/// the 32 ms cross-ramp into the new coefficients (REQ-AUD-085); the audio
+/// thread meanwhile keeps using the previously published state.
 class Equalizer {
   public:
     /// Allocates per-channel cascades. NOT RT-safe.
     /// `channels` and `sample_rate_hz` must be > 0.
     Status configure(const EqSettings& settings, std::size_t channels, double sample_rate_hz);
+
+    /// Pushes the currently designed coefficients into the per-channel
+    /// crossfading cascades and starts a `ramp_samples`-sample fade from the
+    /// previously published values. NOT RT-safe (publishes; callers that need
+    /// an immediate snap should pass 0). REQ-AUD-085 / REQ-AUD-016.
+    void publish_settings(std::size_t ramp_samples) noexcept;
 
     /// Clears all delay lines. Call on seek and track change.
     void reset() noexcept;
@@ -155,6 +169,14 @@ class Equalizer {
 
     [[nodiscard]] double sample_rate() const noexcept { return sample_rate_; }
 
+    /// True when at least one band is mid-ramp (REQ-AUD-085 — the UI may want
+    /// to skip a follow-up ramp if one is already in flight).
+    [[nodiscard]] bool ramping() const noexcept;
+
+    /// Largest per-cascade sample count remaining in the current cross-ramp,
+    /// or 0 when settled.
+    [[nodiscard]] std::size_t ramp_remaining() const noexcept;
+
     /// Combined response of pre-amp + all bands, in dB, at `freq_hz`.
     /// REQ-AUD-088: this is the real cascaded transfer function, which is what
     /// the UI must plot and what §8.11 test 6 verifies against measurement.
@@ -174,7 +196,7 @@ class Equalizer {
     [[nodiscard]] BiquadCoeffs band_coeffs(std::size_t index) const noexcept;
 
   private:
-    std::vector<BiquadCascade> cascades_;
+    std::vector<CrossfadingCascade> cascades_;
     std::vector<BiquadCoeffs> designed_;  ///< one per band, shared by channels
     double preamp_linear_{1.0};
     double preamp_db_{0.0};
