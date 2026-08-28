@@ -16,8 +16,15 @@ class BuildConfigTest {
     @Test
     fun versionNameMatchesTheDeclaredVersion() {
         // Mirrors gradle.properties' arrow.version (the single Android-side
-        // source, per ADR 0012).
-        assertEquals("0.1.0", BuildConfig.VERSION_NAME)
+        // source, per ADR 0012). The release commit that bumps the version
+        // for the next tag also has to keep this assertion in lockstep —
+        // a unit test that pinned the previous value was the only thing
+        // stopping android-ci from going green on a tag push. The
+        // -PreleaseVersion CI override (REQ-BLD-002) does not change that
+        // contract: when it is set, the value it stamps is also what this
+        // assertion would have to read, and the gate fails rather than
+        // producing a green run on a misconfigured version.
+        assertEquals("0.3.0", BuildConfig.VERSION_NAME)
     }
 
     @Test
