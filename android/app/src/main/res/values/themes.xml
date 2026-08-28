@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Platform theme only; Compose supplies the in-app Material3 theme. -->
-    <style name="Theme.ArrowPlayer" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+        Platform theme: extend the Material Components DayNight base so the
+        splash window, system bars and pre-Compose inflation pick up
+        Material You dynamic colours on API 31+ (and a sensible fallback
+        on older devices). The in-app theme is then supplied by Compose's
+        MaterialTheme {} in Theme.kt, which is the only place §12.1's
+        design tokens flow into the UI. The DayNight parent is what
+        makes the activity background, status-bar tint, and pre-Compose
+        view inflation honour the system light/dark setting at runtime,
+        which the legacy android:Theme.Material.Light parent would have
+        frozen at compile time. Requires com.google.android.material:material
+        on the classpath; see app/build.gradle.kts.
+    -->
+    <style name="Theme.ArrowPlayer" parent="Theme.Material3.DayNight.NoActionBar" />
 </resources>

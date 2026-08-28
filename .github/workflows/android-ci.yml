@@ -79,8 +79,17 @@ jobs:
       # mergeReleaseJniLibFolders task has reused an earlier debug artifact
       # set in the past — disabling the build cache here forces every step
       # to re-execute against the current tree.
+      #
+      # REQ-BLD-002: on a version tag, stamp the release APK with the tag
+      # (e.g. v0.3.0) instead of whatever gradle.properties holds. The
+      # build script strips the leading `v` and derives versionCode from
+      # the same string; see app/build.gradle.kts. On non-tag builds the
+      # flag is omitted and gradle.properties wins, which is the same
+      # answer local dev gets.
       - name: clean → testDebugUnitTest → ktlintCheck → detekt → assembleRelease
-        run: gradle clean testDebugUnitTest ktlintCheck detekt assembleRelease --no-daemon --rerun-tasks --no-build-cache
+        env:
+          RELEASE_VERSION_FLAG: ${{ startsWith(github.ref, 'refs/tags/v') && format('-PreleaseVersion={0}', github.ref_name) || '' }}
+        run: gradle clean testDebugUnitTest ktlintCheck detekt assembleRelease --no-daemon --rerun-tasks --no-build-cache $RELEASE_VERSION_FLAG
         working-directory: android
 
       # Per-ABI release APKs (REQ-BLD-026). AGP names them app-<abi>-release.apk
