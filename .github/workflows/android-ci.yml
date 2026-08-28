@@ -254,8 +254,11 @@ jobs:
           # subdirectory and rename it per the spec's naming scheme.
           for subdir in "$RUNNER_TEMP"/apks/apk-*; do
             [ -d "$subdir" ] || continue
-            apk=$(find "$subdir" -name "*.apk" -type f 2>/dev/null | head -1)
-            [ -n "$apk" ] || continue
+            # find returns non-zero if no files found; that's ok, use shell nullglob
+            shopt -s nullglob
+            apks=("$subdir"/*.apk)
+            if [ ${#apks[@]} -eq 0 ]; then continue; fi
+            apk="${apks[0]}"
             # Strip "apk-" prefix from artifact name to get the ABI
             abi=$(basename "$subdir" | sed 's/^apk-//')
             dest="$out_dir/arrow-player-$version-android-$abi.apk"
