@@ -230,7 +230,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Download the per-ABI APKs the build job produced
-        run: gh run download "$GITHUB_RUN_ID" -n apk-arm64-v8a -n apk-armeabi-v7a -n apk-x86_64 -D "$RUNNER_TEMP/apks"
+        run: gh run download "$GITHUB_RUN_ID" -R maragung/ArrowPlayer -n apk-arm64-v8a -n apk-armeabi-v7a -n apk-x86_64 -D "$RUNNER_TEMP/apks"
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
         env:
