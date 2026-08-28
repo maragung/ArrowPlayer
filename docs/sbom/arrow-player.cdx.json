@@ -9,7 +9,7 @@
         {
           "type": "application",
           "name": "tools/gen-sbom.py",
-          "version": "0.1.0"
+          "version": "0.2.0"
         }
       ]
     },
@@ -17,7 +17,7 @@
       "type": "application",
       "bom-ref": "arrow-player",
       "name": "arrow-player",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "licenses": [
         {
           "license": {
@@ -26,7 +26,7 @@
           }
         }
       ],
-      "purl": "pkg:generic/arrow-player@0.1.0",
+      "purl": "pkg:generic/arrow-player@0.2.0",
       "externalReferences": [
         {
           "type": "vcs",
