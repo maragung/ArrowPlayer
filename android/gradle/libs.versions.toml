@@ -17,7 +17,6 @@ media3 = "1.6.0"
 junit = "4.13.2"
 junitExt = "1.2.1"
 espresso = "3.6.1"
-media = "1.7.0"
 ktlint = "12.1.1"
 detekt = "1.23.7"
 
@@ -40,7 +39,6 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitExt" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 androidx-media = { group = "androidx.media", name = "media", version.ref = "media" }
-robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
