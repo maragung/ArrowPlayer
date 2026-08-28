@@ -9,3 +9,12 @@ max_line_length = 100
 # would flag every @Composable function. ktlint's standard opt-out for this
 # (Compose's own convention) is to ignore functions annotated @Composable.
 ktlint_function_naming_ignore_when_annotated_with = Composable
+
+# Test source files are allowed a longer line: the canary test in
+# app/src/test/java/.../VersionMappingTest.kt carries an interpolated
+# error message that the assertion itself reads back, and the
+# "X must be > Y" formulation reads more cleanly as a single line
+# than as a wrapped one. Production sources keep the 100-char
+# cap. The override is scoped to the test path only.
+[app/src/test/**.{kt,kts}]
+max_line_length = 120
