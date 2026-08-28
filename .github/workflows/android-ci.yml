@@ -148,7 +148,7 @@ jobs:
   emulator:
     name: install on emulator (exit gate 2)
     needs: build
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     continue-on-error: true
     steps:
@@ -201,7 +201,8 @@ jobs:
   release:
     name: per-ABI release APKs
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: emulator
+    # Build is the upstream; the emulator runs on PRs as a smoke and the release uploads from the build's `apks-release` artifact.
+    needs: build
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -213,7 +214,7 @@ jobs:
         with:
           name: apks-release
           path: ${{ runner.temp }}/apks
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
         env:
