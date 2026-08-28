@@ -29,8 +29,39 @@ class LibraryDatabase final : public ILibrary {
 
     [[nodiscard]] bool is_open() const noexcept { return db_ != nullptr; }
 
+    // -----------------------------------------------------------------------
+    //  Smart playlists — REQ-PLS-010..015. Rules are stored as the canonical
+    //  JSON from shared-spec/schemas/smart-playlist.schema.json; evaluation
+    //  binds every literal so a stored rule (or one imported with a skin)
+    //  can never inject SQL (REQ-SEC-009).
+    // -----------------------------------------------------------------------
+
+    /// Persist a smart-playlist rule. `name` and `description` are the
+    /// user-facing metadata; `rule_json` is the literal JSON document
+    /// validated against the schema before insert.
+    [[nodiscard]] Status save_smart_playlist(std::string_view name,
+                                             std::string_view description,
+                                             std::string_view rule_json);
+
+    /// Every smart playlist currently in the library. Order is by id so
+    /// refresh is stable across runs.
+    struct StoredPlaylist final {
+        std::int64_t id{0};
+        std::string name;
+        std::string description;
+        std::string rule_json;
+    };
+    [[nodiscard]] Result<std::vector<StoredPlaylist>> list_smart_playlists() const;
+
+    /// Re-evaluate every smart playlist and replace the contents of
+    /// `playlist_items` for each one. Returns the number of (playlist,
+    /// track) rows written. Used by the importer after a scan so the
+    /// populated rows match the new library (REQ-PLS-014).
+    [[nodiscard]] Result<std::size_t> evaluate_all_smart_playlists();
+
   private:
     [[nodiscard]] Status execute(std::string_view sql) const;
+
     sqlite3* db_{nullptr};
 };
 
