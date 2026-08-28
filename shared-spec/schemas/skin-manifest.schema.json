@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://eclipse-player.org/schemas/skin-manifest/v1",
+  "$id": "https://arrow-player.org/schemas/skin-manifest/v1",
   "title": "Eclipse Player Skin Manifest",
   "description": "manifest.json inside a .eclipseskin package. Specification: eclipse-player.md §11.3 (REQ-THM-015 … REQ-THM-019). Several REQ-THM-017 hard limits are expressed here where a schema can express them (entry count, layout-document count, font count, path length); the rest — total uncompressed size, per-entry compression ratio, image dimensions, and the per-directory caps of 16 layout documents and 8 fonts — are enforced by the installer BEFORE extraction. JSON Schema cannot count properties matching a pattern, so those caps deliberately live in code with their own tests rather than as an unenforceable comment here.",
   "type": "object",

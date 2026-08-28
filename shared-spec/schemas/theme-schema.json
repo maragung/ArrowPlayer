@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://eclipse-player.org/schemas/theme/v1",
+  "$id": "https://arrow-player.org/schemas/theme/v1",
   "title": "Eclipse Player Theme",
   "type": "object",
   "required": [

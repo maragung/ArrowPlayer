@@ -86,7 +86,7 @@ would do exactly that — invisibly.
 
 ## Versioning
 
-Every schema carries `"$id": "https://eclipse-player.org/schemas/<name>/v1"` and every
+Every schema carries `"$id": "https://arrow-player.org/schemas/<name>/v1"` and every
 document it validates carries `"schemaVersion": 1` as a `const`. The two move together.
 
 **Within `v1`** — allowed without a version bump, because a v1 reader keeps working:
