@@ -23,3 +23,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "ArrowPlayer"
 include(":app")
+include(":core-library")
+include(":feature-player")
+include(":feature-library")

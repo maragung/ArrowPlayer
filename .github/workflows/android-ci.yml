@@ -245,16 +245,23 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Download the per-ABI APKs the build job produced
-        run: |
-          # Wait a moment for all artifacts to be indexed after upload
-          sleep 5
-          # Use the current workflow run ID directly. Both the build job and
-          # the release job run in the same workflow run, so github.run_id
-          # correctly targets the build job's artifacts. (gh run download
-          # accepts a run ID as its first positional argument.)
-          gh run download "${{ github.run_id }}" -R maragung/ArrowPlayer \
-            -n apk-arm64-v8a -n apk-armeabi-v7a -n apk-x86_64 \
-            -D "$RUNNER_TEMP/apks"
+        uses: actions/download-artifact@v5
+        with:
+          name: apk-arm64-v8a
+          path: ${{ runner.temp }}/apks/arm64
+          run-id: ${{ github.run_id }}
+      - name: Download armeabi-v7a APK
+        uses: actions/download-artifact@v5
+        with:
+          name: apk-armeabi-v7a
+          path: ${{ runner.temp }}/apks/armeabi
+          run-id: ${{ github.run_id }}
+      - name: Download x86_64 APK
+        uses: actions/download-artifact@v5
+        with:
+          name: apk-x86_64
+          path: ${{ runner.temp }}/apks/x86_64
+          run-id: ${{ github.run_id }}
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
         env:
@@ -273,28 +280,29 @@ jobs:
           version="${VERSION#v}"
           out_dir="$RUNNER_TEMP/renamed-apks"
           rm -rf "$out_dir"; mkdir -p "$out_dir"
-          # gh run download extracts artifact contents directly into the target
-          # directory without preserving artifact-name subdirectories.
-          # APKs land as: $RUNNER_TEMP/apks/app-<abi>-release-unsigned.apk
-          # We rename them to: arrow-player-<ver>-android-<abi>.apk
+          # actions/download-artifact@v5 places each artifact in its own directory.
+          # Map each subdirectory to its ABI name.
           echo "=== APK download contents ==="
           find "$RUNNER_TEMP/apks" -type f 2>/dev/null | sort || true
-          shopt -s nullglob
-          for apk in "$RUNNER_TEMP/apks"/app-*-release-unsigned.apk; do
-            # Derive the ABI from the source filename: "app-<abi>-release-unsigned.apk"
-            # The artifact name (apk-arm64-v8a, etc.) is not preserved in the download.
-            # Use the filename pattern to identify each ABI.
-            apk_name=$(basename "$apk")
-            case "$apk_name" in
-              app-arm64-v8a-*)     abi=arm64-v8a ;;
-              app-armeabi-v7a-*)   abi=armeabi-v7a ;;
-              app-x86_64-*)       abi=x86_64 ;;
-              *) echo "::warning::Unexpected APK filename: $apk_name"; continue ;;
+          found=0
+          for dir in arm64 armeabi x86_64; do
+            case "$dir" in
+              arm64)    abi=arm64-v8a ;;
+              armeabi)  abi=armeabi-v7a ;;
+              x86_64)  abi=x86_64 ;;
             esac
-            dest="$out_dir/arrow-player-$version-android-$abi.apk"
-            cp "$apk" "$dest"
-            sha256sum "$dest" > "$dest.sha256"
+            # Each artifact dir contains the APK(s) produced by one build matrix cell
+            apk=$(find "$RUNNER_TEMP/apks/$dir" -maxdepth 1 -name '*.apk' -type f | head -1)
+            if [ -n "$apk" ] && [ -f "$apk" ]; then
+              dest="$out_dir/arrow-player-$version-android-$abi.apk"
+              cp "$apk" "$dest"
+              sha256sum "$dest" > "$dest.sha256"
+              found=$((found + 1))
+            else
+              echo "::warning::No APK found in $dir"
+            fi
           done
+          echo "Renamed $found APK(s)"
           ls -la "$out_dir"
           if [ "$(find "$out_dir" -maxdepth 1 -name 'arrow-player-*.apk' -type f | wc -l)" -gt 0 ]; then
             gh release upload "$TAG" "$out_dir"/arrow-player-*.apk "$out_dir"/arrow-player-*.sha256 --clobber
