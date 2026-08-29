@@ -304,8 +304,17 @@ jobs:
           done
           echo "Renamed $found APK(s)"
           ls -la "$out_dir"
-          if [ "$(find "$out_dir" -maxdepth 1 -name 'arrow-player-*.apk' -type f | wc -l)" -gt 0 ]; then
-            gh release upload "$TAG" "$out_dir"/arrow-player-*.apk "$out_dir"/arrow-player-*.sha256 --clobber
+          if [ "$found" -gt 0 ]; then
+            echo "Uploading APKs to release $TAG..."
+            set -x
+            for f in arm64-v8a armeabi-v7a x86_64; do
+              echo "::debug::Uploading arrow-player-$version-android-$f.apk"
+              gh release upload "$TAG" \
+                "$out_dir/arrow-player-$version-android-$f.apk" \
+                "$out_dir/arrow-player-$version-android-$f.apk.sha256" \
+                --clobber || { echo "::error::Upload failed for $f"; exit 1; }
+            done
+            set +x
           else
             echo "::error::No APKs were produced. Check the build output above; the abi split in app/build.gradle.kts must be generating per-ABI artifacts."
             exit 1
