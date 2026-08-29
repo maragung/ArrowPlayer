@@ -58,8 +58,8 @@ inline constexpr double kReplayGainReferenceLufs = -18.0;
 inline constexpr double kPreampDefaultDb = -6.0;
 
 /// REQ-AUD-103 — the bounded range of the pre-amp. ±15 dB.
-inline constexpr double kPreampMinDb = -15.0;
-inline constexpr double kPreampMaxDb = 15.0;
+inline constexpr double kRgPreampMinDb = -15.0;
+inline constexpr double kRgPreampMaxDb = 15.0;
 
 /// BS.1770-4 §3 — the absolute and relative gating thresholds, in LUFS.
 inline constexpr double kAbsoluteGateLufs = -70.0;

@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arrow-theme-validate"
+version = "1.0.0"
+description = "Theme/skin validator for Eclipse Player"
+requires-python = ">=3.10"
+scripts = { theme-validate = "theme_validate.__main__:main" }
+
+[project.scripts]
+theme-validate = "theme_validate.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]

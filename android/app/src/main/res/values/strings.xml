@@ -3,4 +3,54 @@
     <string name="app_name">Arrow Player</string>
     <string name="version_label">Version %1$s</string>
     <string name="about_hint">Free, open-source, privacy-first music player.</string>
+
+    <!-- Navigation -->
+    <string name="now_playing">Now Playing</string>
+    <string name="library">Library</string>
+
+    <!-- Player / transport -->
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="stop">Stop</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="repeat_off">Repeat: Off</string>
+    <string name="repeat_all">Repeat: All</string>
+    <string name="repeat_one">Repeat: One</string>
+    <string name="volume">Volume</string>
+    <string name="queue">Queue</string>
+    <string name="no_track">No track</string>
+    <string name="album_art_description">Album artwork</string>
+
+    <!-- Library -->
+    <string name="artists">Artists</string>
+    <string name="albums">Albums</string>
+    <string name="songs">Songs</string>
+    <string name="genres">Genres</string>
+    <string name="playlists">Playlists</string>
+    <string name="search_library">Search library…</string>
+    <string name="library_empty">No items in library.\nAdd music to get started.</string>
+    <string name="toggle_view">Toggle grid/list view</string>
+    <string name="sort">Sort</string>
+    <string name="sort_by_name">Sort by Name</string>
+    <string name="sort_by_artist">Sort by Artist</string>
+    <string name="sort_by_date_added">Sort by Date Added</string>
+    <string name="album_count_format">%1$d albums</string>
+    <string name="song_count_format">%1$d songs</string>
+    <string name="play">Play</string>
+    <string name="play_all">Play all</string>
+
+    <!-- Queue -->
+    <string name="clear">Clear</string>
+    <string name="save_as_playlist">Save as Playlist…</string>
+
+    <!-- Settings -->
+    <string name="settings">Settings</string>
+    <string name="general">General</string>
+    <string name="audio">Audio</string>
+    <string name="playback">Playback</string>
+    <string name="appearance">Appearance</string>
+    <string name="shortcuts">Shortcuts</string>
+    <string name="about">About</string>
 </resources>

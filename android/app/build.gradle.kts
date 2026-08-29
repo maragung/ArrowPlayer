@@ -174,6 +174,12 @@ dependencies {
     implementation(libs.androidx.media3.common)
     // REQ-UIX-027: NotificationCompat.MediaStyle requires androidx.media
     implementation(libs.androidx.media)
+
+    // Feature modules (Phase 1)
+    implementation(project(":feature-player"))
+    implementation(project(":feature-library"))
+    implementation(libs.androidx.navigation.compose)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

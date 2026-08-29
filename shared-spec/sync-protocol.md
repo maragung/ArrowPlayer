@@ -1,13 +1,44 @@
 # Eclipse Sync Protocol v1
 
-Normative. This document is the contract required by `REQ-SYN-012`: it specifies
-the wire format, every message type, version negotiation, size limits, timeouts,
-and the complete state machine, in enough detail for a third party to write a
-compatible implementation without reading Eclipse's source. `REQ-SYN-014`'s
-threat model is §9.
+**Authors:** Arrow Player contributors
+**Version:** 1.0.0
+**Status:** Normative
+**Supersedes:** None
 
-Specification context: `eclipse-player.md` §18. Database side: §9.4
-(`change_log`). Wire-format decision: [ADR 0008](../docs/adr/0008-sync-wire-format.md).
+This document is the contract required by `REQ-SYN-012`: it specifies the wire
+format, every message type, version negotiation, size limits, timeouts, and the
+complete state machine, in enough detail for a third party to write a compatible
+implementation without reading Arrow Player's source. `REQ-SYN-014`'s threat model
+is §9.
+
+Specification context: `eclipse-player.md` §18. Database side: `eclipse-player.md`
+§9.4 (`change_log`). Wire-format decision: [ADR 0008](../docs/adr/0008-sync-wire-format.md).
+
+---
+
+## 0 · Overview
+
+Arrow Player Sync connects two devices on the same LAN. There are no accounts,
+no cloud, and no server (`REQ-SYN-002`). Two instances discover each other via
+mDNS, pair once with a 6-digit code (REQ-SYN-006), and exchange change sets
+directly over a TLS 1.3 mutual-auth pipe.
+
+Sync is **disabled by default** and the application is fully functional with it
+permanently off (`REQ-SYN-001`). Nothing in this document describes behaviour that
+occurs before a user enables sync and completes pairing.
+
+---
+
+## 0.1 Scoped Entities
+
+**Syncs** (`REQ-SYN-003`): playlists (manual and smart rules), play counts,
+skip counts, ratings, loved flags, bookmarks, resume positions, last-played
+timestamps, and the shortcut map.
+
+**Never syncs**: audio files, artwork cache, the library index itself, settings
+unrelated to the above, and secrets of any kind. Media-file sync is a declared
+`[NON-GOAL]` — that is a file-sync tool's job, and doing it badly here would be
+worse than not doing it.
 
 Sync is an optional module, **disabled by default**, and the application is fully
 functional with it permanently off (`REQ-SYN-001`). Nothing in this document
@@ -85,8 +116,10 @@ Every message carries exactly these two members in addition to its own:
 
 ## 3 · Message types
 
-Six, exactly as `REQ-SYN-012` enumerates: `Hello`, `Capabilities`,
-`ChangesSince`, `Changes`, `Ack`, `Error`.
+Eight message types: six session messages, one pairing exchange (two messages), and
+the error wrapper. `REQ-SYN-012` enumerates the six session messages; the pairing
+exchange adds `PairRequest` and `PairAccept`. Message type names in JSON are
+case-sensitive strings.
 
 ### 3.1 `Hello`
 
@@ -206,6 +239,84 @@ connection, except for `busy`, where it MAY remain open.
 | `code` | string | yes | From the table below. Closed set. |
 | `message` | string | yes | ≤ 256 chars, English, for logs. Never shown as-is to a user. |
 | `retryAfterSeconds` | integer | no | Only with `busy` or `rate_limited`. |
+
+### 3.7 `PairRequest`
+
+Carries the device identity and the PAKE verifier the pairing module generated
+from the 6-digit code (`REQ-SYN-006`). Sent by the initiating peer over the TLS
+pipe. The receiving peer's pairing module validates the verifier; if valid, it
+responds with `PairAccept`. If invalid, it responds with `Error` /
+`pairing_failed`.
+
+| Member | Type | Req. | Notes |
+|---|---|---|---|
+| `deviceUuid` | string | yes | This device's RFC 4122 UUID. |
+| `deviceName` | string | yes | ≤ 64 chars, user-supplied, display only. |
+| `verifier` | string | yes | Lower-case hex of the PAKE verifier `v`. |
+| `codeExpiresAt` | integer | yes | Unix epoch seconds when the code expires. |
+
+### 3.8 `PairAccept`
+
+Acknowledgement that the pairing verifier was accepted. Confirms the shared
+secret has been derived and stored in the OS secret store (`REQ-NET-043`).
+
+| Member | Type | Req. | Notes |
+|---|---|---|---|
+| `deviceUuid` | string | yes | This device's UUID — mirrors the `PairRequest`. |
+| `deviceName` | string | yes | Display name of the accepting device. |
+| `verifier` | string | yes | The accepting device's own verifier `v`. |
+
+After both `PairRequest` and `PairAccept` are exchanged, both devices derive the
+long-term key via HKDF-SHA256 from the PAKE shared secret and store it in the
+OS secret store under `sync/peer/<deviceUuid>`. The TLS pipe then carries the
+normal HELLO handshake; the pre-shared key bound to the device identity in the
+secret store authenticates the connection (`REQ-SYN-007`).
+
+### 3.9 `SyncRequest`
+
+A request for a set of changes from a specific Lamport watermark onwards. Either
+peer may send it; in practice both do so the exchange is symmetric.
+
+| Member | Type | Req. | Notes |
+|---|---|---|---|
+| `perDevice` | object | yes | Map of `deviceUuid` → highest `lamport` already held from that device. 0–512 entries. |
+| `entities` | array of string | no | Restrict to these entity kinds. Default: the whole effective set from `Capabilities`. |
+| `limit` | integer | no | Max changes wanted, 1 – `maxChangesPerMessage`. |
+
+### 3.10 `SyncResponse`
+
+The reply to `SyncRequest`. Carries a batch of `change_log` rows.
+
+| Member | Type | Req. | Notes |
+|---|---|---|---|
+| `changes` | array of Change | yes | 0 – `maxChangesPerMessage`. |
+| `more` | boolean | yes | `true` if the sender holds further changes matching the request. |
+| `highWater` | object | yes | Map of `deviceUuid` → highest `lamport` included in *this* batch. |
+
+Each **Change** is defined in §3.4. Ordering and idempotency requirements are
+identical to §3.4.
+
+### 3.11 `ChangeBatch`
+
+An unsolicited batch of changes, sent by either peer without a corresponding
+request. Used when a peer generates a local change while the session is open —
+the peer pushes the batch rather than waiting for the other side to poll.
+Reception triggers an `Ack` in the same way as `SyncResponse`.
+
+| Member | Type | Req. | Notes |
+|---|---|---|---|
+| `changes` | array of Change | yes | The new changes. |
+| `highWater` | object | yes | Per-device high-water mark for this batch. |
+
+### 3.12 `Goodbye`
+
+Sent by either peer before closing the TLS connection cleanly. The sender MUST
+not send any further messages; the receiver MUST close the connection after
+processing any in-flight `Ack`.
+
+| Member | Type | Req. | Notes |
+|---|---|---|---|
+| `reason` | string | no | Machine-readable reason for closing. Optional; for logs only. |
 
 | Code | Meaning | Recovery |
 |---|---|---|
@@ -336,58 +447,74 @@ claim, not a property.
 One connection, one sync session. States, with the message that leaves each:
 
 ```text
-                    ┌───────────────┐
-                    │     IDLE      │  sync disabled or nothing to do
-                    └───────┬───────┘
-                     enable │ + peer discovered
-                            ▼
-                    ┌───────────────┐   pairing absent
-                    │  CONNECTING   │──────────────────► ERROR(not_paired)
-                    └───────┬───────┘
-                 TLS 1.3 mutual auth against pinned keys
-                            ▼
-                    ┌───────────────┐   no common version
-                    │  HANDSHAKING  │──────────────────► ERROR(version_unsupported)
-                    │  Hello ⇄ Hello│   uuid ≠ pinned key
-                    └───────┬───────┘──────────────────► ERROR(identity_mismatch)
-                            ▼
-                    ┌───────────────┐
-                    │  CAPABILITIES │  Capabilities ⇄ Capabilities
-                    └───────┬───────┘
-                            ▼
-       ┌────────────────────────────────────────────┐
-       │                SYNCING                     │
-       │  ChangesSince ──► Changes ──► Ack           │
-       │        ▲                        │           │
-       │        └────── more = true ─────┘           │
-       └────────────────────┬───────────────────────┘
-                 more = false, both directions
-                            ▼
-                    ┌───────────────┐
-                    │    CLOSING    │  TLS close_notify, both sides
-                    └───────┬───────┘
-                            ▼
-                          IDLE
+                          ┌─────────────────┐
+                          │      IDLE       │  sync disabled or no paired peers
+                          └────────┬────────┘
+                    enable + peer found │
+                                   │
+                                   ▼
+                          ┌─────────────────┐
+                          │   PAIRING_WAIT   │  displaying 6-digit code
+                          └────────┬────────┘
+                                   │ peer scans code
+                                   ▼
+                          ┌─────────────────┐   pairing fails
+                          │  PAIR_REQUEST    │─────────────────────► IDLE
+                          └────────┬────────┘
+                                   │ PairRequest ──► PairAccept
+                                   ▼
+                          ┌─────────────────┐   no pinned key / revoked
+                          │   CONNECTING     │─────────────────────► IDLE
+                          └────────┬────────┘
+                 TLS 1.3 mutual auth (pre-shared key from pairing)
+                                   ▼
+                          ┌─────────────────┐   identity mismatch
+                          │   HANDSHAKING    │─────────────────────► IDLE
+                          │   Hello ⇄ Hello │   version unsupported
+                          └────────┬────────┘
+                                   │
+                          ┌────────▼────────┐
+                          │  CAPABILITIES   │  Capabilities ⇄ Capabilities
+                          └────────┬────────┘
+                                   │
+                          ┌────────▼────────┐
+                          │    SYNCING     │──────────────────────► CLOSING
+                          │  ChangesSince  │
+                          │  ──► Changes  │  both directions, pipelined
+                          │  ──► Ack       │  more=true loops
+                          └────────┬────────┘
+                                   │ more=false both sides
+                                   ▼
+                          ┌─────────────────┐
+                          │     CLOSING     │  Goodbye, TLS close_notify
+                          └────────┬────────┘
+                                   │
+                                   ▼
+                                 IDLE
 ```
 
-Transitions in words:
+**Transitions in words:**
 
 | From | Event | To | Notes |
 |---|---|---|---|
-| IDLE | sync enabled and a paired peer is discovered | CONNECTING | Discovery may be disabled independently of sync (`REQ-SYN-005`) |
-| CONNECTING | TLS 1.3 mutual auth succeeds against pinned keys | HANDSHAKING | Unpaired peers are refused **before any library data** (`REQ-SYN-007`) |
+| IDLE | sync enabled + paired peer discovered | PAIRING_WAIT | |
+| PAIRING_WAIT | user scans 6-digit code + network handshake succeeds | PAIR_REQUEST | PAKE exchange runs in background |
+| PAIR_REQUEST | PairRequest + PairAccept exchanged, keys stored | CONNECTING | |
+| PAIRING_WAIT / PAIR_REQUEST | user cancels or pairing times out | IDLE | |
+| CONNECTING | TLS 1.3 mutual auth succeeds | HANDSHAKING | Unpaired peers are refused before any library data (`REQ-SYN-007`) |
 | CONNECTING | auth fails / no pinned key / revoked | IDLE | `Error` `not_paired` or `revoked`; revocation is immediate |
 | HANDSHAKING | both `Hello` valid, version agreed | CAPABILITIES | |
-| HANDSHAKING | no common version, or UUID/key mismatch | IDLE | `Error`, then close |
+| HANDSHAKING | no common version or UUID mismatch | IDLE | `Error`, then close |
 | CAPABILITIES | both `Capabilities` valid | SYNCING | Effective limits = pairwise minimum; entity set = intersection |
-| SYNCING | `Changes` received | SYNCING | Apply durably, then `Ack` |
-| SYNCING | `Ack` with `more` outstanding | SYNCING | Send the next `ChangesSince` from the acked watermark |
+| SYNCING | `Changes` / `SyncResponse` received | SYNCING | Apply durably, then `Ack` |
+| SYNCING | `Ack` with `more` outstanding | SYNCING | Pull next batch from acked watermark |
+| SYNCING | unsolicited `ChangeBatch` received | SYNCING | Apply, reply with `Ack` |
 | SYNCING | both directions report `more` = false | CLOSING | |
 | any | protocol violation | IDLE | `Error`, then close |
 | any | timeout (§8) | IDLE | Close without `Error`; the peer is not answering |
 
 A message arriving in a state that does not expect it is `Error` /
-`unexpected_state` followed by close. In particular, `Changes` before
+`unexpected_state` followed by close. In particular, `SyncRequest` before
 `Capabilities` MUST be refused — accepting library data before limits are agreed
 is how a peer gets to send an 8 MiB batch to a device that said it could take
 64 KiB.

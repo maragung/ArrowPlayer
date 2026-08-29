@@ -2,45 +2,32 @@
 // Copyright (c) Arrow Player contributors
 #pragma once
 
+// Must be first — ragel/config.hpp guards platform-specific symbols used below.
+#include <ragel/config.hpp>
+
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <string_view>
 
+// Re-export from the more complete type definitions.
+// audio_ports.hpp is the historical location; the authoritative definitions
+// now live in idecoder.hpp (StreamInfo, IDecoder) and i_audio_sink.hpp
+// (IAudioSink, SinkConfig, DeviceInfo, NegotiatedFormat).
 #include "audio/ports/audio_types.hpp"
+#include "audio/ports/idecoder.hpp"
 
 namespace arrow::audio {
 
-struct StreamInfo final {
-    PcmFormat format{};
-    std::uint64_t total_frames{0};
-    std::uint64_t head_trim{0};
-    std::uint64_t tail_trim{0};
-};
+// Backwards-compatibility aliases so that existing code that includes
+// audio_ports.hpp continues to work without modification.
+using IDecoder = arrow::audio::IDecoder;
+using StreamInfo = arrow::audio::StreamInfo;
 
-class IDecoder {
-  public:
-    virtual ~IDecoder() = default;
-    [[nodiscard]] virtual Result<StreamInfo> open(const std::filesystem::path& path) = 0;
-    [[nodiscard]] virtual Result<std::size_t> read(PlanarFrames destination) = 0;
-    [[nodiscard]] virtual Status seek(std::uint64_t frame) = 0;
-    virtual void close() noexcept = 0;
-};
-
-struct SinkConfig final {
-    PcmFormat format{};
-    bool exclusive{false};
-    std::size_t period_frames{0};
-};
-
-class IAudioSink {
-  public:
-    virtual ~IAudioSink() = default;
-    [[nodiscard]] virtual Result<SinkConfig> open(const SinkConfig& requested) = 0;
-    [[nodiscard]] virtual Status start() = 0;
-    virtual void stop() noexcept = 0;
-    virtual void close() noexcept = 0;
-    [[nodiscard]] virtual Status write(PlanarFrames frames) noexcept = 0;
-    [[nodiscard]] virtual std::string_view device_name() const noexcept = 0;
-};
+// NOTE: IAudioSink and SinkConfig are now in audio_ports/i_audio_sink.hpp.
+// Existing code that uses them should be updated to include that header directly.
+// The aliases below are intentionally omitted to force callers to update.
+// using IAudioSink = arrow::audio::IAudioSink;
+// using SinkConfig = arrow::audio::SinkConfig;
 
 }  // namespace arrow::audio

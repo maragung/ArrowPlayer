@@ -87,6 +87,42 @@ if(PkgConfig_FOUND)
     endif()
 endif()
 
+# ------------------------------------------------------------------ nlohmann_json
+set(ARROW_HAVE_NLOHMANN_JSON OFF)
+find_package(nlohmann_json QUIET)
+if(nlohmann_json_FOUND)
+    add_library(arrow::nlohmann_json INTERFACE IMPORTED)
+    target_link_libraries(arrow::nlohmann_json INTERFACE nlohmann_json::nlohmann_json)
+    set(ARROW_HAVE_NLOHMANN_JSON ON)
+endif()
+
+# ------------------------------------------------------------------ SoundTouch
+set(ARROW_HAVE_SOUNDTOUCH OFF)
+find_package(SoundTouch QUIET)
+if(SoundTouch_FOUND)
+    add_library(arrow::soundtouch INTERFACE IMPORTED)
+    target_link_libraries(arrow::soundtouch INTERFACE SoundTouch::SoundTouch)
+    set(ARROW_HAVE_SOUNDTOUCH ON)
+endif()
+
+# ------------------------------------------------------------------ Chromaprint
+set(ARROW_HAVE_CHROMAPRINT OFF)
+find_package(Chromaprint QUIET)
+if(Chromaprint_FOUND)
+    add_library(arrow::chromaprint INTERFACE IMPORTED)
+    target_link_libraries(arrow::chromaprint INTERFACE Chromaprint::Chromaprint)
+    set(ARROW_HAVE_CHROMAPRINT ON)
+endif()
+
+# ------------------------------------------------------------------ projectM
+set(ARROW_HAVE_PROJECTM OFF)
+find_package(projectM QUIET)
+if(projectM_FOUND)
+    add_library(arrow::projectm INTERFACE IMPORTED)
+    target_link_libraries(arrow::projectm INTERFACE projectM::projectM)
+    set(ARROW_HAVE_PROJECTM ON)
+endif()
+
 # -------------------------------------------------------------------------- Qt
 set(ARROW_HAVE_QT OFF)
 find_package(Qt6 6.8 QUIET COMPONENTS Core Gui Widgets Quick Svg)

@@ -27,7 +27,7 @@
 #include "core/format/evaluator.hpp"
 #include "core/format/parser.hpp"
 
-namespace arrow::format {
+namespace arrow::efs {
 
 // ==================================================================== output
 
@@ -89,15 +89,28 @@ class CompiledPattern {
                                    const TrackView& track,
                                    const EvalContext& ctx = {}) noexcept;
 
+/// Render a compiled pattern, filling `out` with the result string.
+/// Returns cap_exceeded and parse_problems.
+void render(const CompiledPattern& pattern,
+            const TrackView& track,
+            std::string& out,
+            bool* cap_exceeded = nullptr) noexcept;
+
 /// Convenience: compile + render in one call.  Useful for the CLI demo
 /// and for one-shot calls from the editor preview.
 [[nodiscard]] RenderResult render(std::string_view source,
                                    const TrackView& track,
                                    const EvalContext& ctx = {}) noexcept;
 
+/// Compile + render, filling `out` with the result string.
+void render(std::string_view source,
+            const TrackView& track,
+            std::string& out,
+            bool* cap_exceeded = nullptr) noexcept;
+
 /// Convenience: a Status that names the cap and the pattern length,
 /// matching the wording REQ-EFS-009 requires of the user-facing
 /// message.  `pattern_length` is the source-pattern byte count.
 [[nodiscard]] Error cap_error(std::size_t pattern_length) noexcept;
 
-}  // namespace arrow::format
+}  // namespace arrow::efs

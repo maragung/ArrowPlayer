@@ -1,0 +1,385 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: MPL-2.0
+#
+# tools/theme-validate — CLI validator for theme, skin, and layout documents.
+#
+# Spec: eclipse-player.md §11.5 (REQ-THM-040), §11.6 (REQ-THM-060).
+#
+# Usage:
+#   tools/theme-validate/theme-validate [--schema <theme|layout|manifest>] <file>
+#   tools/theme-validate/theme-validate --stdin [--schema <theme|layout|manifest>]
+#
+# Exits 0 on success, 1 on validation failure, 2 on I/O error, 3 on schema error.
+#
+# Errors are printed one per line, each prefixed with the JSON Pointer path to
+# the offending node (e.g. "color/text/primary: expected type string, got number").
+# This matches the format REQ-THM-040 requires and REQ-THM-060 documents.
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import textwrap
+from pathlib import Path
+
+# The validator is the project's own mini-schema checker. It lives next to this
+# script in tools/ so it is importable without any pip install.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:
+    from jsonschema_mini import Validator, SchemaError as MiniSchemaError
+except ImportError:
+    # Fallback: try the parent directory (script invoked from tools/theme-validate/)
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from jsonschema_mini import Validator, SchemaError as MiniSchemaError
+
+
+# ---------------------------------------------------------------------------
+#  Schema catalogue
+# ---------------------------------------------------------------------------
+
+# Maps CLI --schema names to the schema file path (relative to the repo root)
+# and the "$id" the schema declares (used in error output).
+_SCHEMA_TABLE: dict[str, tuple[str, str]] = {
+    "theme":    ("shared-spec/schemas/theme-schema.json",        "https://arrow-player.org/schemas/theme/v1"),
+    "layout":   ("shared-spec/schemas/layout.schema.json",       "https://arrow-player.org/schemas/layout/v1"),
+    "manifest": ("shared-spec/schemas/skin-manifest.schema.json", "https://arrow-player.org/schemas/skin-manifest/v1"),
+}
+
+# Reverse lookup: schema $id → CLI name (for auto-detection)
+_ID_TO_SCHEMA: dict[str, str] = {v[1]: k for k, v in _SCHEMA_TABLE.items()}
+
+# Auto-detection: for a plain file path with no --schema flag, we look for a
+# top-level key or the filename to guess the schema.
+_SCHEMA_GUESS = {
+    "theme.json":   "theme",
+    "layout.json":  "layout",
+    "skin.json":    "manifest",
+    "manifest.json": "manifest",
+}
+
+
+def _resolve_repo_root() -> Path:
+    """Find the repository root (two directories up from this script)."""
+    return Path(__file__).resolve().parent.parent.parent
+
+
+def _load_schema(schema_name: str) -> tuple[dict, Path]:
+    """Load and validate a schema file.
+
+    Returns (schema_dict, path). Path is used in error messages.
+    Raises SchemaLoadError on failure.
+    """
+    entry = _SCHEMA_TABLE.get(schema_name)
+    if entry is None:
+        raise SchemaLoadError(f"unknown schema name: {schema_name!r}")
+
+    path = _resolve_repo_root() / entry[0]
+    if not path.exists():
+        raise SchemaLoadError(
+            f"schema file not found: {path}\n"
+            "  (run from the repository root, or pass --schema-dir)"
+        )
+
+    try:
+        text = path.read_text(encoding="utf-8")
+        schema = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise SchemaLoadError(f"schema file is not valid JSON: {e}")
+
+    return schema, path
+
+
+class SchemaLoadError(Exception):
+    """Failed to load or parse a schema file."""
+    pass
+
+
+# ---------------------------------------------------------------------------
+#  Line-number tracking for human-readable errors
+# ---------------------------------------------------------------------------
+
+def _build_line_map(text: str) -> dict[int, int]:
+    """Map character offsets → line numbers (1-indexed).
+
+    Returns a dict where key=line-number and value=character-offset-of-line-start.
+    Used to convert a JSON Pointer path into a line number by counting newlines.
+    """
+    line_start: dict[int, int] = {1: 0}
+    offset = 0
+    for i, ch in enumerate(text):
+        if ch == "\n":
+            line_start[i + 2] = i + 1  # next line starts after this \n
+    return line_start
+
+
+def _line_for_offset(text: str, offset: int) -> int:
+    """Return the 1-indexed line number for a character offset."""
+    line_map = _build_line_map(text)
+    # The last entry in line_map is the line that contains the end.
+    # We want the largest key <= offset.
+    line = 1
+    for start_offset in sorted(line_map):
+        if start_offset <= offset:
+            line = start_offset
+        else:
+            break
+    return line
+
+
+# ---------------------------------------------------------------------------
+#  JSON Pointer utilities
+# ---------------------------------------------------------------------------
+
+def _pointer_to_display_path(ptr: str) -> str:
+    """Convert a JSON Pointer string to a dot-joined display path.
+
+    "/color/text/primary" → "color.text.primary"
+    "" → "<root>"
+    "/0" → "[0]"
+    """
+    if not ptr or ptr == "/":
+        return "<root>"
+    parts = ptr.strip("/").split("/")
+    return ".".join(p if p.isidentifier() else f"[{p}]" for p in parts)
+
+
+# ---------------------------------------------------------------------------
+#  Validation with human-readable errors
+# ---------------------------------------------------------------------------
+
+def _format_errors(errors: list[str], text: str, schema_id: str) -> list[str]:
+    """Turn raw error strings into human-readable messages with line numbers."""
+    formatted = []
+    for err in errors:
+        # The error format from jsonschema_mini is:
+        #   "<path>: <message>"
+        # We extract the path and convert it.
+        if ": " in err:
+            ptr, message = err.split(": ", 1)
+        else:
+            ptr = ""
+            message = err
+
+        path = _pointer_to_display_path(ptr)
+
+        if ptr:
+            # Convert JSON Pointer to a line number for the error location.
+            # We need the character offset. The validator doesn't expose it,
+            # so we try to find the field name in the raw text.
+            # A reasonable heuristic: find the last path segment in the text
+            # and count to its line. For exact line numbers we'd need a
+            # token-level parser, which jsonschema_mini doesn't expose.
+            parts = ptr.strip("/").split("/")
+            field = parts[-1] if parts else ""
+            # Try to find the field name near the error context.
+            search = f'"{field}"'
+            pos = text.rfind(search)
+            if pos >= 0:
+                line = text[:pos].count("\n") + 1
+                suffix = f" (line {line})"
+            else:
+                suffix = ""
+        else:
+            suffix = ""
+
+        # Trim redundant schema name from message.
+        if message.startswith(schema_id):
+            message = message[len(schema_id):].lstrip(": ")
+
+        formatted.append(f"{path}: {message}{suffix}")
+
+    return formatted
+
+
+def _guess_schema(content: str, filename: Path | None) -> str | None:
+    """Attempt to auto-detect which schema a document targets.
+
+    Uses the $id field if present, otherwise falls back to filename heuristics.
+    Returns None if the guess is ambiguous.
+    """
+    try:
+        doc = json.loads(content)
+    except json.JSONDecodeError:
+        return None
+
+    # Prefer the $id field.
+    if isinstance(doc, dict):
+        if "$id" in doc:
+            return _ID_TO_SCHEMA.get(doc["$id"])
+        # Try to detect theme.json vs layout.json from the top-level keys.
+        if "schemaVersion" in doc:
+            if "color" in doc or "typography" in doc:
+                return "theme"
+            if "root" in doc or "surface" in doc:
+                return "layout"
+            if "capabilities" in doc or "checksums" in doc:
+                return "manifest"
+
+    # Fall back to filename.
+    if filename:
+        name = filename.name.lower()
+        for key, val in _SCHEMA_GUESS.items():
+            if name == key:
+                return val
+
+    return None
+
+
+def validate(
+    document: str,
+    schema_name: str,
+    *,
+    path: Path | None = None,
+) -> tuple[bool, list[str]]:
+    """Validate a document against the named schema.
+
+    Returns (ok, formatted_errors). `ok` is True when errors is empty.
+    `formatted_errors` is a list of human-readable messages.
+    """
+    try:
+        schema, schema_path = _load_schema(schema_name)
+    except SchemaLoadError as e:
+        return False, [f"error: {e}"]
+
+    # Build the validator. Check keywords so we catch schema misuse early.
+    try:
+        validator = Validator(schema)
+    except MiniSchemaError as e:
+        return False, [
+            f"error: schema is invalid ({schema_path}): {e}",
+            "  This is a build-system or schema-authoring bug, not a document bug.",
+        ]
+
+    # Parse the document.
+    try:
+        instance = json.loads(document)
+    except json.JSONDecodeError as e:
+        line = _line_for_offset(document, e.pos) if e.pos is not None else "?"
+        return False, [
+            f"error: document is not valid JSON: {e.msg} at line {line}",
+        ]
+
+    # Run the validator.
+    errors = list(validator.iter_errors(instance))
+    if not errors:
+        return True, []
+
+    formatted = _format_errors(errors, document, _SCHEMA_TABLE[schema_name][1])
+    return False, formatted
+
+
+# ---------------------------------------------------------------------------
+#  CLI
+# ---------------------------------------------------------------------------
+
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="theme-validate",
+        description=textwrap.dedent("""\
+            Validate an Eclipse Player theme, layout, or skin manifest against
+            its JSON Schema.  Errors are printed one per line with a JSON Pointer
+            path to the offending node.
+
+            Exit codes:
+              0  — document is valid
+              1  — document failed validation
+              2  — I/O error (file not found, unreadable)
+              3  — schema error (missing schema file, schema is itself invalid)
+
+            Examples:
+              theme-validate --schema theme   my-theme/theme.json
+              theme-validate --schema layout  my-skin/layout/now-playing.eclayout
+              cat theme.json | theme-validate --stdin --schema theme
+        """),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument(
+        "--schema", "-s",
+        dest="schema",
+        choices=list(_SCHEMA_TABLE.keys()),
+        default=None,
+        help="Schema to validate against (default: auto-detect from $id or filename)",
+    )
+    p.add_argument(
+        "--schema-dir",
+        dest="schema_dir",
+        default=None,
+        help="Directory containing shared-spec/schemas/ (default: repo root)",
+    )
+    p.add_argument(
+        "--stdin",
+        action="store_true",
+        help="Read the document from stdin instead of a file",
+    )
+    p.add_argument(
+        "--json",
+        action="store_true",
+        help="Output machine-readable JSON: {'ok': bool, 'errors': [...]",
+    )
+    p.add_argument(
+        "file",
+        nargs="?",
+        help="Path to the document to validate (required unless --stdin)",
+    )
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    # Read the document.
+    if args.stdin:
+        try:
+            content = sys.stdin.read()
+        except OSError as e:
+            print(f"error: cannot read from stdin: {e}", file=sys.stderr)
+            return 2
+        path: Path | None = None
+    elif args.file:
+        file_path = Path(args.file).resolve()
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except OSError as e:
+            print(f"error: cannot read {file_path}: {e}", file=sys.stderr)
+            return 2
+        path = file_path
+    else:
+        parser.print_help(file=sys.stderr)
+        print("\nerror: either <file> or --stdin is required", file=sys.stderr)
+        return 2
+
+    # Guess the schema if not given.
+    schema_name = args.schema
+    if schema_name is None:
+        schema_name = _guess_schema(content, path)
+        if schema_name is None:
+            candidates = ", ".join(sorted(_SCHEMA_TABLE.keys()))
+            print(
+                f"error: cannot auto-detect schema for this document.\n"
+                f"  Use --schema with one of: {candidates}",
+                file=sys.stderr,
+            )
+            return 2
+
+    ok, errors = validate(content, schema_name, path=path)
+
+    if args.json:
+        import json as _json
+        _json.dump({"ok": ok, "schema": schema_name, "errors": errors}, sys.stdout)
+        print()
+    else:
+        if ok:
+            print(f"✓ Valid ({schema_name})")
+        else:
+            print(f"✗ Invalid ({schema_name}):")
+            for err in errors:
+                print(f"  {err}")
+
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

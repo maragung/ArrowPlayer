@@ -1,0 +1,44 @@
+PRAGMA foreign_keys=ON;\x0A\
+PRAGMA journal_mode=WAL;\x0A\
+PRAGMA synchronous=NORMAL;\x0A\
+PRAGMA busy_timeout=5000;\x0A\
+PRAGMA temp_store=MEMORY;\x0A\
+PRAGMA mmap_size=268435456;\x0A\
+CREATE TABLE IF NOT EXISTS schema_version(version INTEGER NOT NULL PRIMARY KEY);\x0A\
+CREATE TABLE IF NOT EXISTS library_folders(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,path TEXT NOT NULL UNIQUE COLLATE NOCASE,enabled INTEGER NOT NULL DEFAULT 1,scan_state TEXT NOT NULL DEFAULT 'idle',last_scan_at INTEGER,created_at INTEGER NOT NULL);\x0A\
+CREATE TABLE IF NOT EXISTS tracks(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,container_path TEXT NOT NULL UNIQUE COLLATE NOCASE,filename TEXT NOT NULL,file_size INTEGER NOT NULL DEFAULT 0,duration_ms INTEGER NOT NULL DEFAULT 0 CHECK(duration_ms>=0),title TEXT NOT NULL DEFAULT '',artist TEXT NOT NULL DEFAULT '',album TEXT NOT NULL DEFAULT '',albumartist TEXT NOT NULL DEFAULT '',genre TEXT NOT NULL DEFAULT '',year INTEGER NOT NULL DEFAULT 0 CHECK(year>=0),tracknumber TEXT NOT NULL DEFAULT '',discnumber TEXT NOT NULL DEFAULT '',comment TEXT NOT NULL DEFAULT '',bpm REAL NOT NULL DEFAULT 0.0 CHECK(bpm>=0.0),composer TEXT NOT NULL DEFAULT '',grouping TEXT NOT NULL DEFAULT '',music_key TEXT NOT NULL DEFAULT '',rg_track_gain REAL NOT NULL DEFAULT 0.0,rg_track_peak REAL NOT NULL DEFAULT 0.0,rg_album_gain REAL NOT NULL DEFAULT 0.0,rg_album_peak REAL NOT NULL DEFAULT 0.0,bitrate_kbps INTEGER NOT NULL DEFAULT 0 CHECK(bitrate_kbps>=0),sample_rate INTEGER NOT NULL DEFAULT 0 CHECK(sample_rate>=0),bit_depth INTEGER NOT NULL DEFAULT 0 CHECK(bit_depth>=0),channels INTEGER NOT NULL DEFAULT 0 CHECK(channels>=0),codec TEXT NOT NULL DEFAULT '',container TEXT NOT NULL DEFAULT '',is_lossless INTEGER NOT NULL DEFAULT 0,artwork_id TEXT,has_artwork INTEGER NOT NULL DEFAULT 0,lyrics_id TEXT,has_lyrics INTEGER NOT NULL DEFAULT 0,source_id TEXT NOT NULL DEFAULT '',source_path TEXT NOT NULL DEFAULT '',rating INTEGER NOT NULL DEFAULT 0 CHECK(rating>=0 AND rating<=100),is_loved INTEGER NOT NULL DEFAULT 0,is_blacklisted INTEGER NOT NULL DEFAULT 0,play_count INTEGER NOT NULL DEFAULT 0 CHECK(play_count>=0),skip_count INTEGER NOT NULL DEFAULT 0 CHECK(skip_count>=0),last_played_at INTEGER,artist_sort_key TEXT NOT NULL DEFAULT '',album_sort_key TEXT NOT NULL DEFAULT '',album_hash TEXT NOT NULL DEFAULT '',cuesheet_id TEXT,added_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,deleted_at INTEGER,file_device INTEGER NOT NULL DEFAULT 0,file_inode INTEGER NOT NULL DEFAULT 0);\x0A\
+CREATE VIRTUAL TABLE IF NOT EXISTS tracks_fts USING fts5(title,artist,album,albumartist,genre,composer,content='tracks',content_rowid='id',tokenize='unicode61 remove_diacritics 1');\x0A\
+CREATE TRIGGER IF NOT EXISTS tracks_fts_insert AFTER INSERT ON tracks BEGIN INSERT INTO tracks_fts(rowid,title,artist,album,albumartist,genre,composer) VALUES (new.id,new.title,new.artist,new.album,new.albumartist,new.genre,new.composer); END;\x0A\
+CREATE TRIGGER IF NOT EXISTS tracks_fts_update AFTER UPDATE ON tracks BEGIN INSERT INTO tracks_fts(tracks_fts,rowid,title,artist,album,albumartist,genre,composer) VALUES ('delete',old.id,old.title,old.artist,old.album,old.albumartist,old.genre,old.composer); INSERT INTO tracks_fts(rowid,title,artist,album,albumartist,genre,composer) VALUES (new.id,new.title,new.artist,new.album,new.albumartist,new.genre,new.composer); END;\x0A\
+CREATE TRIGGER IF NOT EXISTS tracks_fts_delete AFTER DELETE ON tracks BEGIN INSERT INTO tracks_fts(tracks_fts,rowid,title,artist,album,albumartist,genre,composer) VALUES ('delete',old.id,old.title,old.artist,old.album,old.albumartist,old.genre,old.composer); END;\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_container_path ON tracks(container_path);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_artist ON tracks(artist);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_album ON tracks(album);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_albumartist ON tracks(albumartist);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_genre ON tracks(genre);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_year ON tracks(year);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_added_at ON tracks(added_at);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_rating ON tracks(rating);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_play_count ON tracks(play_count);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_last_played ON tracks(last_played_at);\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_source_id ON tracks(source_id) WHERE source_id!='';\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_album_hash ON tracks(album_hash) WHERE album_hash!='';\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_deleted ON tracks(deleted_at) WHERE deleted_at IS NOT NULL;\x0A\
+CREATE INDEX IF NOT EXISTS idx_tracks_device_inode ON tracks(file_device,file_inode) WHERE file_device!=0;\x0A\
+CREATE TABLE IF NOT EXISTS cuesheets(id TEXT NOT NULL PRIMARY KEY,file_path TEXT NOT NULL,file_device INTEGER NOT NULL DEFAULT 0,file_inode INTEGER NOT NULL DEFAULT 0,performer TEXT NOT NULL DEFAULT '',title TEXT NOT NULL DEFAULT '',file_ref TEXT NOT NULL,file_is_flac INTEGER NOT NULL DEFAULT 0,catalog TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL);\x0A\
+CREATE INDEX IF NOT EXISTS idx_cuesheets_file_path ON cuesheets(file_path);\x0A\
+CREATE TABLE IF NOT EXISTS cuetracks(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,cuesheet_id TEXT NOT NULL REFERENCES cuesheets(id) ON DELETE CASCADE,position INTEGER NOT NULL DEFAULT 0,title TEXT NOT NULL DEFAULT '',performer TEXT NOT NULL DEFAULT '',start_offset INTEGER NOT NULL DEFAULT 0,end_offset INTEGER NOT NULL DEFAULT 0,isrc TEXT NOT NULL DEFAULT '',flags TEXT NOT NULL DEFAULT '');\x0A\
+CREATE INDEX IF NOT EXISTS idx_cuetracks_cuesheet ON cuetracks(cuesheet_id,position);\x0A\
+CREATE TABLE IF NOT EXISTS track_custom_tags(track_id INTEGER NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,key TEXT NOT NULL,value TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(track_id,key,value));\x0A\
+CREATE INDEX IF NOT EXISTS idx_track_custom_tags_key_value ON track_custom_tags(key,value);\x0A\
+CREATE TABLE IF NOT EXISTS playlists(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,uuid TEXT NOT NULL UNIQUE,name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',kind INTEGER NOT NULL,rule_json TEXT,auto_refresh INTEGER NOT NULL DEFAULT 1,sort_order INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);\x0A\
+CREATE INDEX IF NOT EXISTS idx_playlists_uuid ON playlists(uuid);\x0A\
+CREATE INDEX IF NOT EXISTS idx_playlists_kind ON playlists(kind);\x0A\
+CREATE TABLE IF NOT EXISTS playlist_items(playlist_id INTEGER NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,position INTEGER NOT NULL,track_id INTEGER NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,added_at INTEGER NOT NULL,PRIMARY KEY(playlist_id,position));\x0A\
+CREATE INDEX IF NOT EXISTS idx_playlist_items_track ON playlist_items(track_id);\x0A\
+CREATE TABLE IF NOT EXISTS change_log(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,lamport_clock INTEGER NOT NULL,device_id TEXT NOT NULL,entity_type TEXT NOT NULL,entity_id TEXT NOT NULL,operation TEXT NOT NULL,payload TEXT NOT NULL,applied_at INTEGER NOT NULL);\x0A\
+CREATE INDEX IF NOT EXISTS idx_change_log_clock ON change_log(lamport_clock);\x0A\
+CREATE INDEX IF NOT EXISTS idx_change_log_entity ON change_log(entity_type,entity_id);\x0A\
+CREATE INDEX IF NOT EXISTS idx_change_log_applied ON change_log(applied_at) WHERE applied_at IS NULL;\x0A\
+CREATE INDEX IF NOT EXISTS idx_change_log_track ON change_log(entity_type,lamport_clock) WHERE entity_type='track';\x0A\
+CREATE INDEX IF NOT EXISTS idx_change_log_playlist ON change_log(entity_type,lamport_clock) WHERE entity_type='playlist';

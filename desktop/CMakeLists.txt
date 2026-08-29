@@ -96,10 +96,17 @@ set(ARROW_DOMAIN_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/parser.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/evaluator.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/format_engine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/track_context.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/biquad.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/equalizer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/replaygain.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/decode/gapless_info.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/graph/playback_graph.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/graph/ring_buffer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/graph/gapless_scheduler.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/dsp_chain.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/limiter.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/fader.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/playback_service.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/net/icy_metadata.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/net/hls_playlist.cpp"
@@ -113,12 +120,78 @@ set(ARROW_DOMAIN_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/sync/transport.cpp"
 )
 
+# ---------------------------------------------------------------------------
+#  REQ-GEN-030: FileSets for public headers
+# ---------------------------------------------------------------------------
+# Domain layer public headers
+set(ARROW_DOMAIN_HEADERS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/error.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/text.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/json/json.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/parser.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/evaluator.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/format_engine.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/format/track_context.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/biquad.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/equalizer.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/dsp/replaygain.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/decode/gapless_info.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/decode/wav_decoder.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/graph/playback_graph.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/graph/ring_buffer.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/graph/spsc_ring.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/playback_service.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/ports/audio_ports.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/ports/audio_types.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/ports/icy_metadata.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/ports/hls_playlist.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/ports/http_port.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/ports/rss_feed.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/ports/radio_port.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/ports/podcast_port.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/net/ports/scrobble_port.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sync/ports/discovery_port.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sync/ports/pairing_port.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sync/ports/transport_port.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ports/library_port.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ports/tag_port.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_info.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/command_line.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/application.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/lifecycle.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/library/library_database.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/library/smart_playlist.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/library/filesystem_scanner.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/library/sidecar_tag_reader.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/library/library_importer.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/theme/schema.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/theme/chain.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/theme/loader.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/skin/layout.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/skin/svg_sanitize.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/skin/pack.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/skin/zip_safety.hpp"
+)
+
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.23")
+    # CMake 3.23+ supports FileSets natively
+    add_library(arrow-domain STATIC ${ARROW_DOMAIN_SOURCES})
+    target_include_directories(arrow-domain PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated>
+        $<INSTALL_INTERFACE:include>)
+    target_sources(arrow-domain PUBLIC FILE_SET HEADERS FILES ${ARROW_DOMAIN_HEADERS})
+else()
+    add_library(arrow-domain STATIC ${ARROW_DOMAIN_SOURCES})
+    target_include_directories(arrow-domain PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_BINARY_DIR}/generated")
+endif()
 
 # Playback ports and the SPSC ring are header-only contracts/primitives. They
 # are compiled by the domain consumers and intentionally require no adapter.
-add_library(arrow-domain STATIC ${ARROW_DOMAIN_SOURCES})
-target_include_directories(arrow-domain PUBLIC
-    include src "${CMAKE_BINARY_DIR}/generated")
 arrow_set_warnings(arrow-domain)
 arrow_set_sanitizers(arrow-domain)
 arrow_set_hardening(arrow-domain)   # REQ-SEC-018
@@ -159,6 +232,23 @@ arrow_set_warnings(arrow-audio-wav)
 arrow_set_sanitizers(arrow-audio-wav)
 arrow_set_hardening(arrow-audio-wav)
 target_compile_features(arrow-audio-wav PUBLIC cxx_std_20)
+
+# FFmpeg-backed decoder adapter (REQ-AUD-027). Built only when FFmpeg is available.
+# The ffmpeg_decoder.cpp is a single translation unit; ARROW_HAVE_FFMPEG is
+# used inside the .cpp to compile the real implementation or the stub.
+if(ARROW_HAVE_FFMPEG)
+    add_library(arrow-audio-ffmpeg STATIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/decode/ffmpeg_decoder.cpp")
+    target_compile_definitions(arrow-audio-ffmpeg PRIVATE ARROW_HAVE_FFMPEG=1)
+    target_include_directories(arrow-audio-ffmpeg PUBLIC src)
+    target_link_libraries(arrow-audio-ffmpeg PUBLIC arrow-domain arrow::ffmpeg)
+    arrow_set_warnings(arrow-audio-ffmpeg)
+    arrow_set_sanitizers(arrow-audio-ffmpeg)
+    arrow_set_hardening(arrow-audio-ffmpeg)
+    target_compile_features(arrow-audio-ffmpeg PUBLIC cxx_std_20)
+    target_link_libraries(arrow-adapters INTERFACE arrow-audio-ffmpeg)
+endif()
+
 if(ARROW_HAVE_ALSA)
     # ALSA is on Linux only. The factory dispatches to AlsaSink at runtime,
     # so its compilation unit must live in the same library as alsa_sink.cpp
@@ -184,15 +274,86 @@ else()
     target_link_libraries(arrow-adapters INTERFACE arrow-audio-null)
 endif()
 target_link_libraries(arrow-adapters INTERFACE arrow-audio-wav arrow-domain)
+
+# ---------------------------------------------------------------------------
+#  PulseAudio sink — Linux only, shared mode only, non-bit-perfect.
+#  REQ-AUD-067: labelled as non-bit-perfect in diagnostics.
+# ---------------------------------------------------------------------------
+if(ARROW_HAVE_PULSEAUDIO)
+    target_compile_definitions(arrow-audio-null PRIVATE ARROW_HAVE_PULSEAUDIO=1)
+    add_library(arrow-audio-pulse STATIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/pulse_sink.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/sink_factory.cpp")
+    target_compile_definitions(arrow-audio-pulse PRIVATE ARROW_HAVE_PULSEAUDIO=1)
+    target_include_directories(arrow-audio-pulse PUBLIC src)
+    target_link_libraries(arrow-audio-pulse PUBLIC arrow-domain arrow-audio-null arrow::pulse)
+    arrow_set_warnings(arrow-audio-pulse)
+    arrow_set_sanitizers(arrow-audio-pulse)
+    arrow_set_hardening(arrow-audio-pulse)
+    target_compile_features(arrow-audio-pulse PUBLIC cxx_std_20)
+    target_link_libraries(arrow-adapters INTERFACE arrow-audio-pulse)
+endif()
+
+# ---------------------------------------------------------------------------
+#  WASAPI sink — Windows only, shared and exclusive modes.
+#  REQ-AUD-118: device-loss recovery state machine.
+# ---------------------------------------------------------------------------
+if(WIN32)
+    add_library(arrow-audio-wasapi STATIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/wasapi_sink.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/sink/sink_factory.cpp")
+    target_compile_definitions(arrow-audio-wasapi PRIVATE ARROW_HAVE_WASAPI=1)
+    target_include_directories(arrow-audio-wasapi PUBLIC src)
+    target_link_libraries(arrow-audio-wasapi PUBLIC arrow-domain arrow-audio-null)
+    arrow_set_warnings(arrow-audio-wasapi)
+    arrow_set_sanitizers(arrow-audio-wasapi)
+    arrow_set_hardening(arrow-audio-wasapi)
+    target_compile_features(arrow-audio-wasapi PUBLIC cxx_std_20)
+    target_link_libraries(arrow-adapters INTERFACE arrow-audio-wasapi)
+endif()
+
+# ---------------------------------------------------------------------------
+#  Native OS integration layer — §14.
+#  SMTC (Windows), MPRIS2 (Linux), system tray, global hotkeys.
+# ---------------------------------------------------------------------------
+add_library(arrow-native STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/native/smtc.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/native/mpris2.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/native/tray.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/native/hotkeys.cpp")
+target_include_directories(arrow-native PUBLIC src)
+target_link_libraries(arrow-native PUBLIC arrow-domain)
+arrow_set_warnings(arrow-native)
+arrow_set_sanitizers(arrow-native)
+arrow_set_hardening(arrow-native)
+target_compile_features(arrow-native PUBLIC cxx_std_20)
+if(WIN32)
+    target_link_libraries(arrow-native PUBLIC winmm.lib)
+endif()
+if(ARROW_HAVE_DBUS)
+    target_link_libraries(arrow-native PUBLIC arrow::dbus)
+endif()
+
+target_link_libraries(arrow-adapters INTERFACE arrow-native)
+
 if(ARROW_HAVE_SQLITE3)
     add_library(arrow-library-sqlite STATIC
         "${CMAKE_CURRENT_SOURCE_DIR}/src/library/library_database.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/database.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/scanner.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/tag_reader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/library/change_log.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/library/filesystem_scanner.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/library/library_importer.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/library/sidecar_tag_reader.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/library/smart_playlist.cpp")
     target_include_directories(arrow-library-sqlite PUBLIC src)
-    target_link_libraries(arrow-library-sqlite PUBLIC arrow-domain arrow::sqlite3)
+    # TagLib is required for tag reading (REQ-LIB-025)
+    set(_library_deps arrow-domain arrow::sqlite3)
+    if(ARROW_HAVE_TAGLIB)
+        list(APPEND _library_deps arrow::taglib)
+    endif()
+    target_link_libraries(arrow-library-sqlite PUBLIC ${_library_deps})
     arrow_set_warnings(arrow-library-sqlite)
     arrow_set_sanitizers(arrow-library-sqlite)
     arrow_set_hardening(arrow-library-sqlite)
@@ -262,11 +423,12 @@ endif()
 #  window can open rather than exiting 0 in silence.
 # ---------------------------------------------------------------------------
 add_executable(arrow-player "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-target_link_libraries(arrow-player PRIVATE arrow-app arrow-audio-wav)
-if(ARROW_HAVE_ALSA)
-    # The factory's compilation unit lives in arrow-audio-alsa when ALSA is
-    # on, so the executable must link that library explicitly to resolve
-    # make_sink() and the AlsaSink vtable.
+target_link_libraries(arrow-player PRIVATE arrow-app arrow-audio-wav arrow-native)
+if(WIN32 AND ARROW_HAVE_WASAPI)
+    target_link_libraries(arrow-player PRIVATE arrow-audio-wasapi)
+elseif(ARROW_HAVE_PULSEAUDIO)
+    target_link_libraries(arrow-player PRIVATE arrow-audio-pulse)
+elseif(ARROW_HAVE_ALSA)
     target_link_libraries(arrow-player PRIVATE arrow-audio-alsa)
 else()
     target_link_libraries(arrow-player PRIVATE arrow-audio-null)
@@ -277,6 +439,18 @@ arrow_set_hardening(arrow-player)   # REQ-SEC-018
 if(TARGET arrow-ui)
     target_link_libraries(arrow-player PRIVATE arrow-ui)
     target_compile_definitions(arrow-player PRIVATE ARROW_WITH_UI=1)
+endif()
+
+# ---------------------------------------------------------------------------
+#  REQ-BLD-026: arrow-player-desktop — aggregate target linking all modules
+# ---------------------------------------------------------------------------
+add_executable(arrow-player-desktop IMPORTED)
+set_target_properties(arrow-player-desktop PROPERTIES
+    IMPORTED_LOCATION "$<TARGET_FILE:arrow-player>")
+# Propagate Qt runtime path on Windows (REQ-GEN-013 dynamic linking)
+if(WIN32 AND ARROW_HAVE_QT)
+    set_target_properties(arrow-player-desktop PROPERTIES
+        BUILD_RPATH "$<TARGET_PROPERTY:arrow-player,BUILD_RPATH>")
 endif()
 
 # ---------------------------------------------------------------------------
@@ -293,6 +467,56 @@ if(ARROW_BUILD_FUZZERS AND NOT ARROW_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests/fuzz)
 endif()
+
+# ---------------------------------------------------------------------------
+#  Install rules — spec §24.3 (REQ-BLD-026)
+# ---------------------------------------------------------------------------
+include(GNUInstallDirs)
+
+install(TARGETS arrow-player
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+
+# Install headers for development
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.23")
+    install(TARGETS arrow-domain EXPORT ArrowTargets
+        FILE_SET HEADERS DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/arrow")
+else()
+    install(DIRECTORY src/
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/arrow"
+        FILES_MATCHING PATTERN "*.hpp")
+endif()
+
+install(EXPORT ArrowTargets FILE ArrowTargets.cmake DESTINATION share/arrow-player/cmake)
+
+# CPack configuration for .deb, AppImage (Linux), MSI/NSIS (Windows)
+set(CPACK_PACKAGE_NAME "arrow-player")
+set(CPACK_PACKAGE_VERSION "${ARROW_VERSION}")
+set(CPACK_PACKAGE_VENDOR "Arrow Player")
+set(CPACK_PACKAGE_CONTACT "https://arrow-player.org")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_WELCOME "${CMAKE_SOURCE_DIR}/README.md")
+
+include(InstallRequiredSystemLibraries)
+
+# Linux packaging
+if(LINUX)
+    set(CPACK_GENERATOR "DEB")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "sound")
+    set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://arrow-player.org")
+    set(CPACK_DEBIAN_COMPRESSION_TYPE "xz")
+endif()
+
+# Windows packaging
+if(WIN32)
+    set(CPACK_GENERATOR "NSIS;MSI")
+    set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES")
+    set(CPACK_NSIS_MODIFY_PATH ON)
+endif()
+
+include(CPack)
 
 # ---------------------------------------------------------------------------
 #  Configuration summary
@@ -313,6 +537,10 @@ message(STATUS "  FFmpeg        : ${ARROW_HAVE_FFMPEG}")
 message(STATUS "  TagLib        : ${ARROW_HAVE_TAGLIB}")
 message(STATUS "  ALSA          : ${ARROW_HAVE_ALSA}")
 message(STATUS "  libsamplerate : ${ARROW_HAVE_SAMPLERATE}")
+message(STATUS "  nlohmann_json : ${ARROW_HAVE_NLOHMANN_JSON}")
+message(STATUS "  SoundTouch    : ${ARROW_HAVE_SOUNDTOUCH}")
+message(STATUS "  Chromaprint   : ${ARROW_HAVE_CHROMAPRINT}")
+message(STATUS "  projectM      : ${ARROW_HAVE_PROJECTM}")
 message(STATUS "  Qt 6          : ${ARROW_HAVE_QT}")
 
 # An `OFF` above is easy to misread as "this platform cannot build that

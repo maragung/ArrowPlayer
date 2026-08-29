@@ -25,4 +25,16 @@ function(arrow_set_sanitizers target)
             -fsanitize=thread -fno-omit-frame-pointer)
         target_link_options(${target} PRIVATE -fsanitize=thread)
     endif()
+
+    # Standalone UBSan (not combined with ASan)
+    if(ARROW_SANITIZE_UB AND NOT ARROW_SANITIZE_ADDRESS AND NOT ARROW_SANITIZE_THREAD)
+        target_compile_options(${target} PRIVATE
+            -fsanitize=undefined
+            -fno-omit-frame-pointer
+            -fno-sanitize-recover=all)
+        target_link_options(${target} PRIVATE -fsanitize=undefined)
+    endif()
 endfunction()
+
+# UB sanitizer standalone option
+option(ARROW_SANITIZE_UB "UndefinedBehavior sanitizer (UBSan)" OFF)

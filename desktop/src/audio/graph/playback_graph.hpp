@@ -7,6 +7,7 @@
 
 #include "audio/graph/spsc_ring.hpp"
 #include "audio/ports/audio_ports.hpp"
+#include "audio/ports/i_audio_sink.hpp"
 
 namespace arrow::audio {
 

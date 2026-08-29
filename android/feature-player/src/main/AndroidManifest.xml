@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Arrow Player — feature-player manifest.
+    No components in this feature module; it is a pure Compose screen library.
+    MediaSession / PlaybackService belong to the app module.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />

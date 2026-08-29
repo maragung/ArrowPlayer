@@ -67,6 +67,11 @@ if(ARROW_HAVE_SQLITE3)
 endif()
 arrow_add_test(test_app     SOURCES unit/test_app.cpp     LIBS arrow-app)
 arrow_add_test(test_command_line SOURCES unit/test_command_line.cpp LIBS arrow-app arrow-audio-null)
+arrow_add_test(test_format_parser SOURCES unit/test_format_parser.cpp)
+arrow_add_test(test_ring_buffer SOURCES unit/test_ring_buffer.cpp)
+if(ARROW_HAVE_SQLITE3)
+    arrow_add_test(test_smart_playlist SOURCES unit/test_smart_playlist.cpp LIBS arrow-library-sqlite)
+endif()
 
 # ---------------------------------------------------------------------------
 #  Fuzz targets and their corpus (§21.6, REQ-SEC-011, REQ-SEC-012)

@@ -23,7 +23,7 @@
 #include <string_view>
 #include <vector>
 
-namespace arrow::format {
+namespace arrow::efs {
 
 // ---------------------------------------------------------------------------
 //  AST
@@ -137,4 +137,4 @@ struct ParseResult {
 
 [[nodiscard]] ParseResult parse(std::string_view source) noexcept;
 
-}  // namespace arrow::format
+}  // namespace arrow::efs

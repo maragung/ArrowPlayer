@@ -50,4 +50,11 @@ struct PlanarFrames final {
     }
 };
 
+/// Configuration for opening an audio sink.
+struct SinkConfig final {
+    PcmFormat format{};
+    bool exclusive{false};
+    std::size_t period_frames{0};
+};
+
 }  // namespace arrow::audio

@@ -3,7 +3,7 @@
 
 #include <utility>
 
-namespace arrow::format {
+namespace arrow::efs {
 
 CompiledPattern compile(std::string_view source) noexcept {
     CompiledPattern out;
@@ -39,9 +39,23 @@ RenderResult render(const CompiledPattern& pattern, const TrackView& track,
     return out;
 }
 
+void render(const CompiledPattern& pattern, const TrackView& track,
+            std::string& out, bool* cap_exceeded) noexcept {
+    auto r = render(pattern, track, {});
+    out = std::move(r.text);
+    if (cap_exceeded) *cap_exceeded = r.cap_exceeded;
+}
+
 RenderResult render(std::string_view source, const TrackView& track,
                     const EvalContext& ctx) noexcept {
     return render(compile(source), track, ctx);
+}
+
+void render(std::string_view source, const TrackView& track,
+           std::string& out, bool* cap_exceeded) noexcept {
+    auto r = render(source, track, {});
+    out = std::move(r.text);
+    if (cap_exceeded) *cap_exceeded = r.cap_exceeded;
 }
 
 Error cap_error(std::size_t pattern_length) noexcept {
@@ -52,4 +66,4 @@ Error cap_error(std::size_t pattern_length) noexcept {
     return e;
 }
 
-}  // namespace arrow::format
+}  // namespace arrow::efs

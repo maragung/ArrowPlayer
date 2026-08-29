@@ -13,7 +13,7 @@
 
 # Widgets is known to be present (ARROW_HAVE_QT required it), but
 # LinguistTools is only needed here and is requested only by this directory.
-find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Qml Quick LinguistTools)
 
 # Q_OBJECT (MainWindow) needs the meta-object compiler. AUTOMOC only mocs
 # headers that are listed as target sources (or pulled in via `moc_X.cpp`
@@ -22,15 +22,62 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools)
 # whose MainWindow vtable and staticMetaObject were missing.
 set(CMAKE_AUTOMOC ON)
 
+# QML files are compiled into the Qt Resource System and embedded in the
+# binary via qt_add_resources.  The FILES list lives in qml/CMakeLists.txt.
+qt_add_resources(arrow-ui "arrow-qml"
+    PREFIX "/qml"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/../qml"
+    FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/NowPlaying/Main.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/NowPlaying/TransportControls.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/NowPlaying/AlbumArt.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/NowPlaying/TrackInfo.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/SeekBar/Main.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Library/Main.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Library/ArtistList.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Library/AlbumList.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Library/SongList.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Library/GenreList.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Library/PlaylistList.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Queue/Main.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Equalizer/Main.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Equalizer/BandSlider.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Equalizer/FrequencyGraph.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/Templates.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/qmldir"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-play.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-pause.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-skip-previous.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-skip-next.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-shuffle.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-repeat.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-repeat-one.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-volume-high.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-volume-low.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-volume-mute.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-grid.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-list.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/icon-sort.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../qml/Theme/assets/placeholder-album.svg"
+)
+
+# ---------------------------------------------------------------------------
+#  Layer 5 — PRESENTATION: Qt Widgets shell + QML surfaces
+# ---------------------------------------------------------------------------
 add_library(arrow-ui STATIC
     src/shell.cpp
     src/main_window.cpp
+    src/ui/playlist_tabs.cpp
+    src/ui/settings_dialog.cpp
     include/arrow/ui/main_window.hpp
+    include/arrow/ui/shell.hpp
+    include/arrow/ui/playlist_tabs.hpp
+    include/arrow/ui/settings_dialog.hpp
 )
 target_include_directories(arrow-ui PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
-target_link_libraries(arrow-ui PUBLIC Qt6::Widgets arrow-domain)
+target_link_libraries(arrow-ui PUBLIC Qt6::Widgets Qt6::Qml Qt6::Quick arrow-domain)
 arrow_set_warnings(arrow-ui)
 arrow_set_hardening(arrow-ui)   # REQ-SEC-018
 target_compile_features(arrow-ui PUBLIC cxx_std_20)

@@ -29,7 +29,7 @@
 
 #include "core/format/parser.hpp"
 
-namespace arrow::format {
+namespace arrow::efs {
 
 // ---------------------------------------------------------------------------
 //  TrackView — what a track offers to a pattern.
@@ -152,4 +152,4 @@ class Evaluator {
     Value apply(const FunctionCall& fc) noexcept;
 };
 
-}  // namespace arrow::format
+}  // namespace arrow::efs

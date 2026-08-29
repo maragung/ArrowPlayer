@@ -1,391 +1,403 @@
 // SPDX-License-Identifier: MPL-2.0
 //
-// layout.hpp — REQ-THM-025 / REQ-THM-026 / REQ-THM-027 / REQ-THM-028
-// / REQ-THM-029 / REQ-THM-030 / REQ-THM-031 / REQ-THM-032 / REQ-THM-033
-// / REQ-THM-034.
+// layout.hpp — Declarative layout document interpreter.
 //
-// The layout interpreter is the only thing the desktop and Android UI
-// layers share when rendering a skin. Its job is to turn a validated
-// .eclayout document into an internal model — the IR — that the
-// platform UI (QML on desktop, Compose on Android) consumes.
+// Spec: eclipse-player.md §11.4 (REQ-THM-025 … REQ-THM-034), §11.5 (REQ-THM-040).
 //
-// What this file is NOT:
-//   * a scripting engine. There is no eval(), no function dispatch,
-//     no expression language. The only "logic" is the `when`
-//     predicate, which is a fixed grammar (see parse_when() in
-//     layout.cpp).
-//   * a QML/JS shim. Nothing here imports Qml. The IR is plain data
-//     — variant-like values, enum tags, and string references — and
-//     the QML side walks it to build its Item tree. The Android
-//     side does the same with Compose.
-//   * a styling engine. Colours are referenced by `color.<group>.<role>`
-//     string, not by literal hex, because a literal would break
-//     every theme the skin is combined with. The host looks the path
-//     up on the active theme.
+// A layout document (`.eclayout`) is a JSON file validated against
+// shared-spec/schemas/layout.schema.json.  The interpreter parses it into a
+// tree of strongly-typed node structs.  The resulting tree is consumed by the
+// QML skin host (SkinHost.qml), which instantiates Qt Quick controls for
+// each node type.
 //
-// Budgets (REQ-THM-033):
-//   * 500 component instances per layout
-//   * nesting depth 24
-//   * 64 bindings per component tree
+// Design constraints imposed by the spec:
+//   - No code execution: the interpreter is a pure read-only traversal.
+//   - Closed vocabulary: only the 30 node types in componentType enum are
+//     permitted; unknown types are rejected at schema-validation time.
+//   - Bindings are read-only paths into a whitelist; actions are enum-only.
+//   - EFS evaluation is deferred to the QML layer (the EFS engine exists
+//     separately and is not duplicated here).
+//   - The `when:` predicate is parsed here into an AST but evaluated at
+//     runtime by the QML bindings.
 //
-// The interpreter itself contains no scripting, no QML, no JS.
+// Layout document limits (enforced at parse time):
+//   - Maximum 500 component instances (REQ-THM-033).
+//   - Maximum nesting depth 24 (REQ-THM-033).
+//   - Maximum 64 bindings per component tree (REQ-THM-033).
 
 #pragma once
 
-#include <array>
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
 
+#include "theme/schema.hpp"
+
 namespace arrow::skin {
 
 // ---------------------------------------------------------------------------
-//  The closed component vocabulary. The numbers are an internal detail
-//  and may be re-ordered between builds; consumers should switch on
-//  the enum tag, not the integer value.
+//  Node types
+//
+//  Each layout node is a tagged struct carrying the properties that are
+//  valid for that node type.  Properties not applicable to a type are
+//  absent (std::nullopt).  The set of types matches the componentType enum
+//  in layout.schema.json (REQ-THM-026).
 // ---------------------------------------------------------------------------
 
-enum class Component : std::uint16_t {
-    // Layout (8)
-    Stack      = 0,  Row,        Column,     Grid,
-    Panel,             Spacer,     ScrollArea, SplitPane,
-
-    // Content (7)
-    Text,             Icon,       Image,      Marquee,
-    Divider,          Badge,      Rating,     ProgressBar,
-
-    // Interactive (8)
-    Button,           ToggleButton, Slider,    VolumeControl,
-    TransportBar,     SearchField, TabBar,    ListView,
-
-    // Media (6)
-    AlbumArt,         Visualizer, SeekBar,   PeakMeter,
-    WaveformView,     LyricsView,
-};
-
-// All 30 components, in the same order as REQ-THM-026. Used to validate
-// `type` strings when reading a .eclayout document; the schema also
-// validates it but the interpreter does not trust the schema alone.
-std::optional<Component> component_from_string(std::string_view s);
-const char* component_to_string(Component c);
+// Forward declarations
+struct Node;
+struct ContainerNode;
 
 // ---------------------------------------------------------------------------
-//  Bindings — REQ-THM-027. The state model is a closed set of paths
-//  the host publishes. The interpreter does not look the path up; the
-//  host does, when it renders a frame.
+//  Layout primitives
 // ---------------------------------------------------------------------------
 
-enum class Binding : std::uint16_t {
-    // track.*  (19)
-    Title, AlbumArtist, Artist, Album, Genre, Composer, Year,
-    TrackNumber, DiscNumber, Duration, Rating, IsLoved, HasArtwork,
-    HasLyrics, Codec, Bitrate, SampleRate, BitDepth, Channels,
-    IsLossless, FileName,
-
-    // player.*  (12)
-    State, PositionMs, DurationMs, RemainingMs, Volume, IsMuted,
-    RepeatMode, ShuffleMode, Speed, IsBitPerfect, ReplayGainApplied,
-    HasNext, HasPrevious,
-
-    // queue.* and list.*  (4)
-    QueueIndex, QueueTotal, ListIndex, ListTotal, ListSelectionCount,
-
-    // settings.*  (4) — the narrow window REQ-THM-027 / REQ-THM-031
-    // disagree about; layout.schema.json's `statePath` enum is the
-    // source of truth, and this list mirrors it.
-    ShowMiniVisualizer, ShowVisualizer, ShowLyrics, ReducedMotion,
-    AccessibleContrast,
-
-    // app.*  (2)
-    AppVersion, IsPortable,
-};
-
-std::optional<Binding> binding_from_string(std::string_view s);
-const char* binding_to_string(Binding b);
-
-// ---------------------------------------------------------------------------
-//  Actions — REQ-THM-028. The action set is the §13.2 command registry
-//  exposed through the skin's view of it; the interpreter does not
-//  know how to perform any of them, only how to name them so the host
-//  can dispatch.
-// ---------------------------------------------------------------------------
-
-enum class Action : std::uint16_t {
-    PlayPause, Next, Previous,
-    SeekForward, SeekBackward,
-    SeekForwardLarge, SeekBackwardLarge,
-    Stop, StopAfterCurrent,
-    VolumeUp, VolumeDown, MuteToggle,
-    CycleRepeat, CycleShuffle, AddBookmark,
-    AbRepeatSetA, AbRepeatSetB, AbRepeatClear,
-    SpeedUp, SpeedDown, SpeedReset,
-
-    FocusSearch, CommandPalette,
-    GotoTab1, GotoTab2, GotoTab3, GotoTab4, GotoTab5,
-    GotoTab6, GotoTab7, GotoTab8, GotoTab9,
-    NextTab, PreviousTab,
-    FullScreenNowPlaying, ToggleMiniPlayer, ToggleWindowshade,
-    ToggleAlwaysOnTop, ScrollToCurrentTrack, ToggleLyrics,
-    ToggleVisualizer, ShowEqualizer, Dismiss,
-
-    OpenFiles, OpenFolder, OpenUrl, DeleteFromDisk,
-
-    NewPlaylist, SavePlaylist, ClosePlaylistTab, SelectAll,
-    RemoveSelected, Undo, Redo,
-
-    AddSelected, PlayNext,
-
-    ShowTechnicalInfo, EditTags, ToggleLoved,
-    SetRating0, SetRating1, SetRating2, SetRating3, SetRating4, SetRating5,
-
-    RescanAll,
-
-    WindowClose, WindowMinimize, WindowMaximizeRestore,
-};
-
-std::optional<Action> action_from_string(std::string_view s);
-const char* action_to_string(Action a);
-
-// ---------------------------------------------------------------------------
-//  Primitive values the IR carries. Numeric sizes are doubles so a
-//  pixel number, a percentage, and the strings "fill" / "auto" can
-//  be represented uniformly: the host interprets each Dimension
-//  according to its kind.
-// ---------------------------------------------------------------------------
-
-enum class SizeKind : std::uint8_t { Pixels, Percent, Fill, Auto };
-
+/// A dimension: either a fixed pixel value, "fill" (take available space),
+/// "auto" (size-to-content), or a percentage of the parent.
 struct Dimension {
-    SizeKind  kind{SizeKind::Pixels};
-    double    value{0.0};
-    std::string to_string() const;   // for diagnostics, not for round-tripping
+    enum class Kind { px, fill, auto_, percent } kind{Kind::px};
+    double value{0.0};  // valid when kind==px or kind==percent
+
+    static Dimension px(double v)    { Dimension d; d.kind = Kind::px;      d.value = v; return d; }
+    static Dimension fill()            { Dimension d; d.kind = Kind::fill;    return d; }
+    static Dimension auto_()           { Dimension d; d.kind = Kind::auto_;   return d; }
+    static Dimension percent(double v){ Dimension d; d.kind = Kind::percent; d.value = v; return d; }
 };
 
-enum class Align : std::uint8_t { Start, Center, End, Stretch, Baseline };
-enum class Justify : std::uint8_t { Start, Center, End, SpaceBetween, SpaceAround };
-enum class Orientation : std::uint8_t { Horizontal, Vertical };
-enum class Overflow : std::uint8_t { Clip, Ellipsis, Wrap, Marquee };
-enum class Fit : std::uint8_t { Cover, Contain, Fill, None };
-enum class Fallback : std::uint8_t { Placeholder, None, BlurredColor };
-
-// A `when:` predicate compiled to a flat list of clauses. Predicates
-// are deliberately small (REQ-THM-030) so we do not need a full AST;
-// the simplest representation that round-trips the grammar is a list
-// of (binding, op, literal) atoms joined by and/or with optional not
-// at the front of each clause. The host evaluates them at render
-// time against the current state.
-struct WhenClause {
-    bool                              negated{false};
-    Binding                           binding;
-    enum class Op { Exists, Eq, Ne, Lt, Le, Gt, Ge } op{Op::Exists};
-    enum class LiteralKind { Bool, Int, Double, String } kind{LiteralKind::String};
-    bool                              bool_value{false};
-    std::int64_t                      int_value{0};
-    double                            double_value{0.0};
-    std::string                       string_value;
+/// A 2-D size constraint.
+struct Size {
+    std::optional<Dimension> width;
+    std::optional<Dimension> height;
 };
+
+/// A 2-D sizing constraint with min/max bounds.
+struct Sizing {
+    std::optional<Dimension> width;
+    std::optional<Dimension> height;
+    std::optional<Dimension> min_width;
+    std::optional<Dimension> min_height;
+    std::optional<Dimension> max_width;
+    std::optional<Dimension> max_height;
+    std::optional<double>    grow;   // flex grow factor
+};
+
+/// A colour reference as a dotted path into the theme's colour object.
+/// e.g. "color.background.raised".  The interpreter resolves this to a
+/// theme token name; the QML layer resolves the name to a QColor.
+struct ColorRef {
+    std::string path;  // e.g. "color.text.primary"
+
+    /// Return the resolved token name for logging/debugging.
+    std::string_view token_name() const noexcept;
+};
+
+/// A spacing value: either a §12.1 token name or a raw pixel value.
+struct SpacingValue {
+    std::variant<std::string_view, std::int32_t> value;  // token name or px
+
+    bool is_token()   const noexcept { return std::holds_alternative<std::string_view>(value); }
+    bool is_pixels() const noexcept { return std::holds_alternative<std::int32_t>(value); }
+};
+
+/// A border descriptor.
+struct Border {
+    ColorRef          color;
+    std::double_t    width{1.0};
+};
+
+/// A radius value: a §12.1 token name, "none", or a raw pixel value.
+struct RadiusValue {
+    std::variant<std::string_view, std::int32_t> value;  // token name or px
+
+    bool is_none()   const noexcept;
+    bool is_token()  const noexcept { return std::holds_alternative<std::string_view>(value); }
+    bool is_pixels() const noexcept { return std::holds_alternative<std::int32_t>(value); }
+};
+
+/// Text overflow behaviour.
+enum class Overflow { clip, ellipsis, wrap, marquee };
+
+/// Text alignment.
+enum class TextAlign { start, center, end };
+
+/// Orientation.
+enum class Orientation { horizontal, vertical };
+
+/// Image fit mode.
+enum class ImageFit { cover, contain, fill, none };
+
+/// Album art fallback strategy.
+enum class FallbackMode { placeholder, none_, blurred_color };
+
+/// Visualizer renderer name.
+enum class VisualizerStyle { bars, oscilloscope, spectrum, vu_meter, none_ };
+
+/// Scroll direction.
+enum class ScrollDirection { vertical, horizontal, both };
+
+/// Alignment within a container.
+enum class Align { start, center, end, stretch, baseline };
+
+/// Justify within a container.
+enum class Justify { start, center, end, space_between, space_around };
+
+/// A state-path binding.  §11.4 / REQ-THM-027: read-only paths into a
+/// whitelisted presentation state model.  The whitelist is exhaustive.
+struct StatePath {
+    std::string path;  // e.g. "track.title"
+};
+
+/// An EFS pattern string.  §10 / REQ-EFS-001: deferred to the QML layer.
+struct EfsPattern {
+    std::string pattern;  // e.g. "%artist% - %title%"
+};
+
+/// A command action.  §11.4 / REQ-THM-028: enum-only, mirrors §13.2.
+struct Action {
+    std::string id;  // e.g. "player.playPause"
+};
+
+/// A column definition for a ListView.
+struct ListColumn {
+    EfsPattern    efs;
+    std::optional<std::string>         header;
+    std::optional<Dimension>           width;
+    std::optional<Align>               align;
+    std::optional<std::string>         style;  // typography.scale.xxx
+};
+
+/// A tab definition for a TabBar.
+struct Tab {
+    std::string       label;
+    std::string       icon;   // icon name in the icon set
+    Action            action;
+};
+
+/// Transport bar button enum — a subset of the §13.2 command registry.
+enum class TransportButton {
+    previous, play_pause, play, pause, stop, next,
+    shuffle, repeat, stop_after_current, loved, rating,
+};
+
+/// ---------------------------------------------------------------------------
+///  when: predicate AST
+///
+///  REQ-THM-030: a restricted boolean predicate for conditional visibility.
+///  Grammar: when = clause { ("and"|"or") clause };
+///           clause = [ "not" ] atom;
+///           atom   = state-path [operator literal];
+///
+///  The interpreter parses this into a flat AST; the QML layer evaluates it
+///  against the live state model.
+// ---------------------------------------------------------------------------
 
 struct WhenPredicate {
+    enum class Op { eq, ne, gt, lt, gte, lte } op;
+    std::string path;   // state path
+    std::string value; // string form; comparison is done by the QML layer
+
+    static WhenPredicate eq(std::string p, std::string v) { return {Op::eq, std::move(p), std::move(v)}; }
+};
+
+struct WhenClause {
+    bool                   negated{false};
+    std::string            path;  // state path (for bare path checks)
+    std::optional<WhenPredicate> pred;  // set if operator+value present
+};
+
+struct WhenExpression {
+    enum class Connective { and_, or_ } connective;
     std::vector<WhenClause> clauses;
-    std::vector<std::string> joins;   // one of {"and","or"} between clauses
-
-    // True if the predicate is empty. The host treats an empty
-    // predicate as always-true; we mirror that here so a host-side
-    // evaluator can `if (!p.empty()) ...`.
-    bool empty() const noexcept { return clauses.empty(); }
 };
-
-// One TransportBar button id (closed set of 11 names).
-enum class TransportButton : std::uint8_t {
-    Previous, PlayPause, Play, Pause, Stop, Next,
-    Shuffle, Repeat, StopAfterCurrent, Loved, Rating,
-};
-std::optional<TransportButton> transport_button_from(std::string_view s);
-
-// A type-scale token from the active theme.
-enum class TypeStyle : std::uint8_t {
-    Display, Headline, Title, Body, Label, Caption, Mono,
-};
-std::optional<TypeStyle> type_style_from(std::string_view s);
-
-// A visualizer style.
-enum class VisualizerStyle : std::uint8_t {
-    Bars, Oscilloscope, Spectrum, VuMeter, None,
-};
-std::optional<VisualizerStyle> visualizer_style_from(std::string_view s);
 
 // ---------------------------------------------------------------------------
-//  Node — the IR. A Node is a value type; the tree is owned by
-//  LayoutDocument and held by shared_ptr<const LayoutDocument>.
+//  Node types
+// ---------------------------------------------------------------------------
+
+/// Layout node type tag.  Matches layout.schema.json componentType enum.
+enum class NodeType : std::uint8_t {
+    // Containers
+    Stack, Row, Column, Grid, Panel, Spacer, ScrollArea, SplitPane,
+    // Text
+    Text, Marquee,
+    // Image / Icon
+    Icon, Image, AlbumArt,
+    // Decorations
+    Divider, Badge,
+    // Interactive
+    Button, ToggleButton, Slider, VolumeControl, TransportBar, SearchField, TabBar,
+    // Lists
+    ListView,
+    // Media
+    Visualizer, SeekBar, PeakMeter, WaveformView, LyricsView,
+    // Rating / Progress
+    Rating, ProgressBar,
+};
+
+/// Return the human-readable name for a NodeType.
+constexpr std::string_view to_string(NodeType t) noexcept;
+
+/// True if this node type may have child nodes.
+constexpr bool has_children(NodeType t) noexcept;
+
+// ---------------------------------------------------------------------------
+//  Node — the base of every layout node
 // ---------------------------------------------------------------------------
 
 struct Node {
-    Component                                       type;
-    std::string                                     id;          // author name
-    WhenPredicate                                   when;        // visibility
-    WhenPredicate                                   enabled_when;
+    // Identity
+    NodeType                  type{NodeType::Panel};
+    std::string               id;          // optional author-facing name
+    std::optional<WhenExpression> when;    // visibility predicate
 
-    // Layout properties
-    std::optional<std::string>                      padding;
-    std::optional<std::string>                      margin;
-    std::optional<std::string>                      spacing;
-    Dimension                                       width{SizeKind::Auto, 0.0};
-    Dimension                                       height{SizeKind::Auto, 0.0};
-    std::optional<Dimension>                        min_width;
-    std::optional<Dimension>                        min_height;
-    std::optional<Dimension>                        max_width;
-    std::optional<Dimension>                        max_height;
-    std::optional<double>                           grow;
-    std::optional<Align>                            align;
-    std::optional<Justify>                          justify;
-    std::optional<Orientation>                      orientation;
-    std::optional<Overflow>                         overflow;
-    std::optional<int>                              max_lines;
-    std::optional<std::string>                      text_align;
+    // Layout
+    std::optional<SpacingValue>  padding;
+    std::optional<SpacingValue>  margin;
+    std::optional<SpacingValue>  spacing;
+    std::optional<Sizing>       sizing;
+    std::optional<Size>         size;
+    std::optional<Dimension>     width;
+    std::optional<Dimension>     height;
+    std::optional<Align>         align;
+    std::optional<Justify>       justify;
 
-    // Style
-    std::optional<std::string>                      background;   // color.* path
-    std::optional<std::string>                      color;        // color.* path
-    std::optional<std::string>                      border_color;
-    std::optional<double>                           border_width;
-    std::optional<int>                              radius;       // 0..9999, or token
-    std::optional<int>                              elevation;
-    std::optional<double>                           opacity;
-    std::optional<bool>                             clip;
+    // Appearance
+    std::optional<ColorRef>      background;
+    std::optional<Border>        border;
+    std::optional<RadiusValue>   radius;
+    std::optional<std::int32_t> elevation;  // 0..5
+    std::optional<double>        opacity;   // 0..1
+    std::optional<bool>          clip;
 
-    // Content source — exactly one is set on a Text/Marquee; the
-    // validator checks the oneOf, the interpreter trusts it.
-    std::optional<std::string>                      text;
-    std::optional<std::string>                      efs;
-    std::optional<Binding>                          bind;
-    std::optional<TypeStyle>                        text_style;  // type-scale token
-    std::optional<VisualizerStyle>                  visualizer_style;
+    // Children (for container types)
+    std::vector<Node>           children;
 
-    // Interactive
-    std::optional<Action>                           action;
-    std::optional<std::string>                      tooltip;
-    std::optional<std::string>                      accessible_name;
+    // Text content (Text, Marquee)
+    std::optional<std::string>         text;
+    std::optional<EfsPattern>          efs;
+    std::optional<StatePath>           bind;
+    std::optional<std::string>         style;       // typography.scale.xxx or visualizer style
+    std::optional<ColorRef>            color;
+    std::optional<Overflow>            overflow;
+    std::optional<std::int32_t>        max_lines;
+    std::optional<TextAlign>           text_align;
+    std::optional<std::string>         tooltip;
+    std::optional<std::string>         accessible_name;
+    std::optional<WhenExpression>      enabled_when;
 
-    // Asset / icon
-    std::optional<std::string>                      source;      // images/foo.png
-    std::optional<std::string>                      icon;        // icon name
-    std::optional<double>                           icon_size;
-    std::optional<Fit>                              fit;
-    std::optional<Fallback>                         fallback;
+    // Actions (Button, ToggleButton)
+    std::optional<Action>               action;
 
-    // Containers
-    int                                             columns{0};
-    int                                             rows{0};
-    std::string                                     scroll_direction; // "vertical"|...
-    double                                          split{0.0};
+    // Image / Icon
+    std::optional<std::string>          source;   // assetRef for Image
+    std::optional<std::string>         icon;     // icon name for Icon
+    std::optional<double>              icon_size;
+    std::optional<ImageFit>            fit;
+    std::optional<FallbackMode>        fallback;
 
-    // TransportBar / ListView / TabBar / Marquee / ProgressBar etc.
-    std::vector<TransportButton>                    transport_buttons;
-    std::optional<double>                           min_value;
-    std::optional<double>                           max_value;
-    std::optional<double>                           step;
-    std::optional<bool>                             show_buffered;
-    std::optional<bool>                             show_labels;
-    std::optional<std::string>                      placeholder;
-    int                                             bar_count{0};
-    std::vector<Node>                                children;     // owned subtree
+    // Grid
+    std::optional<std::int32_t>        columns;
+    std::optional<std::int32_t>        rows;
+    std::optional<Orientation>          orientation;
+
+    // ScrollArea / ListView
+    std::optional<ScrollDirection>      scroll_direction;
+
+    // SplitPane
+    std::optional<double>              split;   // 0..1 split ratio
+
+    // Slider / SeekBar / VolumeControl / SeekBar / ProgressBar
+    std::optional<double>              min;
+    std::optional<double>              max;
+    std::optional<double>              step;
+    std::optional<bool>               show_buffered;
+    std::optional<bool>               show_labels;
+    std::optional<std::string>        placeholder;
+    std::optional<std::int32_t>       bar_count;
+
+    // TransportBar
+    std::vector<TransportButton>      buttons;
+
+    // SearchField
+    // (placeholder is used)
+
+    // ListView
+    std::vector<ListColumn>           columns_spec;
+
+    // TabBar
+    std::vector<Tab>                 tabs;
+
+    // Rating
+    std::optional<std::int32_t>      max_stars;
+
+    // Marquee
+    std::optional<double>             speed;   // px/s
+
+    // LyricsView / WaveformView / Visualizer / PeakMeter
+    // (style is used)
+
+    // Derived: count of bindings in this subtree (for budget enforcement)
+    std::int32_t                     binding_count{0};
 };
 
 // ---------------------------------------------------------------------------
-//  The document
+//  LayoutDocument — the parsed layout file
 // ---------------------------------------------------------------------------
 
 struct LayoutDocument {
-    std::int32_t    schema_version{1};
-    std::string     surface;                  // "main-window" | ...
-    std::string     description;
-    int             min_width{0};
-    int             min_height{0};
-    std::shared_ptr<Node> root;
+    std::int32_t                     schema_version{1};
+    std::string                       surface;   // "main-window" | "now-playing" | ...
+    std::optional<Size>               min_size;
+    std::optional<std::string>        description;
+    Node                              root;
 
-    // Stats from the last parse — useful to surface in `tools/theme-validate`.
-    int   component_count{0};     // REQ-THM-033 budget 500
-    int   max_depth{0};           // budget 24
-    int   binding_count{0};       // budget 64
+    /// The total number of nodes in this document.
+    std::int32_t count_nodes() const noexcept;
+
+    /// The nesting depth of the deepest node.
+    std::int32_t max_depth() const noexcept;
+
+    /// Total bindings in this document.
+    std::int32_t count_bindings() const noexcept;
 };
 
 // ---------------------------------------------------------------------------
-//  Interpret
+//  Parse errors
 // ---------------------------------------------------------------------------
 
-enum class LayoutError {
-    None,
-    ParseError,                 // document is not valid JSON
-    SchemaError,                // document is valid JSON but fails the layout schema
-    SchemaNotInitialised,
-    UnknownComponent,           // type is not in the closed vocabulary
-    UnknownAction,              // action is not in the closed enum
-    UnknownBinding,             // bind is not a whitelisted state path
-    UnknownTypeStyle,            // style is not a type-scale token
-    UnknownVisualizerStyle,      // style is not a visualizer style
-    UnknownTransportButton,
-    UnknownAssetRef,             // source must match images/<name> or icons/<name>
-    UnknownIconRef,              // icon must be a kebab-case name
-    InvalidDimension,            // out of range
-    InvalidSplit,                // not in (0, 1)
-    InvalidEfs,                  // EFS pattern failed to parse
-    UnknownSpacingToken,         // padding/margin/spacing not in the §12.1 set or numeric
-    UnknownRadiusToken,
-    UnknownOverflow,
-    UnknownAlign,
-    UnknownJustify,
-    UnknownOrientation,
-    UnknownScrollDirection,
-    UnknownTextAlign,
-    UnknownFit,
-    UnknownFallback,
-    UnknownColorPath,            // color.* path not in the active theme
-    ComponentBudgetExceeded,     // > 500
-    DepthBudgetExceeded,         // > 24
-    BindingBudgetExceeded,       // > 64
-    InvalidPredicate,            // when: not parseable
-    InvalidMinSize,
-    NodeNotFound,                // referenced node id does not exist
+struct LayoutError {
+    std::string  instance_pointer;  // JSON Pointer to the offending node
+    std::string  message;          // human-readable, actionable
+    std::int32_t line{0};         // source line (0 if not available)
 };
 
 struct LayoutResult {
-    LayoutError                            error{LayoutError::None};
-    std::string                            why;
-    std::string                            offending_id;       // for budget errors
-    std::string                            offending_pointer;  // JSON Pointer to the node
-    std::shared_ptr<LayoutDocument>        document;
+    bool ok() const noexcept { return errors.empty(); }
+    std::vector<LayoutError> errors;
+    std::shared_ptr<const LayoutDocument> document;
 };
+
+// ---------------------------------------------------------------------------
+//  LayoutInterpreter — parses a layout document into a LayoutDocument
+// ---------------------------------------------------------------------------
 
 class LayoutInterpreter {
 public:
-    explicit LayoutInterpreter(const class theme::SchemaValidator& validator);
+    /// Validate and parse a layout document from a JSON string.
+    /// Validation uses the SchemaValidator to enforce REQ-THM-040 step 6.
+    static LayoutResult parse(std::string_view json,
+                              const theme::SchemaValidator& validator);
 
-    // Parse and interpret one .eclayout document. The validator is
-    // used to run the layout schema; the interpreter does not need
-    // the theme schema, but it needs a live validator object so we
-    // share the same SchemaValidator with the rest of the engine.
-    LayoutResult interpret(std::string_view document) const;
-
-    // Build an empty document with the given surface. Useful for
-    // unit tests that want a starting point without a JSON file.
-    static std::shared_ptr<LayoutDocument> make_empty(const std::string& surface);
-
-    // Parse the `when:` predicate grammar. Exposed for tests; the
-    // main pipeline calls it through interpret(). Returns LayoutError
-    // on failure and populates `predicate`.
-    static LayoutError parse_when(const std::string& src, WhenPredicate& predicate);
-
-    // Validate a single node id (REQ-THM-033 says validation messages
-    // name the offending node). The regex is:
-    //   ^[A-Za-z][A-Za-z0-9_-]{0,63}$
-    static bool is_valid_node_id(const std::string& s);
+    /// Validate and parse from a file path.
+    static LayoutResult load(const std::filesystem::path& path,
+                             const theme::SchemaValidator& validator);
 
 private:
-    const class theme::SchemaValidator* validator_{nullptr};
+    static LayoutResult build(const nlohmann::json& doc,
+                              const theme::SchemaValidator& validator);
 };
 
 }  // namespace arrow::skin

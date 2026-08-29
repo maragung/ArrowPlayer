@@ -16,7 +16,7 @@
 
 #include "core/text.hpp"
 
-namespace arrow::format {
+namespace arrow::efs {
 
 namespace {
 
@@ -1217,4 +1217,4 @@ Value Evaluator::apply(const FunctionCall& fc) noexcept {
     return Value{};
 }
 
-}  // namespace arrow::format
+}  // namespace arrow::efs

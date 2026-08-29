@@ -4,7 +4,7 @@
 #include <cctype>
 #include <utility>
 
-namespace arrow::format {
+namespace arrow::efs {
 
 namespace {
 
@@ -37,7 +37,7 @@ class Parser {
 
     [[nodiscard]] ParseResult run() noexcept {
         ParseResult out;
-        out.pattern = parse_pattern(0, &out.problems);
+        out.pattern = parse_pattern(0, 0, &out.problems);
         return out;
     }
 
@@ -67,6 +67,7 @@ class Parser {
     //  parser stops when the matching closer shows up.
 
     Pattern parse_pattern(std::size_t depth_open,
+                          std::size_t bracket_depth,
                           std::vector<ParseProblem>* problems) noexcept {
         Pattern out;
         while (!eof()) {
@@ -79,21 +80,18 @@ class Parser {
             } else if (c == '$') {
                 out.push_back(parse_function(problems));
             } else if (c == '[') {
-                // parse_optional_block appends the unclosed-bracket literal
-                // (if any) directly to `out` before the block node, so the
-                // surface renders `[` followed by the (possibly absent)
-                // block body, exactly as malformed-unclosed-block demands.
                 parse_optional_block(depth_open, problems, &out);
-            } else if (c == ']') {
-                // The matching '[' was missing; surface as a problem and emit
-                // the bracket literally so the rest of the pattern still
-                // renders.  malformed-unmatched-close is the contract.
+            } else if (c == ']' && bracket_depth > 0) {
+                // Only treat ']' as unmatched if we're inside a block.
                 const std::size_t at = pos_;
                 (void)take();
                 emit(problems, ParseProblem::Code::UnmatchedCloseBracket, at, at + 1);
                 LiteralText lit;
                 lit.text.push_back(']');
                 out.emplace_back(std::move(lit));
+            } else if (c == ']') {
+                // At top level, ']' is just a literal
+                out.push_back(parse_literal_char());
             } else {
                 // Plain literal character: not one of the four sigils.
                 out.push_back(parse_literal_char());
@@ -289,7 +287,7 @@ class Parser {
             emit(problems, ParseProblem::Code::NestingTooDeep, pos_, pos_);
             return {};
         }
-        return parse_pattern(parent_open + 1, problems);
+        return parse_pattern(parent_open + 1, true, problems);
     }
 
     // --------------------------------------------------------- optional block
@@ -312,7 +310,7 @@ class Parser {
         }
         const std::size_t at = take();  // consume '['
         OptionalBlock blk;
-        blk.body = parse_pattern(parent_open + 1, problems);
+        blk.body = parse_pattern(parent_open + 1, true, problems);
         if (eof() || peek() != ']') {
             // Unclosed '[' — bracket becomes a literal, the body is still
             // wrapped in a block (so its own collapse rule applies).  The
@@ -432,4 +430,4 @@ ParseResult parse(std::string_view source) noexcept {
     return p.run();
 }
 
-}  // namespace arrow::format
+}  // namespace arrow::efs

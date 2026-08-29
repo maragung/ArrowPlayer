@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Arrow Player — feature-library manifest.
+    Pure Compose screen library — no components.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />

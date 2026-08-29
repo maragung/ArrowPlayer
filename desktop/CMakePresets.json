@@ -28,8 +28,14 @@
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ARROW_WERROR": "ON" }
     },
     {
-      "name": "linux-release-arm64",
-      "displayName": "Linux · Release · arm64",
+      "name": "linux-x64-release",
+      "displayName": "Linux · Release · x86_64 (GCC 12)",
+      "inherits": "linux-release",
+      "cacheVariables": { "CMAKE_C_COMPILER": "gcc-12", "CMAKE_CXX_COMPILER": "g++-12" }
+    },
+    {
+      "name": "linux-arm64-release",
+      "displayName": "Linux · Release · arm64 (cross-compile)",
       "inherits": "base",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
       "toolchainFile": "${sourceDir}/cmake/toolchains/linux-aarch64.cmake",
@@ -44,6 +50,42 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "ARROW_WERROR": "ON",
         "ARROW_SANITIZE_ADDRESS": "ON",
+        "ARROW_BUILD_UI": "OFF"
+      }
+    },
+    {
+      "name": "sanitize-address",
+      "displayName": "Sanitizer · AddressSanitizer (§24.1)",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ARROW_WERROR": "ON",
+        "ARROW_SANITIZE_ADDRESS": "ON",
+        "ARROW_BUILD_UI": "OFF"
+      }
+    },
+    {
+      "name": "sanitize-thread",
+      "displayName": "Sanitizer · ThreadSanitizer (§24.1)",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ARROW_WERROR": "ON",
+        "ARROW_SANITIZE_THREAD": "ON",
+        "ARROW_BUILD_UI": "OFF"
+      }
+    },
+    {
+      "name": "sanitize-ub",
+      "displayName": "Sanitizer · UndefinedBehaviorSanitizer (§24.1)",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ARROW_WERROR": "ON",
+        "ARROW_SANITIZE_UB": "ON",
         "ARROW_BUILD_UI": "OFF"
       }
     },
@@ -90,11 +132,26 @@
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ARROW_WERROR": "ON" }
     },
     {
-      "name": "windows-release-arm64",
-      "displayName": "Windows · Release · arm64 (REQ-GEN-001)",
+      "name": "windows-x64-release",
+      "displayName": "Windows · Release · x64 (MSVC, static CRT /MT)",
+      "inherits": "windows-release",
+      "cacheVariables": {
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
+      }
+    },
+    {
+      "name": "windows-arm64-release",
+      "displayName": "Windows · Release · arm64 (cross-compile) (REQ-GEN-001)",
       "inherits": "base",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
       "architecture": { "value": "arm64", "strategy": "external" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ARROW_WERROR": "ON" }
+    },
+    {
+      "name": "macos-release",
+      "displayName": "macOS · Release",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ARROW_WERROR": "ON" }
     }
   ],
@@ -102,13 +159,19 @@
   "buildPresets": [
     { "name": "linux-debug",     "configurePreset": "linux-debug" },
     { "name": "linux-release",   "configurePreset": "linux-release" },
-    { "name": "linux-release-arm64", "configurePreset": "linux-release-arm64" },
+    { "name": "linux-x64-release", "configurePreset": "linux-x64-release" },
+    { "name": "linux-arm64-release", "configurePreset": "linux-arm64-release" },
     { "name": "linux-asan",      "configurePreset": "linux-asan" },
+    { "name": "sanitize-address", "configurePreset": "sanitize-address" },
+    { "name": "sanitize-thread",  "configurePreset": "sanitize-thread" },
+    { "name": "sanitize-ub",     "configurePreset": "sanitize-ub" },
     { "name": "linux-tsan",      "configurePreset": "linux-tsan" },
     { "name": "linux-fuzz",      "configurePreset": "linux-fuzz" },
     { "name": "windows-debug",   "configurePreset": "windows-debug" },
     { "name": "windows-release", "configurePreset": "windows-release" },
-    { "name": "windows-release-arm64", "configurePreset": "windows-release-arm64" }
+    { "name": "windows-x64-release", "configurePreset": "windows-x64-release" },
+    { "name": "windows-arm64-release", "configurePreset": "windows-arm64-release" },
+    { "name": "macos-release",   "configurePreset": "macos-release" }
   ],
 
   "testPresets": [
@@ -120,6 +183,9 @@
     },
     { "name": "linux-debug",     "inherits": "base", "configurePreset": "linux-debug" },
     { "name": "linux-release",   "inherits": "base", "configurePreset": "linux-release" },
+    { "name": "sanitize-address", "inherits": "base", "configurePreset": "sanitize-address" },
+    { "name": "sanitize-thread",  "inherits": "base", "configurePreset": "sanitize-thread" },
+    { "name": "sanitize-ub",     "inherits": "base", "configurePreset": "sanitize-ub" },
     { "name": "linux-asan",      "inherits": "base", "configurePreset": "linux-asan" },
     { "name": "linux-tsan",      "inherits": "base", "configurePreset": "linux-tsan" },
     { "name": "linux-fuzz",      "inherits": "base", "configurePreset": "linux-fuzz" },
