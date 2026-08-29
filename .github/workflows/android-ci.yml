@@ -273,23 +273,24 @@ jobs:
           version="${VERSION#v}"
           out_dir="$RUNNER_TEMP/renamed-apks"
           rm -rf "$out_dir"; mkdir -p "$out_dir"
-          # gh run download creates a subdirectory for each artifact named after
-          # the artifact (e.g. apk-arm64-v8a/). Extract the APK from each
-          # subdirectory and rename it per the spec's naming scheme.
+          # gh run download extracts artifact contents directly into the target
+          # directory without preserving artifact-name subdirectories.
+          # APKs land as: $RUNNER_TEMP/apks/app-<abi>-release-unsigned.apk
+          # We rename them to: arrow-player-<ver>-android-<abi>.apk
           echo "=== APK download contents ==="
           find "$RUNNER_TEMP/apks" -type f 2>/dev/null | sort || true
-          echo "=== APK download subdirs ==="
-          find "$RUNNER_TEMP/apks" -maxdepth 1 -type d 2>/dev/null | sort || true
           shopt -s nullglob
-          for subdir in "$RUNNER_TEMP"/apks/apk-*; do
-            apks=("$subdir"/*.apk)
-            if [ ${#apks[@]} -eq 0 ]; then
-              echo "::warning::No APK found in $subdir"
-              continue
-            fi
-            apk="${apks[0]}"
-            # Strip "apk-" prefix from artifact name to get the ABI
-            abi=$(basename "$subdir" | sed 's/^apk-//')
+          for apk in "$RUNNER_TEMP/apks"/app-*-release-unsigned.apk; do
+            # Derive the ABI from the source filename: "app-<abi>-release-unsigned.apk"
+            # The artifact name (apk-arm64-v8a, etc.) is not preserved in the download.
+            # Use the filename pattern to identify each ABI.
+            apk_name=$(basename "$apk")
+            case "$apk_name" in
+              app-arm64-v8a-*)     abi=arm64-v8a ;;
+              app-armeabi-v7a-*)   abi=armeabi-v7a ;;
+              app-x86_64-*)       abi=x86_64 ;;
+              *) echo "::warning::Unexpected APK filename: $apk_name"; continue ;;
+            esac
             dest="$out_dir/arrow-player-$version-android-$abi.apk"
             cp "$apk" "$dest"
             sha256sum "$dest" > "$dest.sha256"
