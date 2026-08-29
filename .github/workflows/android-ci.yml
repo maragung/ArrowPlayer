@@ -248,9 +248,13 @@ jobs:
         run: |
           # Wait a moment for all artifacts to be indexed after upload
           sleep 5
-          gh run download "$BUILD_JOB_ID" -R maragung/ArrowPlayer -n apk-arm64-v8a -n apk-armeabi-v7a -n apk-x86_64 -D "$RUNNER_TEMP/apks"
-        env:
-          BUILD_JOB_ID: ${{ needs.build.outputs.job_id }}
+          # Use the current workflow run ID directly. Both the build job and
+          # the release job run in the same workflow run, so github.run_id
+          # correctly targets the build job's artifacts. (gh run download
+          # accepts a run ID as its first positional argument.)
+          gh run download "${{ github.run_id }}" -R maragung/ArrowPlayer \
+            -n apk-arm64-v8a -n apk-armeabi-v7a -n apk-x86_64 \
+            -D "$RUNNER_TEMP/apks"
 
       - name: Name the APKs per REQ-BLD-026 and upload to the release
         env:
