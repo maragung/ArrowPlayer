@@ -295,7 +295,7 @@ jobs:
             sha256sum "$dest" > "$dest.sha256"
           done
           ls -la "$out_dir"
-          if compgen -G "$out_dir/arrow-player-*.apk" > /dev/null; then
+          if [ "$(find "$out_dir" -maxdepth 1 -name 'arrow-player-*.apk' -type f | wc -l)" -gt 0 ]; then
             gh release upload "$TAG" "$out_dir"/arrow-player-*.apk "$out_dir"/arrow-player-*.sha256 --clobber
           else
             echo "::error::No APKs were produced. Check the build output above; the abi split in app/build.gradle.kts must be generating per-ABI artifacts."
