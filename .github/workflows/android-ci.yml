@@ -60,9 +60,9 @@ jobs:
             --jq '.jobs[] | select(.name == env.JOB_NAME) | .id')
           echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
           echo "Downloading artifacts from job $JOB_ID (name: $JOB_NAME)"
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: '21'
@@ -70,7 +70,7 @@ jobs:
       # §25.1: "restore Gradle cache". setup-gradle caches ~/.gradle keyed on
       # the lockfiles; the version is pinned to the same 8.9 the committed
       # wrapper properties name, so local and CI cannot diverge.
-      - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           gradle-version: '8.9'
 
@@ -138,19 +138,19 @@ jobs:
       # work around a v5 multi-file artifact download bug that drops files.
       # The rename to arrow-player-<ver>-android-<abi>.apk for the GitHub
       # Release asset happens in the `release` job below.
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: apk-arm64-v8a
           path: android/app/build/outputs/apk/release/app-arm64-v8a-release*.apk
           if-no-files-found: error
           retention-days: 30
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: apk-armeabi-v7a
           path: android/app/build/outputs/apk/release/app-armeabi-v7a-release*.apk
           if-no-files-found: error
           retention-days: 30
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: apk-x86_64
           path: android/app/build/outputs/apk/release/app-x86_64-release*.apk
@@ -159,7 +159,7 @@ jobs:
 
       # Unit-test report. Always uploaded, not just on failure: a green
       # report is the evidence the gate ran, not a missing file.
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7.0.1
         if: always()
         with:
           name: test-report
@@ -186,14 +186,14 @@ jobs:
     runs-on: ubuntu-24.04
     continue-on-error: true
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: '21'
 
-      - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           gradle-version: '8.9'
 
@@ -246,25 +246,25 @@ jobs:
     steps:
       # gh release upload internally runs `git describe` to tag the upload.
       # Without a .git directory it fails with "not a git repository".
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github
           persist-credentials: false
       - name: Download the per-ABI APKs the build job produced
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8.0.1
         with:
           name: apk-arm64-v8a
           path: ${{ runner.temp }}/apks/arm64
           run-id: ${{ github.run_id }}
       - name: Download armeabi-v7a APK
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8.0.1
         with:
           name: apk-armeabi-v7a
           path: ${{ runner.temp }}/apks/armeabi
           run-id: ${{ github.run_id }}
       - name: Download x86_64 APK
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8.0.1
         with:
           name: apk-x86_64
           path: ${{ runner.temp }}/apks/x86_64
